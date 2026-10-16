@@ -62,7 +62,7 @@
 ### Private attachments — implemented with runtime gating
 
 - Apply the complete [file and image upload policy](../../../references/file-upload-requirements.md) to chat images, including validation, generated storage keys, metadata, processing, errors, and access rules; do not fork its allowlist.
-- New JPEG/JPG, PNG, and WebP chat images are limited to 8,000,000 bytes inclusive. New MP4 videos use the same inclusive byte limit and retain the 180-second cap; documents remain at most 10 MiB each. Display the exact limits before selection.
+- New JPEG/JPG, PNG and MP4 chat files are limited to 8,000,000 bytes each inclusive; MP4 retains the 180-second cap. Reject new WebP and document uploads. Display the limits before selection; historical committed media remains readable. The [media contract](../chat-media/spec.md) owns explicit optional scanning and small-VM image bounds.
 - Enforce the 8,000,000-byte image/video limit on new uploads, rewrites, and new-message bindings. An older unbound ready image/video above the limit cannot be newly attached. Authorized retrieval of already-committed media and an exact replay of its already-committed message remain available; do not apply the new limit retroactively to those cases.
 - Chat images are private participant content. Authorize upload, attachment, preview, and retrieval against the owning conversation or authorized prospective start context; never reuse public product-media access rules for uploaded chat photos.
 - A chat photo does not become formal delivery proof, dispute evidence, or a product gallery asset automatically; those workflows retain their own submission and authorization rules.
@@ -102,23 +102,10 @@
 | --- | --- | --- |
 | Video | MP4 with poster and explicit controls; no autoplay | Implemented under the [media contract](../chat-media/spec.md); no automatic transcoding |
 | Audio | MP3 (`.mp3`, `audio/mpeg`); duration and explicit playback controls | Duration/size limits, actual audio validation, private delivery, accessible transcript/caption approach; recording needs separate microphone consent UX |
-| Documents | Formats below; filename, type, size and Download | Implemented under the media contract with content inspection, scanning and private download |
+| Documents | Historical filename, type, size and Download | New uploads are disabled; preserve private committed history under the media contract |
 
-Document formats supported when media is enabled:
+The chat-specific allowlist is PNG/JPG/JPEG/MP4 only. This does not change other features' image policy. MP3/audio and document uploads remain unavailable. Renaming files cannot bypass validation.
 
-| Extension | Format |
-| --- | --- |
-| `.pdf` | PDF |
-| `.docx` | Microsoft Word |
-| `.xlsx` | Excel |
-| `.pptx` | PowerPoint |
-| `.odt` | OpenDocument Text |
-| `.ods` | OpenDocument Spreadsheet |
-| `.odp` | OpenDocument Presentation |
-| `.txt` | Plain text |
-| `.csv` | CSV |
-
-- The chat media policy separately authorizes MP4 and the listed documents; it does not broaden image-upload formats elsewhere. MP3/audio remains deferred. Renaming files cannot bypass validation; legacy and macro-enabled Office formats remain excluded.
 - Consider Seller saved replies, participant-scoped conversation search, and reply-to-message references after core chat is stable. Each requires its own scope, authorization, accessibility, and acceptance criteria.
 - Read receipts, typing/presence, mute/report, and retention controls remain separate product decisions; borrowing Messenger presentation does not promise its feature set or end-to-end encryption.
 
@@ -130,7 +117,7 @@ Document formats supported when media is enabled:
 - [ ] Repeated Product/Order entry reuses the correct Shop thread; Seller sharing rejects invisible/cross-Shop products and never exposes unrelated Buyer orders.
 - [ ] Missing Product/Order/media context remains readable as a safe placeholder; operational channels retain correct task identity and read-only states.
 - [ ] Loading, empty, offline, validation, 401/403/404, conflict, throttling, and timeout states give truthful feedback; exact retry after response loss creates no duplicate message or attachment.
-- [ ] Valid allowed images below the byte limit work after media activation; exact-limit, corrupt, spoofed, and unlisted files fail server validation with recoverable UI errors.
+- [ ] Valid allowed images below the byte limit work after media activation; above-limit, corrupt, spoofed, and unlisted files fail server validation with recoverable UI errors.
 - [ ] Private attachments cannot be fetched or reused by another participant/tenant outside the authorized thread; logout and authorization loss clear private views and drafts.
 - [ ] Product cards, images, recipient receipts, and future formats appear only for implemented capabilities; text-only consumers remain compatible during staged adoption.
 - Record actual backend/browser/type/lint/build checks with the implementation. Leave these scenarios unchecked until verified; this specification alone supplies no application or Flutter test evidence.

@@ -52,6 +52,48 @@ class SellerAcceptOrderTest extends TestCase
             ->assertNotFound();
     }
 
+    public function test_order_search_matches_owned_references_and_purchased_snapshots_before_pagination(): void
+    {
+        [$seller, $shop] = $this->sellerShop('search-owner');
+        [, $foreignShop] = $this->sellerShop('search-foreign');
+        $reference = $this->order($shop, 'CEDAR');
+        $snapshot = $this->order($shop, 'ITEM');
+        $sku = $this->order($shop, 'SKU');
+        $unrelated = $this->order($shop, 'OTHER');
+        $foreign = $this->order($foreignShop, 'CEDAR');
+        $snapshot->items()->update(['product_name' => 'Cedar storage basket']);
+        $sku->items()->update(['sku' => 'CEDAR-042']);
+        $foreign->items()->update(['product_name' => 'Cedar foreign snapshot']);
+
+        $result = $this->actingAs($seller)->getJson('/api/v1/seller/orders?search=cedar&sort=oldest&per_page=2')
+            ->assertOk()->assertJsonCount(2, 'data')->assertJsonPath('meta.total', 3)
+            ->assertJsonPath('status_counts.placed', 4);
+        $secondPage = $this->getJson('/api/v1/seller/orders?search=CEDAR&sort=oldest&per_page=2&page=2')
+            ->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('meta.total', 3);
+        $ids = collect($result->json('data'))->merge($secondPage->json('data'))->pluck('id')->all();
+        $this->assertEqualsCanonicalizing([$reference->id, $snapshot->id, $sku->id], $ids);
+        $this->assertNotContains($foreign->id, $ids);
+        $this->assertNotContains($unrelated->id, $ids);
+        $this->getJson('/api/v1/seller/orders?search=cedar&status=cancelled')
+            ->assertOk()->assertJsonCount(0, 'data');
+        $this->getJson('/api/v1/seller/orders?search='.str_repeat('a', 121))
+            ->assertUnprocessable()->assertJsonValidationErrors('search');
+    }
+
+    public function test_order_search_treats_wildcards_as_literal_characters(): void
+    {
+        [$seller, $shop] = $this->sellerShop();
+        $literal = $this->order($shop, 'LITERAL');
+        $this->order($shop, 'OTHER');
+        $literal->items()->update(['product_name' => '100% cotton', 'sku' => 'BOX_A!']);
+
+        foreach (['%', '_', '!'] as $term) {
+            $this->actingAs($seller)->getJson('/api/v1/seller/orders?search='.urlencode($term))
+                ->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.id', $literal->id);
+        }
+        $this->getJson('/api/v1/seller/orders?search=')->assertOk()->assertJsonCount(2, 'data');
+    }
+
     public function test_seller_approval_is_idempotent_and_does_not_touch_payment_or_inventory(): void
     {
         [$seller, $shop] = $this->sellerShop();

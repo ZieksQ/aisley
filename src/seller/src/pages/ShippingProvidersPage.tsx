@@ -1,140 +1,223 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { FaLocationDot, FaTruck } from 'react-icons/fa6'
-import { useAuth } from '../auth/useAuth'
-import { OrderButton, OrderError, orderPanel } from '../components/orders/OrderUi'
-import { ApiError } from '../lib/api'
-import { getSellerLogisticsOptions, type LogisticsOption } from '../lib/sellerLogisticsOptions'
-import { getShippingProviders, type ShippingProviderSetting, updateShippingProvider } from '../lib/sellerShippingProviders'
-import { useOrderAccessError } from '../lib/useSellerOrders'
-
-type ProviderRow = ShippingProviderSetting & { recommendation: LogisticsOption | null }
+import { useEffect, useRef, useState } from 'react'
+import { LuPlus, LuRefreshCw, LuTrash2, LuTruck } from 'react-icons/lu'
+import {
+  ConfirmationDialog,
+  IconButton,
+  PortalState,
+  PortalSkeleton,
+  PortalTable,
+} from '@aisley/ui/portal'
+import {
+  useShippingProviders,
+  type ProviderRow,
+} from '../features/shipping-providers/useShippingProviders'
+import { ShippingProviderPicker } from '../features/shipping-providers/ShippingProviderPicker'
+import { ProviderLocation } from '../features/shipping-providers/ProviderLocation'
+import '../features/shipping-providers/shipping.css'
 
 export function ShippingProvidersPage() {
-  const { seller } = useAuth()
-  const accessError = useOrderAccessError()
-  const [providers, setProviders] = useState<ShippingProviderSetting[]>([])
-  const [recommendations, setRecommendations] = useState<LogisticsOption[]>([])
-  const [loading, setLoading] = useState(true)
-  const [savingId, setSavingId] = useState('')
-  const [error, setError] = useState('')
-  const [notice, setNotice] = useState('')
-
-  useEffect(() => { document.title = 'Shipping providers | Aisley Seller' }, [])
-
-  const load = useCallback(async (force = false) => {
-    if (!seller) { setLoading(false); return }
-    setLoading(true)
-    setError('')
-    setNotice('')
-    const [settings, ranked] = await Promise.allSettled([
-      getShippingProviders(),
-      getSellerLogisticsOptions(seller.id, force),
-    ])
-
-    if (settings.status === 'rejected') {
-      if (!accessError(settings.reason)) {
-        setError(settings.reason instanceof ApiError ? settings.reason.message : 'Shipping providers could not be loaded.')
-      }
-      setLoading(false)
-      return
-    }
-
-    setProviders(settings.value.data)
-    setRecommendations(ranked.status === 'fulfilled' ? ranked.value.data : [])
-    setLoading(false)
-  }, [accessError, seller])
-
-  useEffect(() => { void load() }, [load])
-
-  const rows = useMemo<ProviderRow[]>(() => {
-    const ranked = new Map(recommendations.map((provider) => [provider.id, provider]))
-    const rank = new Map(recommendations.map((provider, index) => [provider.id, index]))
-
-    return providers
-      .map((provider) => ({ ...provider, recommendation: ranked.get(provider.organization_id) ?? null }))
-      .sort((left, right) => {
-        const leftRank = rank.get(left.organization_id) ?? Number.MAX_SAFE_INTEGER
-        const rightRank = rank.get(right.organization_id) ?? Number.MAX_SAFE_INTEGER
-        return leftRank - rightRank || left.business_name.localeCompare(right.business_name)
-      })
-  }, [providers, recommendations])
-
-  async function toggle(provider: ShippingProviderSetting) {
-    if (savingId) return
-    const next = !provider.is_enabled
-    setSavingId(provider.organization_id)
-    setError('')
-    setNotice('')
-    try {
-      const response = await updateShippingProvider(provider, next)
-      setProviders((current) => current.map((item) => item.organization_id === provider.organization_id
-        ? { ...item, is_enabled: response.data.is_enabled, revision: response.data.revision }
-        : item))
-      setNotice(`${provider.business_name} is now ${next ? 'available' : 'unavailable'} to Customers at checkout.`)
-    } catch (reason) {
-      if (!accessError(reason)) {
-        setError(reason instanceof ApiError && reason.status === 409
-          ? 'This provider setting changed elsewhere. The list has been refreshed.'
-          : reason instanceof ApiError ? reason.message : 'The provider setting could not be saved.')
-        if (reason instanceof ApiError && reason.status === 409) void load(true)
-      }
-    } finally { setSavingId('') }
-  }
-
-  const enabledCount = providers.filter((provider) => provider.is_enabled).length
-
-  return <main className="mx-auto max-w-5xl px-4 py-7 sm:px-6 lg:px-8">
-    <div className="flex flex-wrap items-start justify-between gap-4 border-b border-zinc-200 pb-5 dark:border-white/10">
-      <div><h2 className="text-2xl font-semibold">Shipping providers</h2><p className="mt-1 max-w-2xl text-sm text-zinc-600 dark:text-zinc-400">Choose which providers Customers can use for new Orders from your Shop. Existing Orders keep the provider chosen at checkout.</p></div>
-      <OrderButton isLoading={loading} loadingLabel="Refreshing" onClick={() => void load(true)}>Refresh</OrderButton>
-    </div>
-
-    {error ? <OrderError message={error} retry={() => void load(true)} /> : null}
-    {notice ? <p className="my-4 border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800 dark:border-emerald-400/25 dark:bg-emerald-400/10 dark:text-emerald-200" role="status">{notice}</p> : null}
-
-    <section className={`${orderPanel} mt-5 overflow-hidden`} aria-labelledby="provider-list-heading">
-      <div className="flex flex-wrap items-end justify-between gap-2 border-b border-zinc-200 px-5 py-4 dark:border-white/10">
-        <div><h3 className="font-semibold" id="provider-list-heading">Available providers</h3><p className="mt-1 text-sm text-zinc-500">{enabledCount} of {providers.length} enabled</p></div>
-        {recommendations.length ? <p className="text-xs text-zinc-500">Sorted by pickup-address match and road distance</p> : null}
-      </div>
-
-      {loading && providers.length === 0 ? <p className="p-5 text-sm text-zinc-500" role="status">Loading shipping providers…</p> : null}
-      {!loading && providers.length === 0 ? <div className="p-8 text-center"><FaTruck aria-hidden="true" className="mx-auto text-zinc-400" /><p className="mt-3 text-sm font-medium">No providers are available</p><p className="mt-1 text-sm text-zinc-500">A Logistics organization needs an active account and operational hub before it can appear here.</p></div> : null}
-      {rows.length ? <ul className="divide-y divide-zinc-200 dark:divide-white/10">{rows.map((provider) => {
-        const recommendation = provider.recommendation
-        const isSaving = savingId === provider.organization_id
-        return <li className="grid gap-4 p-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center" key={provider.organization_id}>
-          <div className="min-w-0">
-            <div className="flex items-start gap-3"><FaTruck aria-hidden="true" className="mt-1 shrink-0 text-[#4C1268] dark:text-purple-300" /><div className="min-w-0"><h4 className="font-medium">{provider.business_name}</h4><p className="mt-1 text-sm text-zinc-600 dark:text-zinc-300">{provider.hub.name}</p></div></div>
-            {recommendation ? <div className="mt-3 flex items-start gap-2 border-l-2 border-zinc-300 pl-3 text-xs leading-5 text-zinc-600 dark:border-white/20 dark:text-zinc-400"><FaLocationDot aria-hidden="true" className="mt-0.5 shrink-0" /><p>{recommendationText(recommendation)}<span className="block">{providerArea(recommendation)}</span></p></div> : <p className="mt-3 border-l-2 border-amber-400 pl-3 text-xs leading-5 text-amber-800 dark:text-amber-300">Add a complete default pickup address to see city, region, and distance recommendations.</p>}
-          </div>
-          <label className="flex min-h-11 cursor-pointer items-center justify-between gap-4 border-t border-zinc-200 pt-4 text-sm sm:border-0 sm:pt-0" htmlFor={`provider-${provider.organization_id}`}>
-            <span className="font-medium">{isSaving ? 'Saving…' : provider.is_enabled ? 'Enabled' : 'Disabled'}</span>
-            <input aria-describedby={`provider-help-${provider.organization_id}`} checked={provider.is_enabled} className="size-5 accent-[#E6007A]" disabled={Boolean(savingId)} id={`provider-${provider.organization_id}`} onChange={() => void toggle(provider)} role="switch" type="checkbox" />
-            <span className="sr-only" id={`provider-help-${provider.organization_id}`}>Controls whether Customers may select {provider.business_name} for new Orders.</span>
-          </label>
-        </li>
-      })}</ul> : null}
-    </section>
-    {recommendations.length ? <p className="mt-3 text-[11px] text-zinc-500">Distance data © Geoapify · OpenStreetMap contributors</p> : null}
-  </main>
-}
-
-function recommendationText(provider: LogisticsOption) {
-  const reason = provider.recommendation_reason === 'same_city'
-    ? 'Hub in the same city as your default pickup address'
-    : provider.recommendation_reason === 'same_province'
-      ? 'Hub in the same province as your default pickup address'
-      : provider.recommendation_reason === 'same_region'
-        ? 'Hub in the same region as your default pickup address'
-      : provider.recommendation_reason === 'nearest_by_road'
-        ? 'Nearest eligible hub by available road distance'
-        : 'Eligible hub outside your city and province'
-  const distance = provider.distance_km === null ? '' : ` · ${provider.distance_km.toFixed(1)} km by road`
-  return `${provider.recommended ? 'Recommended · ' : ''}${reason}${distance}`
-}
-
-function providerArea(provider: LogisticsOption) {
-  const { city_municipality: city, province, region } = provider.hub.area
-  return [city, province, region].filter(Boolean).join(', ')
+  const state = useShippingProviders()
+  const [adding, setAdding] = useState(false)
+  const [removing, setRemoving] = useState<ProviderRow | null>(null)
+  const addButton = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    document.title = 'Shipping providers | Aisley Seller'
+  }, [])
+  const enabled = state.rows.filter((item) => item.is_enabled)
+  const busy = Boolean(state.saving)
+  const removal = removing
+    ? (state.rows.find(
+        (row) => row.organization_id === removing.organization_id,
+      ) ?? removing)
+    : null
+  return (
+    <main className="portal-page">
+      <header className="portal-page-header">
+        <div>
+          <h2 className="portal-page-heading">Shipping providers</h2>
+          <p className="portal-page-description">
+            Choose who delivers your Shop’s Orders. Customers can select these
+            providers at checkout.
+          </p>
+        </div>
+        <div className="portal-inline-actions">
+          <IconButton
+            label="Refresh providers"
+            disabled={state.loading || busy}
+            onClick={() => void state.load(true)}
+          >
+            <LuRefreshCw aria-hidden="true" />
+          </IconButton>
+          <button
+            ref={addButton}
+            className="portal-button portal-button-primary"
+            disabled={state.loading || busy || Boolean(state.error)}
+            onClick={() => {
+              setAdding(true)
+            }}
+          >
+            <LuPlus aria-hidden="true" />
+            Add shipping provider
+          </button>
+        </div>
+      </header>
+      {state.notice && (
+        <p className="portal-feedback" role="status">
+          {state.notice}
+        </p>
+      )}
+      {state.error && (
+        <PortalState
+          error
+          title={state.error}
+          action={
+            <button
+              className="portal-button"
+              disabled={busy || state.loading}
+              onClick={() => void state.load(true)}
+            >
+              Refresh providers
+            </button>
+          }
+        />
+      )}
+      {state.loading ? (
+        <PortalSkeleton label="Loading shipping providers…" rows={3} />
+      ) : !state.error && enabled.length === 0 ? (
+        <PortalState
+          title="No shipping providers added"
+          description="Add an available provider so Customers can select delivery for new Orders."
+          action={
+            <button
+              className="portal-button portal-button-primary"
+              onClick={() => setAdding(true)}
+            >
+              <LuPlus aria-hidden="true" />
+              Add shipping provider
+            </button>
+          }
+        />
+      ) : (
+        enabled.length > 0 && (
+          <PortalTable label="Enabled shipping providers">
+            <caption>
+              {enabled.length} {enabled.length === 1 ? 'provider' : 'providers'}{' '}
+              available at checkout
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">Provider</th>
+                <th scope="col">Operational hub</th>
+                <th scope="col">Location</th>
+                <th scope="col">
+                  <span className="sr-only">Actions</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {enabled.map((provider) => (
+                <tr key={provider.organization_id}>
+                  <td className="portal-table-name">
+                    <div className="provider-name">
+                      <LuTruck aria-hidden="true" />
+                      <strong>{provider.business_name}</strong>
+                    </div>
+                    {provider.local && (
+                      <span className="portal-tag portal-tag-brand provider-local">
+                        Recommended
+                      </span>
+                    )}
+                  </td>
+                  <td>{provider.hub.name}</td>
+                  <td>
+                    <ProviderLocation provider={provider} />
+                  </td>
+                  <td className="portal-row-action">
+                    <IconButton
+                      className="portal-icon-danger"
+                      label={`Remove ${provider.business_name}`}
+                      disabled={busy || state.loading || Boolean(state.error)}
+                      onClick={() => setRemoving(provider)}
+                    >
+                      <LuTrash2 aria-hidden="true" />
+                    </IconButton>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </PortalTable>
+        )
+      )}
+      <p className="portal-page-description">
+        Removing a provider affects new checkout choices. Existing Orders keep
+        the provider selected when placed.
+      </p>
+      {state.rows.some(
+        (row) =>
+          row.ranking?.distance_km !== null &&
+          row.ranking?.distance_km !== undefined,
+      ) && (
+        <p className="provider-attribution">
+          Distance data © Geoapify · OpenStreetMap contributors
+        </p>
+      )}
+      {adding && (
+        <ShippingProviderPicker
+          state={state}
+          onClose={() => {
+            setAdding(false)
+            requestAnimationFrame(() => {
+              if (document.activeElement === document.body)
+                addButton.current?.focus()
+            })
+          }}
+        />
+      )}
+      {removal && (
+        <ConfirmationDialog
+          title="Remove shipping provider?"
+          confirmLabel="Remove provider"
+          destructive
+          busy={busy}
+          confirmDisabled={
+            state.loading || Boolean(state.error) || !removal.is_enabled
+          }
+          onClose={() => setRemoving(null)}
+          onConfirm={() =>
+            void state.save(removal, false).then((saved) => {
+              if (saved) {
+                setRemoving(null)
+                requestAnimationFrame(() => addButton.current?.focus())
+              }
+            })
+          }
+        >
+          <p>
+            Remove <strong>{removal.business_name}</strong> from your Shop’s new
+            checkout choices? Existing Orders keep their selected provider.
+          </p>
+          {state.error && (
+            <>
+              <p className="portal-field-error" role="alert">
+                {state.error}
+              </p>
+              <button
+                className="portal-button mt-3"
+                disabled={busy || state.loading}
+                onClick={() => void state.load(true)}
+              >
+                Refresh providers
+              </button>
+            </>
+          )}
+          {!removal.is_enabled && (
+            <p className="portal-feedback">
+              This provider is already removed. Close this dialog to review the
+              latest list.
+            </p>
+          )}
+        </ConfirmationDialog>
+      )}
+    </main>
+  )
 }

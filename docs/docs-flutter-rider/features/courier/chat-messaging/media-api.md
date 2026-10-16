@@ -1,12 +1,14 @@
-# Private chat attachment API — 2026-10-12
+# Private chat attachment API — 2026-10-17
 
-This additive Laravel contract supports images, video and documents in existing chat relationships. Buyer and Courier Flutter image selection/send, authenticated images and receive-only MP4/document consumption are implemented locally. New uploads use the revised limits below; deployed media exchange and installed-device acceptance remain open.
+This Laravel contract supports new image/video uploads and historical document reads in existing chat relationships. Buyer and Courier Flutter image selection/send, authenticated images and receive-only MP4/document consumption are implemented locally. New uploads use the revised limits below; deployed media exchange and installed-device acceptance remain open.
 
 ## Selection and limits
 
-Select up to five files totaling at most 50 MiB. New JPG/JPEG, PNG and WebP images are at most 8,000,000 bytes (inclusive). New MP4 videos are at most 8,000,000 bytes (inclusive) and 180 seconds, with one H.264 video stream and optional AAC audio; there is no transcoding. PDF, DOCX, XLSX, PPTX, ODT, ODS, ODP, UTF-8 TXT and CSV remain at most 10 MiB each. Empty files, unsupported/double extensions, spoofed formats, unsafe/encrypted documents and failed malware checks are rejected. Images are decoded, bounded and rewritten without source metadata. Videos get a poster. File selection does not send a message.
+Select up to five PNG/JPG/JPEG/MP4 files, at most 8,000,000 bytes (8 MB) each inclusive. PNG/JPEG images are bounded to 4,096 pixels per edge and 8 megapixels and are decoded/rewritten without source metadata. MP4 retains the 180-second cap, one H.264 video stream and optional AAC audio; no transcoding. Reject new WebP, document, audio and unlisted uploads, empty/corrupt/spoofed files and double extensions. The existing 50 MiB aggregate ceiling remains compatible; five new files can total at most 40,000,000 bytes. Selection does not send a message.
 
-Apply the 8,000,000-byte limit to every new image/video upload, rewrite, and binding to a new message. A historical ready but unbound image/video over that limit cannot be attached to a new message. Keep authorized retrieval of media already committed to a message and exact replay of that already-committed message; this compatibility does not permit a changed retry payload or new binding. Client selection now adopts this boundary; deployed/device acceptance remains separately tracked.
+Apply the new allowlist/byte bounds to uploads, processing and every new binding. Historical unbound WebP/documents or oversized files cannot be newly bound. Preserve authorized retrieval and exact replay of media already committed to a message, including historical WebP/documents; this does not permit changed retry payloads.
+
+The school deployment may explicitly set `CHAT_MEDIA_SCAN_ENABLED=false`. Malware scanning is then skipped, while content/type/size/authorization checks remain required. When scanning is enabled, scanner failure/unavailability blocks processing. Private storage, worker and tools remain required. Clients must remove WebP from new selection and use the revised image dimensions; this contract revision does not establish Flutter implementation/adoption. Prior client evidence and live/device gates remain unchanged.
 
 ## Routes
 
@@ -22,7 +24,7 @@ Use the authenticated caller's `/api/v1/{role}/chat-attachments` base. All route
 | GET `/{id}/content` | Authorized conversation participants only, bound ready content; private/no-store/nosniff. Documents force download. MP4 supports one byte range (206), invalid ranges return 416. |
 | GET `/{id}/preview` | Authorized bound ready image thumbnail/video poster (JPEG). Missing/foreign/unbound content is scoped 404. |
 
-Uploads/retries are limited to 15 per minute per account, separately from message counters. Upload one file per multipart request, at most 8,000,000 bytes for images/videos or 10 MiB for documents. Do not set multipart Content-Type manually; the transport adds the boundary. Error responses retain the existing Laravel message/errors envelope: 401 auth, 403 approval/account/consent, 404 scope, 409 conflict/ended relationship, 422 validation, 429 throttle, 503 media unavailable. There is no raw storage path or public blob URL in the DTO.
+Uploads/retries are limited to 15 per minute per account, separately from message counters. Upload one file per multipart request, at most 8,000,000 bytes for PNG/JPG/JPEG/MP4 only. Do not set multipart Content-Type manually; the transport adds the boundary. Error responses retain the existing Laravel message/errors envelope: 401 auth, 403 approval/account/consent, 404 scope, 409 conflict/ended relationship, 422 validation, 429 throttle, 503 media unavailable. There is no raw storage path or public blob URL in the DTO.
 
 ## DTO and state
 
@@ -51,3 +53,7 @@ Videos have an authorized poster and explicit View video, Play/Pause and seeking
 Cancel reads, evict images, dispose players, clear download buffers and remove temporary handles on identity/controller replacement, logout, consent/relationship loss or close. Ignore obsolete success/error replies. HTTP 429 respects Retry-After with manual retry; no offline queue or automatic unchanged upload retry is added. Playback uses pinned video_player 2.11.1, path_provider 2.1.6 and web 1.1.1; the initially evaluated file_saver was excluded because its byte/picker and blob lifecycle did not meet these boundaries. Android document export is a focused native channel; no broad storage permission is added.
 
 Adopted media baseline: Laravel `28fc740` and the 2026-10-11 decimal-byte limit revision. Local source/test/build/browser evidence belongs to the owning verification record. Private storage/worker/scanner readiness, deployed cross-role exchange and installed Android/TalkBack acceptance remain release gates. Mobile video/document upload is outside this receive-only release.
+
+## Backend contract revision — 2026-10-17
+
+New upload/binding policy now allows PNG/JPG/JPEG/MP4 only with the image bounds above and explicit optional malware scanning. Deployed storage/processing and updated Flutter selection acceptance remain unverified by this documentation update. Historical media and all participant/role/relationship rules remain unchanged.

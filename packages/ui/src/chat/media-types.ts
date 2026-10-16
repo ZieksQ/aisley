@@ -50,5 +50,5 @@ export type ChatAttachmentDraft = {
   busy: boolean;
 };
 
-export const chatMediaAccept = ".jpg,.jpeg,.png,.webp,.mp4,.pdf,.docx,.xlsx,.pptx,.odt,.ods,.odp,.txt,.csv";
-export const chatMediaHelp = "Up to 5 files, 50 MiB total. JPG/PNG/WebP and MP4 up to 8 MB (8,000,000 bytes); MP4 up to 3 minutes; documents up to 10 MiB.";
+export const chatMediaAccept = ".jpg,.jpeg,.png,.mp4";
+export const chatMediaHelp = "Up to 5 files. JPG/JPEG, PNG and MP4 only, up to 8 MB (8,000,000 bytes) each. Images: up to 4096 pixels per edge and 8 megapixels. MP4: H.264 video with optional AAC audio, up to 3 minutes.";

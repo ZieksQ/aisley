@@ -5,23 +5,16 @@ export type DashboardMetricCardProps = {
   value: ReactNode
   icon: ReactNode
   detail: string
-  footer?: ReactNode
-  action?: ReactNode
-  emphasis?: boolean
 }
 
-/** Presentation only: each role supplies permitted metrics and navigation. */
-export function DashboardMetricCard({ label, value, icon, detail, footer, action, emphasis = false }: DashboardMetricCardProps) {
-  return (
-    <article className={`dashboard-stat-card ${emphasis ? 'is-emphasized' : ''}`}>
-      <div className="dashboard-stat-header">
-        <span className="dashboard-stat-icon" aria-hidden="true">{icon}</span>
-        <h3>{label}</h3>
-        {action}
-      </div>
-      <p className="dashboard-stat-value">{value}</p>
-      <p className="dashboard-stat-detail">{detail}</p>
-      {footer && <div className="dashboard-stat-footer">{footer}</div>}
-    </article>
-  )
+/** Presentation only: each role supplies permitted metrics and icons. */
+export function DashboardMetricCard({ label, value, icon, detail }: DashboardMetricCardProps) {
+  return <article className="dashboard-stat-card">
+    <div className="dashboard-stat-header">
+      <span className="dashboard-stat-icon" aria-hidden="true">{icon}</span>
+      <h3 className="dashboard-stat-label">{label}</h3>
+    </div>
+    <p className="dashboard-stat-value">{value}</p>
+    <p className="dashboard-stat-detail">{detail}</p>
+  </article>
 }

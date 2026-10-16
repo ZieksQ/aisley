@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Button, TextField, SelectField } from '@aisley/ui'
-import { formValues, funding, payload, type FormValues } from './model'
+import { formValues, payload, type FormValues } from './model'
 import type { Terms, Failure } from './types'
 import { FieldHelp } from './FieldHelp'
+import { Confirmation } from './Confirmation'
+import { VoucherBenefitFields } from './VoucherBenefitFields'
 
 export function VoucherEditor({
   initial,
@@ -29,6 +31,7 @@ export function VoucherEditor({
 }) {
   const [baseline] = useState(() => formValues(initial))
   const [values, setValues] = useState<FormValues>(baseline)
+  const [discard, setDiscard] = useState(false)
   const dirty = JSON.stringify(values) !== JSON.stringify(baseline)
   useEffect(() => {
     onDirtyChange(dirty)
@@ -56,198 +59,202 @@ export function VoucherEditor({
     )
   }
   function cancel() {
-    if (!dirty || window.confirm('Discard unsaved voucher input?')) onCancel()
+    if (dirty) setDiscard(true)
+    else onCancel()
   }
   return (
-    <form
-      onSubmit={(event) => {
-        event.preventDefault()
-        const body = payload(values, revision, initial)
-        if (role === 'seller') delete body.distribution_mode
-        onSubmit(body)
-      }}
-    >
-      <fieldset disabled={busy || uncertain}>
-        <legend>Voucher details</legend>
-        <div className="voucher-fields">
-          {field('name', 'Voucher name', 'text', {
-            required: true,
-            maxLength: 120,
-            placeholder: 'e.g. Payday savings',
-            hint: 'Customers see this name when choosing a voucher at checkout.',
-          })}
-          {role === 'admin' && (
-            <SelectField
-              id="voucher-distribution_mode"
-              label="Distribution"
-              value={values.distribution_mode}
-              disabled={identityLocked}
-              error={error?.errors?.distribution_mode?.[0]}
-              onChange={(event) =>
-                update(
-                  'distribution_mode',
-                  event.target.value as FormValues['distribution_mode'],
-                )
-              }
-            >
-              <option value="claim_required">Claim required</option>
-              <option value="automatic">Automatically available</option>
-            </SelectField>
-          )}
-          {field('code', 'Code', 'text', {
-            maxLength: 64,
-            disabled: identityLocked,
-            placeholder: 'Generated when left blank',
-            hint: 'Uppercase letters, digits and hyphens. Fixed after publication.',
-          })}
-        </div>
-        {role === 'admin' && (
-          <p className="mt-4">
-            Distribution is fixed after publication. Duplicate to change it.
-          </p>
-        )}
-      </fieldset>
-      <fieldset disabled={busy || uncertain}>
-        <legend>Benefit</legend>
-        <div className="voucher-fields">
-          <SelectField
-            id="voucher-benefit_type"
-            label="Benefit"
-            value={values.benefit_type}
-            disabled={identityLocked}
-            error={error?.errors?.benefit_type?.[0]}
-            onChange={(event) =>
-              update(
-                'benefit_type',
-                event.target.value as Terms['benefit_type'],
-              )
-            }
-          >
-            <option value="discount">Merchandise discount</option>
-            {role === 'admin' && (
-              <option value="shipping">Shipping saving</option>
-            )}
-          </SelectField>
-          <SelectField
-            id="voucher-value_type"
-            label="Saving type"
-            value={values.value_type}
-            onChange={(event) =>
-              update('value_type', event.target.value as Terms['value_type'])
-            }
-          >
-            <option value="fixed">Fixed PHP amount</option>
-            <option value="percent">Percentage</option>
-          </SelectField>
-          {field(
-            'value',
-            values.value_type === 'percent' ? 'Percentage' : 'Saving (PHP)',
-            'number',
-            {
-              labelHelp: (
-                <FieldHelp
-                  label={
-                    values.value_type === 'percent'
-                      ? 'Percentage'
-                      : 'Saving (PHP)'
+    <>
+      <form
+        className="voucher-editor"
+        onSubmit={(event) => {
+          event.preventDefault()
+          const body = payload(values, revision, initial)
+          if (role === 'seller') delete body.distribution_mode
+          onSubmit(body)
+        }}
+      >
+        <nav className="voucher-editor-nav" aria-label="Voucher sections">
+          {[
+            'Details',
+            'Benefit',
+            'Conditions',
+            'Schedule',
+            'Limits',
+            'Terms',
+          ].map((section) => (
+            <a key={section} href={`#voucher-section-${section.toLowerCase()}`}>
+              {section}
+            </a>
+          ))}
+        </nav>
+        <div className="voucher-editor-fields">
+          <fieldset id="voucher-section-details" disabled={busy || uncertain}>
+            <legend>Voucher details</legend>
+            <div className="voucher-fields">
+              {field('name', 'Voucher name', 'text', {
+                required: true,
+                maxLength: 120,
+                placeholder: 'e.g. Payday savings',
+                hint: 'Customers see this name when choosing a voucher at checkout.',
+              })}
+              {role === 'admin' && (
+                <SelectField
+                  id="voucher-distribution_mode"
+                  label="Distribution"
+                  value={values.distribution_mode}
+                  disabled={identityLocked}
+                  error={error?.errors?.distribution_mode?.[0]}
+                  onChange={(event) =>
+                    update(
+                      'distribution_mode',
+                      event.target.value as FormValues['distribution_mode'],
+                    )
                   }
                 >
-                  {values.value_type === 'percent'
-                    ? 'The percentage taken off eligible merchandise or the shipping fee. A savings cap limits the final amount.'
-                    : 'The PHP amount taken off eligible merchandise or the shipping fee. Savings never exceed that amount or the savings cap.'}
-                </FieldHelp>
-              ),
-              required: true,
-              min: '0.01',
-              step: '0.01',
-              max: values.value_type === 'percent' ? 100 : '9999999999.99',
-            },
-          )}
+                  <option value="claim_required">Claim required</option>
+                  <option value="automatic">Automatically available</option>
+                </SelectField>
+              )}
+              {field('code', 'Code', 'text', {
+                maxLength: 64,
+                disabled: identityLocked,
+                placeholder: 'Generated when left blank',
+                hint: 'Uppercase letters, digits and hyphens. Fixed after publication.',
+              })}
+            </div>
+            {role === 'admin' && (
+              <p className="mt-4">
+                Distribution is fixed after publication. Duplicate to change it.
+              </p>
+            )}
+          </fieldset>
+          <VoucherBenefitFields
+            role={role}
+            values={values}
+            identityLocked={identityLocked}
+            busy={busy || uncertain}
+            error={error}
+            update={update}
+            field={field}
+          />
+          <fieldset
+            id="voucher-section-conditions"
+            disabled={busy || uncertain}
+          >
+            <legend>Conditions</legend>
+            <div className="voucher-fields">
+              {field(
+                'minimum_spend',
+                'Minimum Shop merchandise spend (PHP)',
+                'number',
+                { required: true, min: '0', step: '0.01' },
+              )}
+              {field(
+                'maximum_discount',
+                'Savings cap (PHP, optional)',
+                'number',
+                {
+                  min: '0.01',
+                  step: '0.01',
+                  max: '9999999999.99',
+                  hint: 'Leave blank for no additional cap.',
+                  labelHelp: (
+                    <FieldHelp label="Savings cap">
+                      The most this voucher can save per Shop order, in PHP. For
+                      example, 20% off a ₱1,000 eligible amount with a ₱100 cap
+                      saves ₱100. This also limits fixed savings.
+                    </FieldHelp>
+                  ),
+                },
+              )}
+            </div>
+            <p className="mt-4">All eligible items · PHP · Cash on delivery</p>
+          </fieldset>
+          <fieldset id="voucher-section-schedule" disabled={busy || uncertain}>
+            <legend>Schedule (Asia/Manila)</legend>
+            <div className="voucher-fields">
+              {field('starts_at', 'Starts', 'datetime-local', {
+                required: true,
+              })}
+              {field('ends_at', 'Ends', 'datetime-local', {
+                required: true,
+                min: values.starts_at,
+              })}
+            </div>
+            {identityLocked && (
+              <p className="mt-4">
+                Replacement takes effect immediately. Its start must already
+                have arrived. Duplicate to schedule an independent future offer.
+              </p>
+            )}
+          </fieldset>
+          <fieldset id="voucher-section-limits" disabled={busy || uncertain}>
+            <legend>Redemption limits</legend>
+            <div className="voucher-fields">
+              {field('global_limit', 'Total redemptions (optional)', 'number', {
+                min: 1,
+                step: 1,
+                max: 2147483647,
+                hint: 'Leave blank for unlimited. Includes previous usage.',
+              })}
+              {field(
+                'per_customer_limit',
+                'Redemptions per Customer',
+                'number',
+                {
+                  required: true,
+                  min: 1,
+                  step: 1,
+                  max: 2147483647,
+                },
+              )}
+            </div>
+          </fieldset>
+          <fieldset id="voucher-section-terms" disabled={busy || uncertain}>
+            <legend>Terms</legend>
+            <label htmlFor="voucher-terms_summary">Plain-text terms</label>
+            <textarea
+              id="voucher-terms_summary"
+              required
+              maxLength={5000}
+              value={values.terms_summary}
+              aria-invalid={Boolean(error?.errors?.terms_summary)}
+              aria-describedby={
+                error?.errors?.terms_summary ? 'voucher-terms-error' : undefined
+              }
+              onChange={(event) => update('terms_summary', event.target.value)}
+            />
+            {error?.errors?.terms_summary && (
+              <p role="alert" id="voucher-terms-error">
+                {error.errors.terms_summary[0]}
+              </p>
+            )}
+          </fieldset>
+          <div className="voucher-actions voucher-editor-save">
+            <Button type="submit" isLoading={busy} disabled={uncertain}>
+              Save draft
+            </Button>
+            <Button
+              variant="outline"
+              disabled={busy || uncertain}
+              onClick={cancel}
+            >
+              Cancel
+            </Button>
+            {dirty && <span>Unsaved changes</span>}
+          </div>
         </div>
-        <p className="mt-4">{funding(role)}</p>
-      </fieldset>
-      <fieldset disabled={busy || uncertain}>
-        <legend>Conditions</legend>
-        <div className="voucher-fields">
-          {field(
-            'minimum_spend',
-            'Minimum Shop merchandise spend (PHP)',
-            'number',
-            { required: true, min: '0', step: '0.01' },
-          )}
-          {field('maximum_discount', 'Savings cap (PHP, optional)', 'number', {
-            min: '0.01',
-            step: '0.01',
-            max: '9999999999.99',
-            hint: 'Leave blank for no additional cap.',
-            labelHelp: (
-              <FieldHelp label="Savings cap">
-                The most this voucher can save per Shop order, in PHP. For
-                example, 20% off a ₱1,000 eligible amount with a ₱100 cap saves
-                ₱100. This also limits fixed savings.
-              </FieldHelp>
-            ),
-          })}
-        </div>
-        <p className="mt-4">All eligible items · PHP · Cash on delivery</p>
-      </fieldset>
-      <fieldset disabled={busy || uncertain}>
-        <legend>Schedule (Asia/Manila)</legend>
-        <div className="voucher-fields">
-          {field('starts_at', 'Starts', 'datetime-local', { required: true })}
-          {field('ends_at', 'Ends', 'datetime-local', {
-            required: true,
-            min: values.starts_at,
-          })}
-        </div>
-        {identityLocked && (
-          <p className="mt-4">
-            Replacement takes effect immediately. Its start must already have
-            arrived. Duplicate to schedule an independent future offer.
-          </p>
-        )}
-      </fieldset>
-      <fieldset disabled={busy || uncertain}>
-        <legend>Redemption limits</legend>
-        <div className="voucher-fields">
-          {field('global_limit', 'Total redemptions (optional)', 'number', {
-            min: 1,
-            step: 1,
-            max: 2147483647,
-            hint: 'Leave blank for unlimited. Includes previous usage.',
-          })}
-          {field('per_customer_limit', 'Redemptions per Customer', 'number', {
-            required: true,
-            min: 1,
-            step: 1,
-            max: 2147483647,
-          })}
-        </div>
-      </fieldset>
-      <fieldset disabled={busy || uncertain}>
-        <legend>Terms</legend>
-        <label htmlFor="voucher-terms_summary">Plain-text terms</label>
-        <textarea
-          id="voucher-terms_summary"
-          required
-          maxLength={5000}
-          value={values.terms_summary}
-          aria-invalid={Boolean(error?.errors?.terms_summary)}
-          onChange={(event) => update('terms_summary', event.target.value)}
-        />
-        {error?.errors?.terms_summary && (
-          <p role="alert">{error.errors.terms_summary[0]}</p>
-        )}
-      </fieldset>
-      <div className="voucher-actions">
-        <Button type="submit" isLoading={busy} disabled={uncertain}>
-          Save draft
-        </Button>
-        <Button variant="outline" disabled={busy || uncertain} onClick={cancel}>
-          Cancel
-        </Button>
-        {dirty && <span>Unsaved changes</span>}
-      </div>
-    </form>
+      </form>
+      {discard && (
+        <Confirmation
+          title="Discard unsaved voucher input?"
+          confirm="Discard input"
+          onCancel={() => setDiscard(false)}
+          onConfirm={onCancel}
+        >
+          <p>Your unsaved voucher terms will be discarded.</p>
+        </Confirmation>
+      )}
+    </>
   )
 }

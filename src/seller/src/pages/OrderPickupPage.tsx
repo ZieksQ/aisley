@@ -1,47 +1,37 @@
 import { useCallback, useEffect, useState } from 'react'
-import { FaDownload, FaEye, FaLocationDot, FaPrint, FaXmark } from 'react-icons/fa6'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 import { OrderButton, OrderError, orderLink, orderPanel } from '../components/orders/OrderUi'
-import { ApiError, apiPdfRequest } from '../lib/api'
+import {
+  PickupAddressDialog,
+  PickupAddressSection,
+} from '../components/orders/pickup/PickupAddressPicker'
+import {
+  PickupPreparationOrders,
+} from '../components/orders/pickup/PickupPreparationOrders'
+import { groupOrdersByProvider } from '../components/orders/pickup/pickupUtils'
+import { ApiError } from '../lib/api'
 import { createPickupRequest } from '../lib/sellerOrderActions'
-import { getPickupAddresses, pickupAddressSummary } from '../lib/sellerPickupAddresses'
+import { getPickupAddresses } from '../lib/sellerPickupAddresses'
 import { useOrderAccessError, useSellerOrders } from '../lib/useSellerOrders'
 import type { PickupAddress } from '../types/pickupAddresses'
-import { orderDate, type SellerOrder, type SellerOrderPage } from '../types/orders'
-
-async function handlePdf(path: string, mode: 'preview' | 'download' | 'print', filename: string) {
-  const popup = mode === 'download' ? null : window.open('', '_blank')
-  try {
-    const blob = await apiPdfRequest(path)
-    const objectUrl = URL.createObjectURL(blob)
-    if (mode === 'download') {
-      const link = document.createElement('a')
-      link.href = objectUrl
-      link.download = filename
-      link.click()
-      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000)
-      return
-    }
-    if (!popup) throw new Error('Pop-up blocked')
-    popup.location.href = objectUrl
-    if (mode === 'print') popup.addEventListener('load', () => popup.print(), { once: true })
-    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 300_000)
-  } catch (error) { popup?.close(); throw error }
-}
+import type { SellerOrder, SellerOrderPage } from '../types/orders'
+import { PickupRequestsTable } from './PickupRequestsTable'
 
 export function OrderPickupPage() {
   const { seller } = useAuth()
   const accessError = useOrderAccessError()
-  const processing = useSellerOrders<SellerOrderPage>('/api/v1/seller/orders?status=seller_processing&sort=oldest&per_page=50')
-  const pending = useSellerOrders<SellerOrderPage>('/api/v1/seller/orders?status=ready_for_pickup&sort=activity_desc&per_page=50')
+  const processing = useSellerOrders<SellerOrderPage>(
+    '/api/v1/seller/orders?status=seller_processing&sort=oldest&per_page=50',
+  )
   const [addresses, setAddresses] = useState<PickupAddress[]>([])
   const [addressLoading, setAddressLoading] = useState(true)
   const [selected, setSelected] = useState<string[]>([])
   const [pickupAddressId, setPickupAddressId] = useState('')
   const [addressModalOpen, setAddressModalOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-  const [pdfBusy, setPdfBusy] = useState('')
+  const [requestRevision, setRequestRevision] = useState(0)
+  const [createdRequestId, setCreatedRequestId] = useState('')
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
 
@@ -55,117 +45,212 @@ export function OrderPickupPage() {
       setPickupAddressId((current) => result.some((address) => address.id === current)
         ? current
         : result.find((address) => address.is_default)?.id ?? result[0]?.id ?? '')
+    } catch (reason) {
+      if (!accessError(reason)) {
+        setError(reason instanceof Error
+          ? reason.message
+          : 'Pickup addresses could not be loaded.')
+      }
+    } finally {
+      setAddressLoading(false)
     }
-    catch (reason) { if (!accessError(reason)) setError(reason instanceof Error ? reason.message : 'Pickup addresses could not be loaded.') }
-    finally { setAddressLoading(false) }
   }, [accessError])
 
   useEffect(() => { void loadAddresses() }, [loadAddresses])
 
-  const eligible = processing.data?.data ?? []
-  const preparationGroups = groupOrdersByProvider(eligible)
-  const pickupGroups = Object.values((pending.data?.data ?? []).reduce<Record<string, SellerOrder[]>>((groups, order) => {
-    const key = order.pickup?.request_id ?? order.id
-    ;(groups[key] ??= []).push(order)
-    return groups
-  }, {}))
+  const orders = processing.data?.data ?? []
+  const groups = groupOrdersByProvider(orders)
   const defaultAddress = addresses.find((address) => address.is_default) ?? addresses[0]
   const selectedAddress = addresses.find((address) => address.id === pickupAddressId)
-  const selectedProvider = eligible.find((order) => selected.includes(order.id))?.shipping_provider ?? null
+  const selectedProvider = orders.find((order) => selected.includes(order.id))?.shipping_provider ?? null
 
-  function toggle(order: SellerOrder) {
+  function toggleOrder(order: SellerOrder) {
     if (!order.shipping_provider) return
     setSelected((current) => {
       if (current.includes(order.id)) return current.filter((value) => value !== order.id)
-      const currentProvider = eligible.find((item) => current.includes(item.id))?.shipping_provider?.id
-      return currentProvider && currentProvider !== order.shipping_provider?.id ? current : [...current, order.id]
+      const currentProvider = orders.find((item) => current.includes(item.id))?.shipping_provider?.id
+      return currentProvider && currentProvider !== order.shipping_provider?.id
+        ? current
+        : [...current, order.id]
     })
     if (!pickupAddressId && defaultAddress) setPickupAddressId(defaultAddress.id)
   }
 
-  function selectGroup(orders: SellerOrder[]) {
-    const selectable = orders.filter((order) => order.shipping_provider).map((order) => order.id)
+  function selectProviderGroup(groupOrders: SellerOrder[]) {
+    const selectable = groupOrders
+      .filter((order) => order.shipping_provider)
+      .map((order) => order.id)
     setSelected((current) => selectable.every((id) => current.includes(id)) ? [] : selectable)
     if (!pickupAddressId && defaultAddress) setPickupAddressId(defaultAddress.id)
   }
 
-  async function submit() {
+  async function submitPickupRequest() {
     if (!seller || selected.length === 0 || !selectedProvider || !pickupAddressId || submitting) return
-    setSubmitting(true); setError(''); setNotice('')
+    setSubmitting(true)
+    setError('')
+    setNotice('')
+
     try {
-      const response = await createPickupRequest(seller.id, selected, selectedProvider.id, pickupAddressId)()
+      const response = await createPickupRequest(
+        seller.id,
+        selected,
+        selectedProvider.id,
+        pickupAddressId,
+      )()
       setSelected([])
-      setNotice(`${response.data.order_ids.length} ${response.data.order_ids.length === 1 ? 'Order is' : 'Orders are'} ready for pickup. Print and attach each waybill before handoff.`)
-      processing.refresh(); pending.refresh()
+      setCreatedRequestId(response.data.id)
+      setNotice(
+        `${response.data.order_ids.length} ${response.data.order_ids.length === 1 ? 'Order is' : 'Orders are'} ready for pickup. Print and attach each waybill before handoff.`,
+      )
+      processing.refresh()
+      setRequestRevision((value) => value + 1)
     } catch (reason) {
-      if (!accessError(reason)) setError(reason instanceof ApiError ? reason.message : 'The pickup request could not be submitted. Refresh and try again.')
-    } finally { setSubmitting(false) }
+      if (!accessError(reason)) {
+        setError(reason instanceof ApiError
+          ? reason.message
+          : 'The pickup request could not be submitted. Refresh and try again.')
+      }
+    } finally {
+      setSubmitting(false)
+    }
   }
 
-  async function waybill(path: string, key: string, mode: 'preview' | 'download' | 'print', filename: string) {
-    setPdfBusy(`${key}:${mode}`); setError('')
-    try { await handlePdf(`${path}${path.includes('?') ? '&' : '?'}disposition=inline`, mode, filename) }
-    catch (reason) { setError(reason instanceof ApiError ? reason.message : 'The waybill could not be opened. Allow pop-ups for preview or print and try again.') }
-    finally { setPdfBusy('') }
+  function refreshAll() {
+    processing.refresh()
+    setRequestRevision((value) => value + 1)
+    void loadAddresses()
   }
 
-  return <div className="mx-auto max-w-6xl px-4 py-7 sm:px-6 lg:px-8">
-    <div className="flex flex-wrap items-start justify-between gap-4 border-b border-zinc-200 pb-5 dark:border-white/10"><div><h2 className="text-2xl font-semibold">Order pickup</h2><p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Prepare parcels for the provider each Customer selected, choose one pickup address, then print the shared waybills.</p></div><OrderButton isLoading={processing.loading || pending.loading || addressLoading} loadingLabel="Refreshing" onClick={() => { processing.refresh(); pending.refresh(); void loadAddresses() }}>Refresh</OrderButton></div>
+  return (
+    <main className="portal-page seller-order-workspace">
+      <header className="portal-page-header">
+        <div>
+          <h1 className="portal-page-heading">
+            Pickup preparation
+          </h1>
+          <p className="portal-page-description">
+            Pack approved orders, keep each checkout-selected provider, and submit ready parcels for pickup.
+          </p>
+        </div>
+        <OrderButton
+          isLoading={processing.loading || addressLoading}
+          loadingLabel="Refreshing"
+          onClick={refreshAll}
+        >
+          Refresh
+        </OrderButton>
+      </header>
 
-    <section className={`${orderPanel} mt-5 p-5`} aria-labelledby="packing-steps"><h3 className="font-semibold" id="packing-steps">Before requesting pickup</h3><ol className="mt-3 grid gap-2 text-sm text-zinc-700 dark:text-zinc-300 sm:grid-cols-2"><li><strong>1.</strong> Confirm the items, then pack and seal each Order separately.</li><li><strong>2.</strong> Select Orders within one provider group.</li><li><strong>3.</strong> Choose one pickup address and request pickup.</li><li><strong>4.</strong> Print and attach each generated waybill.</li></ol><p className="mt-3 border-t border-zinc-200 pt-3 text-xs text-zinc-500 dark:border-white/10">The provider is locked from checkout. Do not place the waybill across a seam or fold it, and avoid tape glare over the QR.</p></section>
+      <PreparationGuidance />
 
-    {error && <OrderError message={error} retry={() => { processing.refresh(); pending.refresh(); void loadAddresses() }} />}
-    {notice && <p className="my-4 rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-800 dark:border-green-400/20 dark:bg-green-400/10 dark:text-green-200" role="status">{notice}</p>}
+      {error && <OrderError message={error} retry={refreshAll} />}
+      {notice && (
+        <div className="portal-feedback my-4" role="status">
+          <p>{notice}</p>
+          {createdRequestId && (
+            <Link
+              className="portal-button mt-2"
+              to={`/orders/pickup/${createdRequestId}`}
+            >
+              Open pickup parcels
+            </Link>
+          )}
+        </div>
+      )}
 
-    <section className={`${orderPanel} mt-5`} aria-labelledby="ready-to-submit">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 p-5 dark:border-white/10"><div><h3 className="font-semibold" id="ready-to-submit">Prepared orders</h3><p className="mt-1 text-sm text-zinc-500">{eligible.length} available · {selected.length} selected{selectedProvider ? ` · ${selectedProvider.business_name}` : ''}</p></div><OrderButton variant="secondary" disabled={!selected.length || !selectedProvider || !pickupAddressId} isLoading={submitting} loadingLabel="Requesting pickup" onClick={() => void submit()}>Request pickup</OrderButton></div>
+      <section className={`${orderPanel} mt-5`} aria-labelledby="ready-to-submit">
+        <div className="order-section-heading">
+          <div>
+            <h2 className="font-semibold" id="ready-to-submit">Prepared orders</h2>
+            <p className="mt-1 text-sm text-[var(--portal-muted)]">
+              {orders.length} available · {selected.length} selected
+              {selectedProvider ? ` · ${selectedProvider.business_name}` : ''}
+            </p>
+          </div>
+          <OrderButton
+            variant="secondary"
+            disabled={!selected.length || !selectedProvider || !pickupAddressId}
+            isLoading={submitting}
+            loadingLabel="Requesting pickup"
+            onClick={() => void submitPickupRequest()}
+          >
+            Request pickup
+          </OrderButton>
+        </div>
 
-      <div className="border-b border-zinc-200 p-5 dark:border-white/10">
-        <p className="text-sm font-medium">Pickup address</p>
-        <p className="mt-1 text-xs text-zinc-500">The same location is applied to every selected Order in this request.</p>
-        {selectedAddress ? <div className="mt-3 flex flex-col justify-between gap-3 border border-zinc-200 p-4 dark:border-white/10 sm:flex-row sm:items-center"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><p className="font-medium">{selectedAddress.label || 'Pickup address'}</p>{selectedAddress.is_default ? <span className="text-xs font-semibold text-[#9B0757] dark:text-pink-300">Default</span> : null}</div><p className="mt-1 text-sm text-zinc-600 dark:text-zinc-300">{selectedAddress.recipient_name} · {selectedAddress.contact_number}</p><p className="mt-1 truncate text-xs text-zinc-500">{pickupAddressSummary(selectedAddress)}</p>{selectedAddress.latitude !== null && selectedAddress.longitude !== null ? <p className="mt-1 text-xs text-zinc-500">Pin: {Number(selectedAddress.latitude).toFixed(6)}, {Number(selectedAddress.longitude).toFixed(6)}</p> : <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">No exact map pin saved.</p>}</div><OrderButton disabled={addressLoading} onClick={() => setAddressModalOpen(true)}>Change address</OrderButton></div> : <OrderButton className="mt-3" disabled={addressLoading || addresses.length === 0} onClick={() => setAddressModalOpen(true)}>{addressLoading ? 'Loading addresses…' : 'Choose address'}</OrderButton>}
-      </div>
+        <PickupAddressSection
+          address={selectedAddress}
+          addressLoading={addressLoading}
+          addressesAvailable={addresses.length > 0}
+          onChoose={() => setAddressModalOpen(true)}
+        />
 
-      {addresses.length === 0 && !addressLoading ? <div className="border-b border-zinc-200 p-5 text-sm dark:border-white/10"><p className="text-amber-700 dark:text-amber-300">No pickup address is available.</p><Link className={`${orderLink} mt-2 inline-block`} to="/account">Add one in Account settings</Link></div> : null}
-      {processing.error ? <div className="px-5"><OrderError message={processing.error} retry={processing.refresh} /></div> : eligible.length === 0 ? <p className="p-5 text-sm text-zinc-600 dark:text-zinc-400">Approved Orders appear here while they are being prepared.</p> : <div className="divide-y divide-zinc-200 dark:divide-white/10">{preparationGroups.map((group) => {
-        const lockedToAnother = Boolean(selectedProvider && group.provider?.id !== selectedProvider.id)
-        const groupSelected = group.orders.every((order) => selected.includes(order.id))
-        return <section aria-labelledby={`provider-group-${group.key}`} className="p-5" key={group.key}><div className="flex flex-wrap items-start justify-between gap-3"><div><h4 className="font-medium" id={`provider-group-${group.key}`}>{group.provider?.business_name ?? 'Provider unavailable'}</h4><p className="mt-1 text-xs text-zinc-500">{group.orders.length} {group.orders.length === 1 ? 'Order' : 'Orders'} · {group.provider ? 'Locked by Customer checkout' : 'Missing checkout provider'}</p></div>{group.provider ? <OrderButton disabled={lockedToAnother} onClick={() => selectGroup(group.orders)}>{groupSelected ? 'Clear group' : 'Select all'}</OrderButton> : null}</div><ul className="mt-3 divide-y divide-zinc-200 border-y border-zinc-200 dark:divide-white/10 dark:border-white/10">{group.orders.map((order) => <SelectableOrder checked={selected.includes(order.id)} disabled={lockedToAnother || !order.shipping_provider} key={order.id} order={order} toggle={toggle} />)}</ul>{lockedToAnother ? <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">Clear the current selection before choosing Orders assigned to this provider.</p> : null}</section>
-      })}</div>}
-    </section>
+        {addresses.length === 0 && !addressLoading && (
+          <div className="border-b border-[var(--portal-border)] px-4 py-3 text-sm">
+            <p className="text-amber-700 dark:text-amber-300">No pickup address is available.</p>
+            <Link className={`${orderLink} mt-2 inline-flex min-h-11 items-center`} to="/account">
+              Add one in Account settings
+            </Link>
+          </div>
+        )}
 
-    {pending.error ? <OrderError message={pending.error} retry={pending.refresh} /> : <PickupRequests groups={pickupGroups} pdfBusy={pdfBusy} waybill={waybill} />}
+        {processing.error ? (
+          <div className="px-5">
+            <OrderError message={processing.error} retry={processing.refresh} />
+          </div>
+        ) : processing.loading && !processing.data ? (
+          <div
+            aria-label="Loading prepared orders"
+            className="m-5 h-56 animate-pulse rounded-lg border border-[var(--portal-border)] bg-[var(--portal-subtle)]"
+            role="status"
+          >
+            <span className="sr-only">Loading prepared orders…</span>
+          </div>
+        ) : orders.length === 0 ? (
+          <p className="p-5 text-sm text-[var(--portal-muted)]">
+            Approved orders appear here while they are being prepared.
+          </p>
+        ) : (
+          <PickupPreparationOrders
+            groups={groups}
+            selectedIds={selected}
+            selectedProviderId={selectedProvider?.id ?? null}
+            onSelectGroup={selectProviderGroup}
+            onToggleOrder={toggleOrder}
+          />
+        )}
+      </section>
 
-    {addressModalOpen ? <AddressModal addresses={addresses} onClose={() => setAddressModalOpen(false)} onSelect={(id) => { setPickupAddressId(id); setAddressModalOpen(false) }} selectedId={pickupAddressId} /> : null}
-  </div>
+      <PickupRequestsTable refreshRevision={requestRevision} />
+
+      {addressModalOpen && (
+        <PickupAddressDialog
+          addresses={addresses}
+          onClose={() => setAddressModalOpen(false)}
+          onSelect={(id) => {
+            setPickupAddressId(id)
+            setAddressModalOpen(false)
+          }}
+          selectedId={pickupAddressId}
+        />
+      )}
+    </main>
+  )
 }
 
-function PickupRequests({ groups, pdfBusy, waybill }: { groups: SellerOrder[][]; pdfBusy: string; waybill: (path: string, key: string, mode: 'preview' | 'download' | 'print', filename: string) => Promise<void> }) {
-  return <section className={`${orderPanel} mt-5`} aria-labelledby="pending-pickup"><div className="border-b border-zinc-200 p-5 dark:border-white/10"><h3 className="font-semibold" id="pending-pickup">Pickup requests</h3></div>{groups.length === 0 ? <p className="p-5 text-sm text-zinc-600 dark:text-zinc-400">No pickup requests are pending.</p> : <div className="divide-y divide-zinc-200 dark:divide-white/10">{groups.map((orders) => { const requestId = orders[0].pickup?.request_id ?? orders[0].id; return <section className="p-5" key={requestId}><div className="flex flex-wrap justify-between gap-3 text-sm"><div><h4 className="font-medium">Pickup request · {orders.length} {orders.length === 1 ? 'Order' : 'Orders'}</h4><p className="mt-1 text-zinc-500">{orders[0].shipping_provider?.business_name ?? 'Provider unavailable'} · Submitted {orderDate(orders[0].latest_activity_at)}</p></div><div className="flex flex-wrap items-center gap-3"><Link className={orderLink} to={`/logistics-messages?pickup_request_id=${requestId}`}>Contact Logistics</Link>{orders.length <= 30 ? <OrderButton isLoading={pdfBusy === `${requestId}:print`} onClick={() => void waybill(`/api/v1/seller/pickup-requests/${requestId}/waybills.pdf`, requestId, 'print', `pickup-waybills-${requestId}.pdf`)}><FaPrint />Print all</OrderButton> : <span className="max-w-52 text-xs text-zinc-500">Bulk print supports 30 labels. Print these waybills individually.</span>}</div></div><ul className="mt-3 divide-y divide-zinc-200 border-y border-zinc-200 dark:divide-white/10 dark:border-white/10">{orders.map((order) => <li className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm" key={order.id}><div><Link className={orderLink} to={`/orders/${order.id}`}>{order.reference}</Link>{order.pickup?.pickup_address ? <p className="mt-1 text-xs text-zinc-500">Pickup: {order.pickup.pickup_address.label || order.pickup.pickup_address.city_municipality}</p> : null}{order.waybill ? <p className="mt-1 text-xs text-zinc-500">Tracking ID: {order.waybill.tracking_id ?? order.waybill.reference}</p> : null}{order.pickup?.schedule ? <p className="mt-1 text-xs font-medium text-[#4C1268] dark:text-purple-300">Pickup {pickupWindow(order.pickup.schedule.starts_at, order.pickup.schedule.ends_at)} PHT · {order.pickup.schedule.reference}</p> : <p className="mt-1 text-xs text-zinc-500">Waiting for Logistics to schedule pickup</p>}</div>{order.waybill ? <div className="flex gap-2"><OrderButton isLoading={pdfBusy === `${order.id}:preview`} onClick={() => void waybill(order.waybill!.pdf_url, order.id, 'preview', `waybill-${order.waybill!.reference}.pdf`)}><FaEye />Preview</OrderButton><OrderButton aria-label={`Download ${order.waybill.reference}`} isLoading={pdfBusy === `${order.id}:download`} onClick={() => void waybill(order.waybill!.pdf_url, order.id, 'download', `waybill-${order.waybill!.reference}.pdf`)}><FaDownload /></OrderButton><OrderButton aria-label={`Print ${order.waybill.reference}`} isLoading={pdfBusy === `${order.id}:print`} onClick={() => void waybill(order.waybill!.pdf_url, order.id, 'print', `waybill-${order.waybill!.reference}.pdf`)}><FaPrint /></OrderButton></div> : <span className="text-xs text-zinc-500">Waybill unavailable</span>}</li>)}</ul></section> })}</div>}</section>
-}
-
-function AddressModal({ addresses, onClose, onSelect, selectedId }: { addresses: PickupAddress[]; onClose: () => void; onSelect: (id: string) => void; selectedId?: string }) {
-  useDialogEscape(onClose)
-  return <div aria-labelledby="address-dialog-title" aria-modal="true" className="fixed inset-0 z-50 grid place-items-center bg-black/55 p-4" role="dialog" onMouseDown={(event) => { if (event.currentTarget === event.target) onClose() }}><div className="max-h-[90vh] w-full max-w-xl overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-lg dark:border-white/10 dark:bg-[#18181b]"><div className="flex items-start justify-between gap-4 border-b border-zinc-200 p-5 dark:border-white/10"><div><h3 className="text-lg font-semibold" id="address-dialog-title">Choose pickup address</h3><p className="mt-1 text-sm text-zinc-500">One address will be saved on every waybill in this pickup request.</p></div><button aria-label="Close address picker" className="grid size-9 shrink-0 place-items-center rounded-md hover:bg-zinc-100 dark:hover:bg-white/10" onClick={onClose}><FaXmark /></button></div><div className="max-h-[60vh] divide-y divide-zinc-200 overflow-y-auto dark:divide-white/10">{addresses.map((address) => <button className={`flex w-full items-start gap-3 p-4 text-left hover:bg-zinc-50 dark:hover:bg-white/5 ${selectedId === address.id ? 'bg-purple-50/70 dark:bg-purple-400/10' : ''}`} key={address.id} onClick={() => onSelect(address.id)}><FaLocationDot className="mt-1 shrink-0 text-[#4C1268] dark:text-purple-300" /><span><span className="flex flex-wrap gap-2"><strong className="font-medium">{address.label || 'Pickup address'}</strong>{address.is_default ? <span className="text-xs font-semibold text-[#9B0757] dark:text-pink-300">Default</span> : null}</span><span className="mt-1 block text-sm text-zinc-600 dark:text-zinc-300">{address.recipient_name} · {address.contact_number}</span><span className="mt-1 block text-xs leading-5 text-zinc-500">{pickupAddressSummary(address)}</span>{address.latitude !== null && address.longitude !== null ? <span className="mt-1 block text-xs text-zinc-500">Exact pin saved</span> : null}</span></button>)}</div><div className="border-t border-zinc-200 p-4 text-right dark:border-white/10"><Link className={orderLink} onClick={onClose} to="/account">Manage pickup addresses</Link></div></div></div>
-}
-
-function useDialogEscape(onClose: () => void) {
-  useEffect(() => { const close = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose() }; document.addEventListener('keydown', close); return () => document.removeEventListener('keydown', close) }, [onClose])
-}
-
-function pickupWindow(startsAt: string, endsAt: string) {
-  return `${new Intl.DateTimeFormat('en-PH', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Manila' }).format(new Date(startsAt))}–${new Intl.DateTimeFormat('en-PH', { timeStyle: 'short', timeZone: 'Asia/Manila' }).format(new Date(endsAt))}`
-}
-
-function SelectableOrder({ checked, disabled, order, toggle }: { checked: boolean; disabled: boolean; order: SellerOrder; toggle: (order: SellerOrder) => void }) {
-  return <li className="py-4"><div className="flex gap-3"><input checked={checked} className="mt-1 size-4 accent-[#4C1268]" disabled={disabled} id={`pickup-${order.id}`} onChange={() => toggle(order)} type="checkbox" /><label className={`min-w-0 flex-1 ${disabled ? 'text-zinc-400' : ''}`} htmlFor={`pickup-${order.id}`}><span className="font-medium">{order.reference}</span><span className="mt-1 block truncate text-sm text-zinc-600 dark:text-zinc-400">{order.items.map((item) => `${item.quantity} × ${item.product_name}`).join(', ')}</span></label><Link className={`${orderLink} text-sm`} to={`/orders/${order.id}/prepare`}>Review</Link></div></li>
-}
-
-function groupOrdersByProvider(orders: SellerOrder[]) {
-  return Object.values(orders.reduce<Record<string, { key: string; provider: SellerOrder['shipping_provider']; orders: SellerOrder[] }>>((groups, order) => {
-    const key = order.shipping_provider?.id ?? 'unassigned'
-    const group = groups[key] ??= { key, provider: order.shipping_provider, orders: [] }
-    group.orders.push(order)
-    return groups
-  }, {}))
+function PreparationGuidance() {
+  return (
+    <details className={`${orderPanel} px-4 text-sm`}>
+      <summary className="min-h-11 cursor-pointer py-3 font-medium">Packing checklist</summary>
+      <ol className="grid gap-2 pb-3 text-sm sm:grid-cols-2">
+        <li><strong>1.</strong> Confirm items, then pack and seal each order separately.</li>
+        <li><strong>2.</strong> Select orders within one provider group.</li>
+        <li><strong>3.</strong> Choose one pickup address and request pickup.</li>
+        <li><strong>4.</strong> Print and attach each generated waybill.</li>
+      </ol>
+      <p className="border-t border-[var(--portal-border)] py-3 text-xs text-[var(--portal-muted)]">
+        The provider is locked from checkout. Keep waybills flat and avoid glare over the QR code.
+      </p>
+    </details>
+  )
 }

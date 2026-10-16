@@ -106,3 +106,7 @@
 - **References:** [OWASP File Upload Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html) and [Laravel file validation](https://laravel.com/framework/docs/13.x/validation#validating-files).
 
 Chat images use the separately approved inclusive 8,000,000-byte new-upload limit; general profile/registration/review rules above retain their owning limits. See [private chat media](../features/courier/chat-messaging/media-api.md) for historical retrieval, received video/document consumption and image-only mobile selection.
+
+## Chat media exception — 2026-10-17
+
+New chat uploads and new bindings allow PNG/JPG/JPEG/MP4 only, up to 8,000,000 bytes each inclusive. Images are bounded to 4,096 pixels per edge and 8 megapixels; MP4 requires H.264 with optional AAC and retains the 180-second cap. The school backend may explicitly disable malware scanning while retaining format/content/size and participant checks. Historical committed WebP/documents remain readable; external Flutter adoption and live/device acceptance are unchanged. See [the chat media API](../features/courier/chat-messaging/media-api.md).

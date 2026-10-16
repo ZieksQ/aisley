@@ -3,7 +3,7 @@ feature: order-approval
 title: Seller Order Approval
 system: AISLEY
 type: Feature Specification
-version: 1.6
+version: 1.10
 status: Seller Order approval/rejection and frozen-provider pickup/waybill implemented; release gates remain
 role: Seller
 scope: Seller Web Application and Laravel API
@@ -35,7 +35,7 @@ OrderController and Seller OrderApproval/OrderPickup pages implement owned reads
 - **Payment decision:** COD is the only current payment method. A valid COD Order may be approved while `payment_status = pending`; payment becomes `paid` only when delivery is completed by the downstream delivery/payment transition. Seller approval never changes payment state.
 - **Waybill decision:** Aisley creates one immutable shared waybill per Order in the Seller's pickup-request transaction; Seller and selected Logistics receive role-scoped access.
 - **Project boundary:** One Customer checkout creates one Seller/Shop Order per Shop. Seller reads and mutations are always scoped to the authenticated Seller's one Shop.
-- **Order navigation:** The collapsible Seller sidebar Orders group retains separate Monitoring, Approval, and Pickup links. Monitoring provides status counts and sorting; Approval owns approve/reject decisions; Pickup owns multi-Order readiness requests. Order detail and preparation routes reopen the group without creating a fourth workflow.
+- **Order navigation:** The collapsible Seller sidebar Orders group retains separate Monitoring, Approval, and Pickup links. Monitoring provides status counts, search, a status filter, a modal sort chooser, and a paginated order table; Approval defaults to oldest-first approve/reject decisions and offers modal sorting by order total; Pickup owns multi-Order readiness requests and the paginated pickup-request table. Each request's separate parcel action opens its Orders, where the Seller can print one or all available waybills and open order detail. Detail and preparation routes reopen the group without creating a fourth workflow.
 - **Non-goals:** payment collection, editable/client-generated waybill data, Courier assignment, Courier pickup confirmation, Logistics scans/transfers, delivery completion, Buyer address editing, and arbitrary Order edits.
 
 ## MUST
@@ -69,9 +69,10 @@ OrderController and Seller OrderApproval/OrderPickup pages implement owned reads
 
 ### Prepare and Logistics handoff
 
-- After approval, route the Seller to Pickup. Seller may review item snapshots and select up to 50 `seller_processing` Orders for one pickup request when they are physically ready.
+- After returning to the Approval queue, the Seller can open Pickup to review item snapshots and select up to 50 `seller_processing` Orders for one pickup request when they are physically ready.
 - `POST /api/v1/seller/orders/pickup-requests` groups only Orders with the same checkout-selected Logistics organization, creates one waybill per Order, transitions each to `ready_for_pickup`, and notifies only that organization after commit. Pickup date/Courier remain null until Logistics schedules them.
 - Seller readiness validates immutable item quantities, payment state, current Order state, Order-linked Inventory reservation, and Logistics eligibility before committing. Package measurements remain deferred for this MVP.
+- After approval or rejection succeeds, return to the Approval queue and show a confirmation there. The queue refreshes so the decided Order is no longer presented as awaiting a decision.
 - A committed `ready_for_pickup` transition freezes the selected Logistics organization and waybill snapshots. It must not set a pickup date, assign a Courier, or claim physical custody.
 - Each solo or multi-Order pickup request requires exactly one authenticated-Seller-owned pickup address. That same address applies to every Order in the request, and every waybill freezes its fields and coordinates so later address-book edits cannot rewrite committed pickup instructions.
 - Before the first pickup request, the highest-ranked eligible provider remains the suggestion. The provider chosen for the Seller's first committed pickup request becomes the default while it remains eligible; choosing another provider for a later request does not silently replace that default.
@@ -79,6 +80,23 @@ OrderController and Seller OrderApproval/OrderPickup pages implement owned reads
 - Logistics/Courier use the authorized shared waybill reference/QR for parcel verification; scanning alone does not advance custody.
 - Receipt scans, `assigned`, hub processing, transfer, dispatch, final-mile assignment, and delivery belong to Logistics/Courier contracts. Seller retains read-only access to the immutable waybill.
 - Order detail checks `/api/v1/seller/courier-conversations/order-context/{order}` and links to the separate first-mile Courier inbox only for an accepted eligible pickup, or to its existing read-only conversation after handoff. Contact never assigns a Courier, advances pickup/custody, or changes Order approval; [Seller Chat/Messaging](../chat-messaging/spec.md) owns this workflow.
+
+### Pickup request review
+
+- `GET /api/v1/seller/pickup-requests` returns paginated, Shop-scoped request summaries with provider, request status, parcel count, requested timestamp, and pickup date. Supported sort values are `requested_desc`, `requested_asc`, `orders_desc`, `orders_asc`, and `status`.
+- `GET /api/v1/seller/pickup-requests/{pickup}` returns one Shop-scoped request summary. `GET /api/v1/seller/orders?pickup_request_id={pickup}` returns only Orders linked to that Seller-owned request, including their own status and shared waybill references.
+- Seller pickup requests show a paginated table with modal sorting. Opening a request shows its Orders, item summary, status, tracking ID, total, individual waybill controls, and Order detail links.
+- The pickup ID is informational; a separate **View parcels** action opens the request. Pending or partially scheduled requests display **Request**; fully scheduled requests display **Scheduled** with their Logistics pickup date. Partial scheduling remains identified in the status description without claiming the whole request is scheduled.
+- Bulk PDF printing supports at most 30 labels per read, matching the PDF service limit. Requests containing more than 30 parcels remain individually printable. Inline bulk previews are audited as `bulk_view`; attachment downloads remain `bulk_download`.
+
+### Monitoring warehouse picking sheet
+
+- Monitoring includes an icon-only **Select orders to print** action with an accessible name. It reveals row checkboxes, a select-all checkbox for the current page, the selected count, **Print**, and **Cancel** above the table.
+- Select up to 50 Orders across result pages. Deselecting the current page preserves selections on other pages; search, status, or sort changes and Cancel clear the selection. The selection limit applies to picking sheets independently of the 30-label waybill limit.
+- `GET /api/v1/seller/orders/picking-sheet.pdf?order_ids[]={uuid}` accepts 1–50 distinct UUIDs, preserves selection order, and returns a private, non-cacheable inline A4 PDF. Authenticate and enforce active Seller/consent middleware before validation; derive the Shop server-side and reject the entire read with `404` if any selected Order is unavailable or foreign. Rate-limit PDF reads to 10 per minute.
+- The printable table has exactly two columns: **Order / customer** contains only the Order reference and immutable delivery recipient as customer/recipient name; the wider **Products to pick** column contains every purchased product name, variant/options, SKU, quantity, and a blank picking checkbox. Use compact spacing and inline product details so a product fits on one line where possible and wraps naturally when too long. Column headings have no background fill. Omit the document title, Shop name, generated date, totals, placement time, status, destination, and footer instructions. Do not substitute live Product or account-profile values for purchased snapshots.
+- Preserve all item lines, including missing-SKU/snapshot fallbacks. Repeat table headers across pages and the Order reference/customer on continued item rows. Long Orders can span pages without placing all their items in a single unbreakable row. Escape all printable text; disable remote resources, PHP, and JavaScript in the existing PDF renderer.
+- Print opens the generated PDF for printing/saving; disable empty selection and duplicate submissions while generating, preserve selection after a recoverable failure, and show an actionable pop-up/network/API error. Printing is a read: it does not approve Orders, reserve/consume stock, request pickup, or create/change waybills or shipment state. Check current Order status in Monitoring before packing; the PDF is only a warehouse product checklist.
 
 ### Notifications and privacy
 
@@ -89,6 +107,7 @@ OrderController and Seller OrderApproval/OrderPickup pages implement owned reads
 ### Acceptance criteria
 
 - [x] A Seller sees only Orders belonging to the Seller's Shop.
+- [x] Monitoring supports multi-Order warehouse picking-sheet PDF printing with Shop isolation, purchased snapshots, cross-page selection, printable item quantities and retry recovery.
 - [x] A COD Order with `placed`/`pending` payment can be approved or rejected exactly once.
 - [x] Approval transitions only `placed → seller_processing`; rejection transitions only `placed → rejected`, releases its reservation, and both append immutable history.
 - [x] Notification read/open does not change Order status.
@@ -105,16 +124,23 @@ OrderController and Seller OrderApproval/OrderPickup pages implement owned reads
 
 ```http
 GET  /api/v1/seller/orders
+GET  /api/v1/seller/orders/picking-sheet.pdf?order_ids[]={uuid}
 GET  /api/v1/seller/orders/{order}
+GET  /api/v1/seller/orders?pickup_request_id={pickup}
 POST /api/v1/seller/orders/{order}/approve
 POST /api/v1/seller/orders/{order}/reject
 POST /api/v1/seller/orders/pickup-requests
+GET  /api/v1/seller/pickup-requests
+GET  /api/v1/seller/pickup-requests/{pickup}
 POST /api/v1/seller/notifications/{notification}/read
 GET  /api/v1/seller/orders/{order}/waybill
 ```
 
 - Order list/detail responses expose `status`, payment facts, immutable snapshots, `can_approve`, `can_reject`, `can_prepare`, pickup state, `can_view_waybill`, safe notification references, and Shop-scoped status counts computed by Laravel.
+- Monitoring accepts a bounded, case-insensitive `search` (maximum 120 characters) over the owned Order reference and purchased item name/SKU snapshots. Search combines with status/sort filters before pagination, treats SQL wildcard characters literally, and never changes the Shop-wide status counts. Submitting or clearing search resets the result page; URL state and detail Back navigation retain the current filters.
+- Monitoring shows four primary workflow KPI cards and a complete expandable status-count summary. Monitoring, Approval, preparation, request history, and parcel tables use the shared compact table treatment and portal theme tokens. View/review actions use buttons without hover underlines; keyboard focus remains visible.
 - Pickup requests submit one `pickup_address_id` alongside `order_ids` and `logistics_organization_id`; Laravel verifies Seller ownership inside the transaction and applies that address to every selected Order and waybill snapshot.
+- Pickup request list, detail, and filtered Order reads derive the Seller's Shop server-side. A pickup request ID from another Seller returns no data or `404`; it never expands access to Orders outside the Shop.
 - Implement a Seller-scoped approval action over the shared `OrderTransitionService`; use a Policy/scoped query, Form Request, API Resource, transaction, row lock, idempotency guard, and after-commit event listener.
 - Keep Order approval separate from pickup readiness; opening either screen does not change Order status.
 - Use `OrderReadyForPickup` as the downstream contract. Logistics owns bulk pickup scheduling/task creation, Courier assignment, pickup confirmation, and receipt validation; waybill creation remains inside Seller readiness.

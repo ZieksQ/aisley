@@ -31,6 +31,16 @@ try {
     return results;
   })()`), [false, false, true, false, false, true]);
   record("image/video 8,000,000-byte inclusive client boundary");
+  assert.deepEqual(await js(`(() => {
+    const results = [];
+    for (const extension of ['png', 'jpg', 'jpeg', 'mp4', 'webp', 'pdf', 'txt', 'csv', 'docx', 'gif', 'svg', 'mov']) {
+      const key = 'format-' + extension;
+      results.push(Boolean(window.addChatFiles(key, [new File(['test'], 'file.' + extension)], {channel:'shop'})));
+      window.chatExports.clearChatAttachments(key);
+    }
+    return results;
+  })()`), [false, false, false, false, true, true, true, true, true, true, true, true]);
+  record("only PNG/JPG/JPEG/MP4 can be selected for a new upload");
   await until(`Boolean(document.querySelector('aside li button'))`, "inbox");
   assert.equal(await js(`window.compatibility.writeChatDraft === window.chatExports.writeChatDraft`), true);
   await js(`window.compatibility.writeChatDraft('fixture-state', 'saved draft')`);

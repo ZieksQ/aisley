@@ -92,6 +92,14 @@ Customer, Admin, and Seller share one purple brand family. Logistics uses its bl
 
 Graph series and categories may use different colors. Role primary colors govern actions and selection; they do not limit all chart data to one color. Use the shared violet, blue, teal, amber, rose and slate graph tokens, with lighter dark-theme equivalents. Keep category labels/counts available so color is supplementary. Use semantic colors consistently when a series represents an outcome, and do not invent trends or targets to decorate a card.
 
+### Dashboard KPI cards
+
+- Keep KPI cards independent in the responsive grid. Use a small role-appropriate icon, bold metric title, bold primary value as the main highlight, and a short description explaining the data. Cards are informational and do not contain mini charts, comparison/change tags, or links.
+- Use the existing `--portal-surface` background and 1px `--portal-border` in both light and dark themes, matching `.portal-panel`. The surface and border must visibly separate each card from the page canvas. Cards are informational, not focusable controls, and must not show a focus ring or outline.
+- Keep comparison periods in the context of the owning dashboard chart, where the source supports a valid comparison. Do not derive deltas from current snapshots or imply unsupported growth, targets, or history.
+- Animate existing dashboard chart panels with restrained drawing or reveal motion. Render the chart and its data immediately when motion is reduced, honoring `prefers-reduced-motion`. Chart tooltips follow the active hovered point/category and expose its label and value; keep equivalent keyboard access where the chart supports it.
+- Preserve role authorization, tenant scope, null/unavailable versus zero semantics, theme tokens, accessible chart summaries, and matching skeleton geometry.
+
 ### Semantic colors
 
 | Token | Hex | Usage |

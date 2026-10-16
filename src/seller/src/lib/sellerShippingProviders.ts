@@ -14,21 +14,40 @@ type ShippingProviderUpdate = {
   revision: number
 }
 
-export function getShippingProviders() {
-  return apiRequest<{ data: ShippingProviderSetting[] }>('/api/v1/seller/shipping-providers')
+export function getShippingProviders(signal?: AbortSignal) {
+  return apiRequest<{ data: ShippingProviderSetting[] }>(
+    '/api/v1/seller/shipping-providers',
+    { signal },
+  )
 }
 
-export async function updateShippingProvider(provider: ShippingProviderSetting, isEnabled: boolean) {
-  await initializeCsrf()
-
-  return apiRequest<{ data: ShippingProviderUpdate }>(
-    `/api/v1/seller/shipping-providers/${encodeURIComponent(provider.organization_id)}`,
-    {
-      method: 'PUT',
-      body: JSON.stringify({
-        is_enabled: isEnabled,
-        ...(provider.revision === null ? {} : { expected_revision: provider.revision }),
-      }),
-    },
-  )
+export async function updateShippingProvider(
+  provider: ShippingProviderSetting,
+  isEnabled: boolean,
+  signal?: AbortSignal,
+) {
+  const controller = new AbortController()
+  const cancel = () => controller.abort()
+  if (signal?.aborted) controller.abort()
+  signal?.addEventListener('abort', cancel, { once: true })
+  const timer = globalThis.setTimeout(() => controller.abort(), 15000)
+  try {
+    await initializeCsrf(controller.signal)
+    return await apiRequest<{ data: ShippingProviderUpdate }>(
+      `/api/v1/seller/shipping-providers/${encodeURIComponent(provider.organization_id)}`,
+      {
+        method: 'PUT',
+        signal: controller.signal,
+        body: JSON.stringify({
+          is_enabled: isEnabled,
+          ...(provider.revision === null
+            ? {}
+            : { expected_revision: provider.revision }),
+        }),
+      },
+    )
+  } finally {
+    globalThis.clearTimeout(timer)
+    signal?.removeEventListener('abort', cancel)
+  }
 }

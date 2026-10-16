@@ -1,29 +1,143 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ApiError, apiRequest } from '../lib/api'
+import { LuArrowLeft, LuRefreshCw } from 'react-icons/lu'
+import {
+  IconButton,
+  PortalSection,
+  PortalState,
+  PortalSkeleton,
+} from '@aisley/ui/portal'
+import { useSellerRead } from '../lib/useSellerRead'
+import { dateTime, label } from '../features/inventory/model'
 import type { LowStockAlert } from '../types/operations'
+import '../features/inventory/alerts.css'
 
 export function LowStockAlertDetailPage() {
   const { alertId } = useParams()
-  const [alert, setAlert] = useState<LowStockAlert | null>(null)
-  const [error, setError] = useState('')
-  const [reload, setReload] = useState(0)
-
+  const state = useSellerRead<{ data: LowStockAlert }>(
+    `/api/v1/seller/low-stock-alerts/${encodeURIComponent(alertId ?? '')}`,
+  )
+  const alert = state.data?.data
   useEffect(() => {
-    if (!alertId) return
     document.title = 'Low-stock alert | Aisley Seller'
-    setError('')
-    apiRequest<{ data: LowStockAlert }>(`/api/v1/seller/low-stock-alerts/${alertId}`)
-      .then((response) => setAlert(response.data))
-      .catch((reason: unknown) => setError(reason instanceof ApiError ? reason.message : 'Unable to load this alert.'))
-  }, [alertId, reload])
-
-  if (error) return <div className="p-8"><p className="text-sm text-red-700 dark:text-red-400">{error}</p><div className="mt-3 flex gap-4"><button className="text-sm font-medium text-[#4C1268] dark:text-purple-300" onClick={() => setReload((value) => value + 1)}>Try again</button><Link className="text-sm text-zinc-500" to="/low-stock-alerts">Back to alerts</Link></div></div>
-  if (!alert) return <p className="p-8 text-sm text-zinc-500">Loading alert…</p>
-
-  return <div className="mx-auto max-w-4xl px-4 py-7 sm:px-6 lg:px-8">
-    <Link className="text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-white" to="/low-stock-alerts">← Low-stock alerts</Link>
-    <div className="mt-3 border-b border-zinc-200 pb-5 dark:border-white/10"><div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-2xl font-semibold">{alert.product.name}</h2><p className="mt-1 font-mono text-sm text-zinc-500">{alert.sku.code}</p></div><span className={`text-sm font-medium ${alert.state === 'active' ? 'text-amber-700 dark:text-amber-400' : 'text-emerald-700 dark:text-emerald-400'}`}>{alert.state === 'active' ? 'Active alert' : 'Resolved'}</span></div></div>
-    <section className="mt-6 rounded-lg border border-zinc-200 bg-white dark:border-white/10 dark:bg-[#18181b]"><div className="grid grid-cols-2 border-b border-zinc-200 dark:border-white/10 sm:grid-cols-4">{[['Available now', alert.current_available], ['Current threshold', alert.current_threshold], ['At trigger', alert.trigger_available], ['Trigger threshold', alert.trigger_threshold]].map(([label, value]) => <div className="p-4" key={label}><p className="text-xs text-zinc-500">{label}</p><p className="mt-1 text-xl font-semibold tabular-nums">{value}</p></div>)}</div><dl className="grid gap-5 p-5 text-sm sm:grid-cols-2"><div><dt className="text-zinc-500">Triggered</dt><dd className="mt-1">{new Date(alert.triggered_at).toLocaleString()}</dd></div><div><dt className="text-zinc-500">Resolved</dt><dd className="mt-1">{alert.resolved_at ? `${new Date(alert.resolved_at).toLocaleString()} · ${alert.resolution_reason?.replace('_', ' ')}` : 'Not resolved'}</dd></div><div><dt className="text-zinc-500">Source movement</dt><dd className="mt-1 capitalize">{alert.trigger_movement?.type.replace('_', ' ') ?? 'Threshold evaluation'}</dd></div><div><dt className="text-zinc-500">Inventory</dt><dd className="mt-1"><Link className="font-medium text-[#4C1268] dark:text-purple-300" to={alert.inventory_destination}>Open SKU inventory</Link></dd></div></dl></section>
-  </div>
+  }, [])
+  return (
+    <main className="portal-page">
+      <header className="portal-page-header">
+        <div>
+          <Link
+            className="portal-link portal-inline-actions mb-4 text-sm"
+            to="/low-stock-alerts"
+          >
+            <LuArrowLeft aria-hidden="true" />
+            Low-stock alerts
+          </Link>
+          <h2 className="portal-page-heading">
+            {alert?.product.name ?? 'Alert details'}
+          </h2>
+          {alert && (
+            <p className="portal-page-description font-mono">
+              {alert.sku.code}
+            </p>
+          )}
+        </div>
+        <div className="portal-inline-actions">
+          {alert && (
+            <Link
+              className="portal-button portal-button-primary"
+              to={alert.inventory_destination}
+            >
+              Open SKU inventory
+            </Link>
+          )}
+          <IconButton
+            label="Refresh alert"
+            disabled={state.loading}
+            onClick={state.refresh}
+          >
+            <LuRefreshCw aria-hidden="true" />
+          </IconButton>
+        </div>
+      </header>
+      {state.error ? (
+        <PortalState
+          error
+          title={state.error}
+          action={
+            <button className="portal-button" onClick={state.refresh}>
+              Try again
+            </button>
+          }
+        />
+      ) : !alert ? (
+        <PortalSkeleton label="Loading alert…" rows={3} />
+      ) : (
+        <div className="portal-form-stack">
+          <p className="portal-feedback">
+            <span
+              className={`portal-tag portal-tag-${alert.state === 'active' ? 'warning' : 'success'}`}
+            >
+              {alert.state === 'active' ? 'Active alert' : 'Resolved'}
+            </span>
+            <span className="ml-3">
+              {alert.state === 'active'
+                ? 'Available stock crossed the configured threshold.'
+                : alert.resolution_reason === 'threshold_disabled'
+                  ? 'The threshold was disabled. This alert remains in history.'
+                  : 'Stock recovered above the threshold. This alert remains in history.'}
+            </span>
+          </p>
+          <dl className="portal-data-strip alert-data-strip">
+            {[
+              ['Latest available', alert.current_available],
+              ['Latest threshold', alert.current_threshold ?? 'Off'],
+              ['Available at trigger', alert.trigger_available],
+              ['Threshold at trigger', alert.trigger_threshold],
+            ].map(([name, value]) => (
+              <div key={name}>
+                <dt>{name}</dt>
+                <dd>{value}</dd>
+              </div>
+            ))}
+          </dl>
+          <PortalSection
+            id="alert-timeline"
+            title="Alert record"
+            description="Snapshots belong to this alert cycle. Open Inventory for the current stock balance."
+          >
+            <dl className="portal-definition-list">
+              <div>
+                <dt>Triggered · Asia/Manila</dt>
+                <dd>{dateTime(alert.triggered_at)}</dd>
+              </div>
+              <div>
+                <dt>Resolved · Asia/Manila</dt>
+                <dd>
+                  {alert.resolved_at
+                    ? dateTime(alert.resolved_at)
+                    : 'Not resolved'}
+                </dd>
+              </div>
+              <div>
+                <dt>Resolution reason</dt>
+                <dd>
+                  {alert.resolution_reason
+                    ? label(alert.resolution_reason)
+                    : 'Not resolved'}
+                </dd>
+              </div>
+              <div>
+                <dt>Source movement</dt>
+                <dd>
+                  {alert.trigger_movement
+                    ? label(alert.trigger_movement.type)
+                    : 'Threshold evaluation'}
+                </dd>
+              </div>
+            </dl>
+          </PortalSection>
+        </div>
+      )}
+    </main>
+  )
 }

@@ -20,9 +20,29 @@ class SellerOrderService
     public function list(User $seller, array $filters): LengthAwarePaginator
     {
         $shop = $this->shops->for($seller);
+        $search = trim((string) ($filters['search'] ?? ''));
         $orders = Order::query()
             ->where('shop_id', $shop->id)
+            ->when($search !== '', function ($query) use ($search): void {
+                $pattern = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], mb_strtolower($search)).'%';
+                $query->where(function ($matches) use ($pattern): void {
+                    $matches->whereRaw("LOWER(reference) LIKE ? ESCAPE '!'", [$pattern])
+                        ->orWhereHas('items', function ($items) use ($pattern): void {
+                            $items->where(function ($snapshot) use ($pattern): void {
+                                $snapshot->whereRaw("LOWER(product_name) LIKE ? ESCAPE '!'", [$pattern])
+                                    ->orWhereRaw("LOWER(sku) LIKE ? ESCAPE '!'", [$pattern]);
+                            });
+                        });
+                });
+            })
             ->when($filters['status'] ?? null, fn ($query, string $status) => $query->where('status', $status))
+            ->when($filters['pickup_request_id'] ?? null, function ($query, string $pickupRequestId) use ($seller, $shop): void {
+                $query->whereHas('pickupRequestOrder', fn ($link) => $link
+                    ->where('seller_pickup_request_id', $pickupRequestId)
+                    ->whereHas('sellerPickupRequest', fn ($pickup) => $pickup
+                        ->where('seller_id', $seller->id)
+                        ->where('shop_id', $shop->id)));
+            })
             ->when($filters['notification'] ?? null, function ($query, string $state) use ($seller): void {
                 $jsonOrderId = $this->notificationOrderIdSql();
                 $orderId = DB::getDriverName() === 'pgsql' ? 'CAST(orders.id AS TEXT)' : 'orders.id';

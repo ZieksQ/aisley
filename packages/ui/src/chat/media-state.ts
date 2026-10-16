@@ -47,18 +47,16 @@ export function addChatFiles(key: string, files: File[], context: ChatMediaConte
   }
   for (const file of files) {
     const extension = file.name.split(".").at(-1)?.toLowerCase();
-    const image = ["jpg", "jpeg", "png", "webp"].includes(extension ?? "");
-    const video = extension === "mp4";
-    if (!file.size || file.size > (image || video ? 8_000_000 : 10 * 1024 * 1024)) {
-      return `${file.name} exceeds its size limit (images/video: 8 MB) or is empty.`;
+    if (!file.size || file.size > 8_000_000) {
+      return `${file.name} exceeds the 8 MB limit or is empty.`;
     }
-    if (file.name.split(".").length !== 2 || !["jpg", "jpeg", "png", "webp", "mp4", "pdf", "docx", "xlsx", "pptx", "odt", "ods", "odp", "txt", "csv"].includes(extension ?? "")) {
+    if (file.name.split(".").length !== 2 || !["jpg", "jpeg", "png", "mp4"].includes(extension ?? "")) {
       return `${file.name} uses an unsupported filename or format.`;
     }
   }
   drafts.set(key, [...current, ...files.map((file) => ({
     key: crypto.randomUUID(), file, context: { ...context },
-    preview: /\.(jpe?g|png|webp)$/i.test(file.name) ? URL.createObjectURL(file) : null,
+    preview: /\.(jpe?g|png)$/i.test(file.name) ? URL.createObjectURL(file) : null,
     progress: 0, asset: null, error: null, busy: false,
   }))]);
   notify(key);

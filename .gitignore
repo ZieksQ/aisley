@@ -5,6 +5,7 @@ dist
 build
 coverage
 docs/loop/
+docs/context/seller-operations-redesign/
 .turbo
 .pnpm-store
 .DS_Store

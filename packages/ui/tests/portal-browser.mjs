@@ -33,7 +33,100 @@ const pointerClick = async (selector) => {
   await browser.cdp('Input.dispatchMouseEvent', { type: 'mousePressed', button: 'left', clickCount: 1, ...point })
   await browser.cdp('Input.dispatchMouseEvent', { type: 'mouseReleased', button: 'left', clickCount: 1, ...point })
 }
+const assertChartMotionWiring = () => {
+  const source = (file) => readFileSync(resolve(file), 'utf8')
+  const charts = source('packages/ui/src/charts/DataChart.tsx') + source('packages/ui/src/charts/DistributionChart.tsx')
+  assert.match(charts, /useReducedMotion\(\)/, 'Chart primitives read the motion preference')
+  assert.match(charts, /animate && !reducedMotion/, 'Chart primitives disable animation for reduced motion')
+  assert.match(charts, /animationDuration=\{700\}/, 'Chart animation has a bounded duration')
+  for (const file of ['src/seller/src/components/dashboard/OrderActivityOverview.tsx', 'src/admin/src/components/dashboard/DashboardSummary.tsx', 'src/logistics/src/components/DashboardQueueOverview.tsx']) {
+    assert.match(source(file), /<DataChart[^>]*animate/, `${file} opts into main chart animation`)
+    assert.match(source(file), /<DistributionChart[^>]*animate/, `${file} opts into distribution chart animation`)
+  }
+  const dashboardStyles = source('packages/ui/src/portal/dashboard.css')
+  for (const quadrant of ['top-left', 'top-right', 'bottom-left', 'bottom-right']) {
+    assert(dashboardStyles.includes(`.dashboard-donut-tooltip--${quadrant}`), `Donut tooltip has an outward offset for ${quadrant}`)
+  }
+}
+const assertKpiDesign = async (role, phase) => {
+  const expectedCount = 4
+  assert.equal(await js("document.querySelectorAll('.dashboard-stat-card').length"), expectedCount, `${role} ${phase}: expected KPI card count`)
+  const audit = await js(`(() => [...document.querySelectorAll('.dashboard-stat-card')].map(card => {
+    const header = card.querySelector('.dashboard-stat-header')
+    const icon = card.querySelector('.dashboard-stat-icon, .dashboard-skeleton-icon')
+    const label = card.querySelector('.dashboard-stat-label')
+    const value = card.querySelector('.dashboard-stat-value, .skeleton-value')
+    const detail = card.querySelector('.dashboard-stat-detail, .skeleton-detail')
+    const box = card.getBoundingClientRect(), style = getComputedStyle(card)
+    const panel = document.querySelector('.portal-panel') ? getComputedStyle(document.querySelector('.portal-panel')) : null
+    return { border: style.borderWidth, borderStyle: style.borderStyle, borderColor: style.borderColor,
+      background: style.backgroundColor, panelBorder: panel?.borderColor, panelBackground: panel?.backgroundColor,
+      outline: style.outlineStyle, shadow: style.boxShadow,
+      icon: !!icon, iconSvg: icon?.querySelector('svg') ? 1 : 0,
+      structure: !!header && !!label && !!value && !!detail,
+      labelWeight: label && getComputedStyle(label).fontWeight,
+      valueWeight: value && getComputedStyle(value).fontWeight,
+      bounds: [box.x, box.y, box.width] }
+  })) )()`)
+  assert(audit.every((card) => card.outline === 'none' && card.shadow === 'none'), `${role} ${phase}: no card focus treatment`)
+  assert(audit.every((card) => card.structure), `${role} ${phase}: skeleton/content copy structure aligns`)
+  if (phase === 'loaded') {
+    assert(audit.every((card) => card.border === '1px' && card.borderStyle === 'solid' && card.borderColor === card.panelBorder && card.background === card.panelBackground), `${role}: separated cards match portal surface/border`)
+    assert(audit.every((card) => card.icon && card.iconSvg === 1), `${role}: each KPI card has an icon`)
+    assert(audit.every((card) => Number(card.labelWeight) >= 600 && Number(card.valueWeight) >= 600), `${role}: bold KPI title and value`)
+    assert.equal(await js("document.querySelectorAll('.dashboard-stat-card a, .dashboard-stat-action, .dashboard-stat-change, .dashboard-mini-chart, .dashboard-mini-chart-svg').length"), 0, `${role}: no KPI links, change tags or mini charts`)
+    assert.equal(await js("[...document.querySelectorAll('.dashboard-stat-card')].some(card => card.hasAttribute('tabindex'))"), false, `${role}: KPI cards are not focus targets`)
+    assert.equal(await js("[...document.querySelectorAll('.dashboard-stat-card')].some(card => card.querySelector('.dashboard-stat-icon').getAttribute('aria-hidden') !== 'true')"), false, `${role}: decorative icons are hidden from assistive technology`)
+    const expected = role === 'admin'
+      ? [['Pending registrations', '16'], ['Open support tickets', '12'], ['Compliance cases', '4'], ['Oldest application', '0']]
+      : role === 'seller'
+        ? [['Awaiting approval', '7'], ['In preparation', '12'], ['Ready for pickup', '5'], ['Delivered', '168']]
+        : [['Active shipments', '43'], ['Evidence pending', '5'], ['Completion intents', '3'], ['Out for delivery', '11']]
+    const actual = await js("[...document.querySelectorAll('.dashboard-stat-card')].map(card => [card.querySelector('.dashboard-stat-label').textContent.trim(), card.querySelector('.dashboard-stat-value').textContent.trim()])")
+    assert.deepEqual(actual, expected, `${role}: KPI copy preserves truthful role data`)
+    if (role === 'seller') {
+      assert.match(await js("document.querySelector('.dashboard-chart-comparison')?.textContent.trim()"), /48\.3%.*prior 7 days/i, 'Seller comparison remains in chart summary')
+      assert.equal(await js("document.querySelectorAll('.dashboard-stat-card .dashboard-chart-comparison').length"), 0)
+    }
+  }
+  return audit
+}
+const assertKpiSurface = async (role, theme) => {
+  const surface = await js("(() => { const card=getComputedStyle(document.querySelector('.dashboard-stat-card')), panel=getComputedStyle(document.querySelector('.portal-panel')), page=getComputedStyle(document.querySelector('.portal-shell')); return {cardBackground:card.backgroundColor, panelBackground:panel.backgroundColor, pageBackground:page.backgroundColor, cardBorder:card.borderColor, panelBorder:panel.borderColor, cardBorderWidth:card.borderWidth, cardBorderStyle:card.borderStyle} })()")
+  assert.equal(surface.cardBackground, surface.panelBackground, `${role} ${theme}: KPI surface matches portal panels`)
+  assert.equal(surface.cardBorder, surface.panelBorder, `${role} ${theme}: KPI border matches portal panels`)
+  assert.equal(surface.cardBorderWidth, '1px', `${role} ${theme}: visible KPI border`)
+  assert.equal(surface.cardBorderStyle, 'solid')
+  assert.notEqual(surface.cardBackground, surface.pageBackground, `${role} ${theme}: KPI surface is distinct from page background`)
+}
+const assertChartTooltipFollowsPointer = async (role) => {
+  const points = await js(`(() => { const r=document.querySelector('.portal-chart .recharts-surface').getBoundingClientRect(); return [0.32,0.68].map(ratio=>({x:r.left+r.width*ratio,y:r.top+r.height*.45})) })()`)
+  const samples = []
+  for (const point of points) {
+    await browser.cdp('Input.dispatchMouseEvent', { type: 'mouseMoved', ...point })
+    await browser.until("!!document.querySelector('.dashboard-chart-tooltip')", `${role} chart tooltip visible`)
+    samples.push(await js("(() => { const tip=document.querySelector('.dashboard-chart-tooltip'), wrapper=tip.parentElement, r=tip.getBoundingClientRect(); return {text:tip.textContent.trim(), left:r.left, top:r.top, pointerEvents:getComputedStyle(wrapper).pointerEvents, visibility:getComputedStyle(wrapper).visibility} })()"))
+  }
+  assert(samples.every((sample) => sample.text && sample.visibility === 'visible'), `${role}: hover exposes truthful chart tooltip values`)
+  assert.equal(samples[0].pointerEvents, 'none', `${role}: tooltip does not intercept pointer movement`)
+  assert(Math.abs(samples[0].left - samples[1].left) > 2 || Math.abs(samples[0].top - samples[1].top) > 2, `${role}: tooltip follows the pointer`)
+}
+const assertDonutTooltipAvoidsCenter = async (role) => {
+  const points = await js(`(() => [...document.querySelectorAll('.dashboard-distribution .recharts-pie-sector')].map(path => {
+    const length=path.getTotalLength(), point=path.getPointAtLength(length*.5), screen=new DOMPoint(point.x,point.y).matrixTransform(path.getScreenCTM())
+    return {x:screen.x,y:screen.y}
+  }))()`)
+  assert(points.length > 0, `${role}: distribution chart has hoverable slices`)
+  for (const point of points) {
+    await browser.cdp('Input.dispatchMouseEvent', { type: 'mouseMoved', ...point })
+    await browser.until("!!document.querySelector('.dashboard-distribution .dashboard-chart-tooltip')", `${role} donut tooltip visible`)
+    const sample = await js("(() => { const tip=document.querySelector('.dashboard-distribution .dashboard-chart-tooltip'), offset=tip.closest('.dashboard-donut-tooltip'), a=tip.getBoundingClientRect(), b=document.querySelector('.dashboard-donut-total').getBoundingClientRect(); return {overlap:!(a.right<=b.left || a.left>=b.right || a.bottom<=b.top || a.top>=b.bottom), quadrant:[...offset.classList].find(name=>name.startsWith('dashboard-donut-tooltip--'))} })()")
+    assert.equal(sample.overlap, false, `${role}: donut tooltip stays clear of the center total`)
+    assert(sample.quadrant, `${role}: active donut tooltip selects an outward quadrant`)
+  }
+}
 const serve = process.argv.includes('--serve')
+assertChartMotionWiring()
 const roles = [['admin', serve ? 16175 : 15175], ['seller', serve ? 16174 : 15174], ['logistics', serve ? 16176 : 15176]]
 const roleFilter = process.argv.find((arg) => arg.startsWith('--role='))?.split('=')[1]
 const services = []
@@ -61,13 +154,24 @@ try {
   await js("localStorage.removeItem('portal-restricted'); localStorage.removeItem('portal-consent-required')")
   for (const [role, port] of process.argv.includes('--final-checks') ? [] : roles.filter(([role]) => !roleFilter || role === roleFilter)) {
     await browser.cdp('Emulation.setEmulatedMedia', { features: [] })
+    await js("document.documentElement.classList.remove('dark')")
     await browser.viewport(1440, 1000, false)
     await browser.navigate(`http://127.0.0.1:${port}/dashboard`)
     await browser.until("!!document.querySelector('.portal-shell .dashboard-skeleton')", `${role} skeleton within shell`)
     assert.equal(await js("/Checking (your session|policy consent)/.test(document.body.innerText)"), false)
     assert.equal(await js("document.querySelectorAll('.recharts-bar').length"), 0, 'No private dashboard before consent')
+    const skeletonAudit = await assertKpiDesign(role, 'skeleton')
+    const skeletonGrid = await js("({ columns: getComputedStyle(document.querySelector('.dashboard-metric-grid')).gridTemplateColumns, gap: getComputedStyle(document.querySelector('.dashboard-metric-grid')).gap })")
     await browser.screenshot(resolve(artifacts, `${role}-loading.png`))
     await browser.until("!!document.querySelector('.recharts-bar')", `${role} dashboard loaded`)
+    const loadedAudit = await assertKpiDesign(role, 'loaded')
+    await assertKpiSurface(role, 'light')
+    await assertChartTooltipFollowsPointer(role)
+    await assertDonutTooltipAvoidsCenter(role)
+    const loadedGrid = await js("({ columns: getComputedStyle(document.querySelector('.dashboard-metric-grid')).gridTemplateColumns, gap: getComputedStyle(document.querySelector('.dashboard-metric-grid')).gap })")
+    assert.equal(skeletonGrid.columns, loadedGrid.columns, `${role}: skeleton columns align with loaded cards`)
+    assert.equal(skeletonGrid.gap, loadedGrid.gap, `${role}: skeleton spacing aligns with loaded cards`)
+    assert.deepEqual(skeletonAudit.map(({ bounds }) => bounds), loadedAudit.map(({ bounds }) => bounds), `${role}: skeleton cards align with loaded cards`)
     assert.equal(await js("!!document.querySelector('.recharts-default-tooltip')"), false, 'Custom inactive tooltips occupy no space')
     await js("window.keptPortalShell = document.querySelector('.portal-shell'); true")
     const consentRequests = await js('window.portalFixture.consentRequests')
@@ -91,10 +195,6 @@ try {
     await pointerClick('.portal-desktop-toggle')
     assert.equal(await js("getComputedStyle(document.querySelector('.portal-desktop-toggle')).outlineStyle"), 'none', 'Pointer sidebar click has no outline')
     await pointerClick('.portal-desktop-toggle')
-    await js("document.querySelector('.dashboard-card-action').addEventListener('click', event => event.preventDefault(), { once: true })")
-    await pointerClick('.dashboard-card-action')
-    assert.equal(await js("getComputedStyle(document.querySelector('.dashboard-card-action')).outlineStyle"), 'none', 'Pointer metric action has no outline')
-    assert.equal(await js("getComputedStyle(document.querySelector('.dashboard-card-action')).getPropertyValue('--tw-ring-shadow').trim()"), '0 0 #0000', 'Pointer metric action has no ring')
     await browser.cdp('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 10, y: 10 })
 
     assert.equal(await js("getComputedStyle(document.querySelector('.portal-toolbar')).height"), '64px')
@@ -107,6 +207,7 @@ try {
 
     await js("document.documentElement.classList.add('dark')")
     await js("new Promise(done => setTimeout(done, 220))")
+    await assertKpiSurface(role, 'dark')
     await browser.screenshot(resolve(artifacts, `${role}-desktop-dark.png`))
     assert.equal(await js("getComputedStyle(document.querySelector('.portal-shell')).getPropertyValue('--portal-page').trim()"), '#0f172a')
     if (process.argv.includes('--design-only')) {
@@ -117,12 +218,42 @@ try {
           await browser.until("document.documentElement.scrollWidth <= document.documentElement.clientWidth", `${role} no overflow at ${width}`)
           await browser.screenshot(resolve(artifacts, `${role}-${width}-${dark ? 'dark' : 'light'}.png`))
         }
+        if (width === 320) await assertDonutTooltipAvoidsCenter(role)
       }
       assert.equal(await js("document.body.innerText.includes('View chart data')"), false)
-      assert.equal(await js("document.querySelectorAll('.dashboard-stat-card').length"), 4)
       assert(await js("!!document.querySelector('.portal-chart .sr-only table')"), 'Screen-reader data')
       assert(await js("new Set([...document.querySelectorAll('.portal-chart path[fill]')].map(p=>p.getAttribute('fill')).filter(fill=>fill.includes('--chart-'))).size > 1"), 'Distinct graph colors')
       await browser.cdp('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] })
+      assert.equal(await js("matchMedia('(prefers-reduced-motion: reduce)').matches"), true, `${role}: reduced-motion preference is active`)
+      assert(await js("!!document.querySelector('.portal-chart .recharts-surface')"), `${role}: main charts remain rendered with reduced motion`)
+      if (role === 'seller') {
+        const refreshActivity = async (variant) => {
+          await js(`window.portalFixture.activityVariant = ${JSON.stringify(variant)}; window.portalFixture.activityVariantReturned = null`)
+          await click('.dashboard-heading-actions button')
+          await browser.until(`window.portalFixture.activityVariantReturned === ${JSON.stringify(variant)}`, `${variant} activity fixture returned`)
+        }
+        const assertComparison = async (text, tone) => {
+          await browser.until(`document.querySelector('.dashboard-chart-comparison')?.textContent.includes(${JSON.stringify(text)})`, `${text} chart comparison rendered`)
+          assert.equal(await js("[...document.querySelector('.dashboard-chart-comparison').classList].find(name => name.startsWith('dashboard-chart-comparison--'))"), `dashboard-chart-comparison--${tone}`)
+          assert.equal(await js("document.querySelector('.dashboard-stat-card .dashboard-chart-comparison')"), null, 'Comparison stays outside KPI cards')
+        }
+        await assertComparison('+48.3%', 'positive')
+        assert(await js("document.querySelector('.dashboard-chart-comparison').textContent.trim().startsWith('↗')"), 'Increasing comparison has an upward marker')
+        await refreshActivity('decrease')
+        await assertComparison('−50%', 'negative')
+        assert(await js("document.querySelector('.dashboard-chart-comparison').textContent.trim().startsWith('↘')"), 'Decreasing comparison has a downward marker')
+        await refreshActivity('new-activity')
+        await assertComparison('New activity', 'positive')
+        await refreshActivity('neutral')
+        await assertComparison('No change', 'neutral')
+        assert(await js("document.querySelector('.dashboard-chart-comparison').textContent.trim().startsWith('→')"), 'Neutral comparison has an unchanged marker')
+        for (const variant of ['missing-prior', 'gap']) {
+          await refreshActivity(variant)
+          assert.equal(await js("!!document.querySelector('.dashboard-chart-comparison')"), false, `Seller omits comparison for ${variant} activity series`)
+        }
+        await refreshActivity('increase')
+        await assertComparison('+48.3%', 'positive')
+      }
       await js("window.portalFixture.empty = true")
       await click('.portal-content button')
       await browser.until("!document.querySelector('.recharts-bar') && !document.querySelector('.recharts-pie-sector')", `${role} zero state`)
@@ -172,11 +303,11 @@ try {
     await browser.viewport(1440, 1000, false)
     await click('.portal-desktop-toggle')
     await browser.cdp('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] })
+    assert.equal(await js("matchMedia('(prefers-reduced-motion: reduce)').matches"), true, `${role}: reduced-motion preference is active`)
     assert.equal(await js("getComputedStyle(document.querySelector('.portal-nav-link')).transitionDuration"), '0s')
     assert.equal(await js("document.body.innerText.includes('View chart data')"), false, 'No chart-data disclosure')
     assert(await js("!!document.querySelector('.portal-chart .sr-only table')"), 'Chart data remains available to screen readers')
-    assert.equal(await js("document.querySelectorAll('.dashboard-stat-card').length"), 4, 'Four separate metric cards')
-    assert.equal(await js("getComputedStyle(document.querySelector('.dashboard-metric-grid')).columnGap"), '16px', 'Metric cards have individual spacing')
+    assert.equal(await js("getComputedStyle(document.querySelector('.dashboard-metric-grid')).columnGap"), '20px', 'Metric cards have individual spacing')
     assert(await js("new Set([...document.querySelectorAll('.portal-chart path[fill]')].map(p=>p.getAttribute('fill')).filter(fill=>fill.includes('--chart-'))).size > 1"), 'Distinct graph colors')
     await js("window.portalFixture.empty = true")
     await click('.portal-content button')

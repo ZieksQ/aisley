@@ -284,3 +284,22 @@
 .vouchers h1 {
   overflow-wrap: anywhere;
 }
+.voucher-editor-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.voucher-editor-nav a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+.vouchers .voucher-overview dl {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+}
+.voucher-page-description {
+  margin-top: 8px;
+}

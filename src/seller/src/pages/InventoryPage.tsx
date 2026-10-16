@@ -1,23 +1,184 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { apiRequest } from '../lib/api'
+import { LuRefreshCw, LuSearch } from 'react-icons/lu'
+import {
+  IconButton,
+  PortalField,
+  PortalPagination,
+  PortalState,
+  PortalSkeleton,
+  PortalTable,
+} from '@aisley/ui/portal'
+import { useSellerRead } from '../lib/useSellerRead'
+import { StockState } from '../features/inventory/StockState'
+import { variantLabel } from '../features/inventory/model'
 import type { InventorySku, Page } from '../types/operations'
 
-function variantLabel(variant: InventorySku['variant']): string {
-  return variant?.option_values.map(({ group, value }) => group ? `${group}: ${value}` : value).join(' / ') ?? ''
-}
-
 export function InventoryPage() {
-  const [page, setPage] = useState<Page<InventorySku> | null>(null)
   const [search, setSearch] = useState('')
+  const [query, setQuery] = useState('')
   const [stock, setStock] = useState('')
+  const [page, setPage] = useState(1)
+  const filters = new URLSearchParams({ page: String(page) })
+  if (query) filters.set('search', query)
+  if (stock) filters.set('stock', stock)
+  const state = useSellerRead<Page<InventorySku>>(
+    `/api/v1/seller/inventory?${filters}`,
+  )
   useEffect(() => {
     document.title = 'Inventory | Aisley Seller'
-    const query = new URLSearchParams({ ...(search ? { search } : {}), ...(stock ? { stock } : {}) })
-    apiRequest<Page<InventorySku>>(`/api/v1/seller/inventory?${query}`).then(setPage)
-  }, [search, stock])
-  return <div className="mx-auto max-w-6xl px-4 py-7 sm:px-6 lg:px-8"><div className="border-b border-zinc-200 pb-5 dark:border-white/10"><h2 className="text-2xl font-semibold">Inventory</h2><p className="mt-1 text-sm text-zinc-500">Available stock is on-hand minus reserved stock. Every adjustment is recorded.</p></div>
-    <div className="mt-5 flex flex-col gap-3 sm:flex-row"><input className="h-10 flex-1 rounded-lg border border-zinc-300 bg-white px-3 text-sm dark:border-white/15 dark:bg-[#18181b]" onChange={(e) => setSearch(e.target.value)} placeholder="Search product or SKU" value={search} /><select className="h-10 rounded-lg border border-zinc-300 bg-white px-3 text-sm dark:border-white/15 dark:bg-[#18181b]" onChange={(e) => setStock(e.target.value)} value={stock}><option value="">All stock</option><option value="low">Low stock</option><option value="out">Out of stock</option></select></div>
-    <div className="mt-5 overflow-hidden rounded-lg border border-zinc-200 bg-white dark:border-white/10 dark:bg-[#18181b]">{!page ? <p className="p-5 text-sm text-zinc-500">Loading inventory…</p> : page.data.length === 0 ? <p className="p-8 text-center text-sm text-zinc-500">No inventory matches this view.</p> : <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="border-b border-zinc-200 bg-zinc-50 text-xs uppercase text-zinc-500 dark:border-white/10 dark:bg-white/[0.03]"><tr><th className="px-4 py-3">Product / SKU</th><th className="px-4 py-3">On hand</th><th className="px-4 py-3">Reserved</th><th className="px-4 py-3">Available</th><th className="px-4 py-3">State</th></tr></thead><tbody className="divide-y divide-zinc-200 dark:divide-white/10">{page.data.map((sku) => <tr key={sku.id}><td className="px-4 py-4"><Link className="font-medium text-[#4C1268] dark:text-purple-300" to={`/inventory/${sku.id}`}>{sku.product.name}</Link>{sku.variant ? <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-300">{variantLabel(sku.variant)}</p> : null}<p className="mt-1 font-mono text-xs text-zinc-500">{sku.code}</p></td><td className="px-4 py-4 tabular-nums">{sku.on_hand}</td><td className="px-4 py-4 tabular-nums">{sku.reserved}</td><td className="px-4 py-4 font-medium tabular-nums">{sku.available}</td><td className="px-4 py-4"><span className={`rounded-full px-2 py-1 text-xs font-medium ${sku.stock_state === 'out' ? 'bg-red-100 text-red-800' : sku.stock_state === 'low' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'}`}>{sku.stock_state.replace('_', ' ')}</span></td></tr>)}</tbody></table></div>}</div>
-  </div>
+  }, [])
+
+  return (
+    <main className="portal-page">
+      <header className="portal-page-header">
+        <div>
+          <h2 className="portal-page-heading">Inventory</h2>
+          <p className="portal-page-description">
+            Track physical stock, reserved units and what’s available to sell.
+          </p>
+        </div>
+        <div className="portal-inline-actions">
+          <Link className="portal-button" to="/low-stock-alerts">
+            Low-stock alerts
+          </Link>
+          <IconButton
+            label="Refresh inventory"
+            disabled={state.loading}
+            onClick={state.refresh}
+          >
+            <LuRefreshCw aria-hidden="true" />
+          </IconButton>
+        </div>
+      </header>
+      <form
+        className="portal-filter-bar"
+        onSubmit={(event) => {
+          event.preventDefault()
+          setQuery(search.trim())
+          setPage(1)
+        }}
+      >
+        <PortalField
+          label="Search product or SKU"
+          id="inventory-search"
+          maxLength={100}
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+        />
+        <div className="portal-field">
+          <label htmlFor="inventory-stock">Stock state</label>
+          <select
+            className="portal-input"
+            id="inventory-stock"
+            value={stock}
+            onChange={(event) => {
+              setStock(event.target.value)
+              setPage(1)
+            }}
+          >
+            <option value="">All stock</option>
+            <option value="low">Low stock</option>
+            <option value="out">Out of stock</option>
+          </select>
+        </div>
+        <button className="portal-button" type="submit">
+          <LuSearch aria-hidden="true" />
+          Search
+        </button>
+      </form>
+      {state.error ? (
+        <PortalState
+          error
+          title={state.error}
+          action={
+            <button className="portal-button" onClick={state.refresh}>
+              Try again
+            </button>
+          }
+        />
+      ) : state.loading ? (
+        <PortalSkeleton label="Loading inventory…" />
+      ) : !state.data?.data.length ? (
+        <PortalState
+          title="No inventory matches this view"
+          description="Try a different product name, SKU or stock filter."
+        />
+      ) : (
+        <>
+          <PortalTable label="Shop inventory">
+            <caption>
+              {state.data.total} SKUs · Available = on hand − reserved
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">Product / SKU</th>
+                <th className="portal-number" scope="col">
+                  On hand
+                </th>
+                <th className="portal-number" scope="col">
+                  Reserved
+                </th>
+                <th className="portal-number" scope="col">
+                  Available
+                </th>
+                <th className="portal-number" scope="col">
+                  Threshold
+                </th>
+                <th scope="col">Stock state</th>
+              </tr>
+            </thead>
+            <tbody>
+              {state.data.data.map((sku) => (
+                <tr key={sku.id}>
+                  <td className="portal-table-name">
+                    <Link
+                      className="portal-link font-medium"
+                      to={`/inventory/${sku.id}`}
+                    >
+                      {sku.product.name}
+                    </Link>
+                    {sku.variant && (
+                      <span className="portal-table-meta">
+                        {variantLabel(sku.variant)}
+                      </span>
+                    )}
+                    <span className="portal-table-meta font-mono">
+                      {sku.code}
+                    </span>
+                    {sku.status === 'inactive' ||
+                    sku.product.status === 'archived' ? (
+                      <span className="portal-table-meta">
+                        {sku.product.status === 'archived'
+                          ? 'Archived product'
+                          : 'Inactive SKU'}
+                      </span>
+                    ) : null}
+                  </td>
+                  <td className="portal-number">{sku.on_hand}</td>
+                  <td className="portal-number">{sku.reserved}</td>
+                  <td className="portal-number font-semibold">
+                    {sku.available}
+                  </td>
+                  <td className="portal-number">
+                    {sku.alert_threshold ?? 'Off'}
+                  </td>
+                  <td>
+                    <StockState state={sku.stock_state} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </PortalTable>
+          <PortalPagination
+            page={state.data.current_page}
+            lastPage={state.data.last_page}
+            total={state.data.total}
+            disabled={state.loading}
+            onPage={setPage}
+          />
+        </>
+      )}
+    </main>
+  )
 }

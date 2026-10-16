@@ -205,6 +205,7 @@ export function VoucherDetail({ id, ...props }: VoucherProps & { id: string }) {
               {voucher.lifecycle !== 'ended' && (
                 <Button
                   variant="outline"
+                  className="voucher-destructive-outline"
                   disabled={disabled}
                   onClick={() => setConfirm('end')}
                 >

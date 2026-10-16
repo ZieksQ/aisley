@@ -60,6 +60,17 @@ return [
             'report' => false,
         ],
 
+        'azure_chat' => [
+            'driver' => 'azure-storage-blob',
+            'connection_string' => env('AZURE_CHAT_STORAGE_CONNECTION_STRING') ?: env('AZURE_STORAGE_CONNECTION_STRING'),
+            'container' => env('AZURE_CHAT_STORAGE_CONTAINER', 'aisley-chat-media'),
+            'is_public_container' => false,
+            'timeout' => 30,
+            'connect_timeout' => 10,
+            'throw' => false,
+            'report' => false,
+        ],
+
         'azure' => [
             'driver' => 'azure-storage-blob',
             'connection_string' => env('AZURE_STORAGE_CONNECTION_STRING'),
