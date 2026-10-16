@@ -88,8 +88,12 @@ class SellerOrderPickingSheetTest extends TestCase
         // Inspect the same DOM used by the actual PDF renderer, rather than a parallel template.
         $text = $document->textContent;
         $this->assertLessThan(strpos($text, $first->reference), strpos($text, $second->reference));
-        foreach (['Buyer snapshot', 'Purchased basket', 'BASKET-SNAP', 'Second purchased item', 'Large', 'Color: Blue', 'SKU: Unavailable', 'Quantity: 3', 'Processing'] as $expected) {
+        foreach (['Buyer snapshot', 'Purchased basket', 'BASKET-SNAP', 'Second purchased item', 'Large', 'Color: Blue', 'SKU: Unavailable', 'Qty: 3'] as $expected) {
             $this->assertStringContainsString($expected, $text);
+        }
+        $body = $document->getElementsByTagName('body')->item(0)->textContent;
+        foreach (['Order picking sheet', 'Warehouse shop', 'Generated', 'Placed:', 'Status:', 'Destination:', 'Processing', 'Manila', 'Continued', 'Verify the current order status'] as $removed) {
+            $this->assertStringNotContainsString($removed, $body);
         }
         $this->assertCount(2, $document->getElementsByTagName('th'));
         $this->assertSame([0.0, 0.0, 595.28, 841.89], $pdf->getDomPDF()->getPaperSize());
