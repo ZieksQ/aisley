@@ -3,6 +3,7 @@
 namespace App\Services\Seller;
 
 use App\Models\User;
+use App\Services\Account\PasswordChangeVerification;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -50,9 +51,9 @@ class SellerAccountService
         });
     }
 
-    public function updatePassword(User $seller, string $password, array $context): void
+    public function updatePassword(User $seller, string $currentPassword, string $password, array $context, string $challengeId, string $code): void
     {
-        DB::transaction(function () use ($seller, $password, $context): void {
+        app(PasswordChangeVerification::class)->complete($seller, $currentPassword, $password, $challengeId, $code, function (User $seller) use ($password, $context): void {
             $seller->update(['password' => $password]);
             $seller->tokens()->delete();
             $this->securityLog($seller, 'seller_account.password_updated', ['password'], $context);

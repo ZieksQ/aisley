@@ -49,6 +49,8 @@ class AccountController extends Controller
             $this->courier($request),
             $request->string('current_password')->value(),
             $request->string('password')->value(),
+            $request->string('challenge_id')->value(),
+            $request->string('verification_code')->value(),
         );
 
         return $this->privateResponse([

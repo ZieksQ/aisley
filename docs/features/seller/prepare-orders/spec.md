@@ -44,7 +44,7 @@ Seller opens Seller-scoped processing Order
 - Display the immutable Order Item/Product/variant/SKU names, selected options, quantities, prices, and checkout shipping-address snapshot needed to pack. Never substitute current catalog values for historical facts.
 - The checkout pricing snapshot contains private Product/Variant packed weights and dimensions aggregated for the one-Order/one-parcel MVP. Seller preparation does not edit or disclose those calculations.
 - The shared waybill contains the explicit tracking ID, thin Code 128 barcode, opaque QR, and only approved operational snapshots; it never embeds arbitrary Order JSON or secrets.
-- Pickup creation materializes the frozen planned/local checkout route. An unplanned fallback may resolve operationally later, but its Customer fee stays fixed and its payout is held for reconciliation.
+- Pickup creation materializes the frozen planned/local checkout route, which is required for new Orders. A historical unplanned Order may resolve operationally later, but its Customer fee stays fixed and its payout is held for reconciliation.
 - The reference, snapshot, and selected Logistics organization are immutable from the committed request; corrections require a future void-and-reissue policy.
 - Preview, download, and reprint do not change Order status. Reprints are auditable and never create another fulfillment cycle.
 

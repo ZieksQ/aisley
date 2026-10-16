@@ -66,3 +66,15 @@ This fixture uses the Customer preview server at port 15300. It covers pointer a
 Component and app-route screenshots/results default to the ignored `node_modules/.cache/messages-ui/` directory; those scripts accept `CHAT_SCREENSHOTS` where documented. The media fixture writes screenshots and its result record under `docs/loop/messages-ui-ux-20261011/`; the profile fixture writes screenshots there. All browser scripts use one profile at `node_modules/.cache/messages-ui/test-profile`; run the component, app-route, media, and profile scripts sequentially, never concurrently, and do not share that profile with another verifier.
 
 These fixtures do not verify live API authorization, tenant isolation, database concurrency, private storage/scanning, or deployment behavior. CDP keyboard, touch, and viewport emulation is not physical-device, screen-reader, or installed-app testing. The component fixture transpiles sources for rendering; it does not replace type, lint, or production build checks.
+
+## Registration email and B12
+
+From the repository root, with an existing Seller production stylesheet and installed Chromium:
+
+```sh
+CHROMIUM_BINARY=/usr/bin/chromium node packages/ui/tests/registration-email-browser.mjs
+```
+
+The fixture checks the actual shared gate/hook at 320/390/768/1440px in supported role themes, leading-zero OTPs, draft retention, expiry, cooldown, reduced motion, and obsolete OTP responses. Its B12 matrix additionally runs the actual Customer, Seller, and Logistics registration handlers and OTP clients, plus the Customer CSRF wrapper. It covers synchronous duplicate submission, pending identity/edit locks, frozen JSON/multipart fields and selected evidence, delayed success/proof rejection, same/different-email retry, expiry during submission, ambiguous upload failure, obsolete callbacks after a newer proof, and disposal during CSRF/final requests. Synthetic transport intentionally delivers old responses despite abort to exercise the client guards.
+
+Routing, HTTP, map/address controls and selected presentation primitives are synthetic. Responsive checks do not certify the full application layouts, live registration/mail, upload processing, or deployment. Screenshots remain under `node_modules/.cache/registration-email-browser`; run sequentially with the other browser fixtures sharing the same profile.

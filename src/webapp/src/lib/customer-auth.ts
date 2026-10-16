@@ -20,6 +20,7 @@ export type Customer = {
 };
 
 export type RegisterCustomerPayload = {
+  email_verification_token: string;
   birth_date: string;
   contact_number: string;
   email: string;
@@ -31,19 +32,22 @@ export type RegisterCustomerPayload = {
   sex: string;
 };
 
-async function secureRequest<T>(path: string, body: Record<string, unknown>) {
-  await initializeCsrf();
+async function secureRequest<T>(path: string, body: Record<string, unknown>, signal?: AbortSignal) {
+  await initializeCsrf(signal);
+  signal?.throwIfAborted();
 
   return apiRequest<T>(`${customerAuthPath}${path}`, {
     body: JSON.stringify(body),
     method: "POST",
+    signal,
   });
 }
 
-export function registerCustomer(payload: RegisterCustomerPayload) {
+export function registerCustomer(payload: RegisterCustomerPayload, signal?: AbortSignal) {
   return secureRequest<{ customer: Customer; message: string }>(
     "/register",
     payload,
+    signal,
   );
 }
 

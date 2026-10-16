@@ -3,10 +3,11 @@ feature: chat-messaging
 role: Customer
 platform: Flutter / Dart
 phase: 4
-flutter_status: Text/images and received video/documents implemented locally; live/device acceptance open G27
+flutter_status: Shop context/availability, text/images and received video/documents implemented locally; live/device acceptance open G27
 backend_baseline: 7b1a08a0c89d7983a0e0503c5e8d322d2c2fa2a0
 contract_inspected_checkout: 57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50
-documentation_synced_on: 2026-10-12
+contract_inspected_shop_context: 1d40b5d34fac1bfa93b9c32f5ee4fb0d54f43167
+documentation_synced_on: 2026-10-15
 ---
 
 # Shop messages
@@ -19,18 +20,15 @@ retention/release gates remain.
 Flutter: **implemented; acceptance partial**. See [Phase 4 evidence](../../../references/phase-4-verification.md).
 Broad counterpart/device and concurrency criteria remain open.
 
-Shop/Product/owned Order → first valid message → one reused Shop thread → reply/read/history.
+Shop/Product/owned Order → read-only Shop context → existing thread or first message → reply/read/history.
 
 - Use conversations and customer_shop; start shop_id/body with optional Product/Order context, server-derived Seller. Thread persists only on committed first message and is reused across contexts.
 - Text ≤2,000, UUID start/send key, server sequence/time/mine; read body uses sequence. Shop list/history envelopes are items/next_cursor, inbox adds unread_count. Context availability and send_allowed come from server.
 - Poll visible online only, freeze uncertain body/context/key, and retain pending first-send through polling. Older cursor gaps remain reachable and monotonic read is separate from all other channels/notifications/tickets.
 - Seller permission loss disables sends while scoped history remains readable. Flutter supports private images; video/document adoption remains open G27; no typing/presence/edit/delete/Admin blanket transcript access/offline queue.
 
-The local bundle supplies the implementation contract. Upstream paths are optional provenance only.
-Use this feature with its prerequisite session/consent boundary and the related shopping or communication
-repositories.
-The Customer client cannot perform Seller/Admin/Logistics/Courier actions. Current Laravel ownership and
-capabilities remain authoritative.
+The local bundle supplies the implementation contract; upstream paths are optional provenance.
+Use the prerequisite session/consent boundary. Laravel owns permissions; other-role actions remain excluded.
 
 Buyer presentation requires verified active Customer identity and required consent for every shopping
 screen; public backend methods/envelopes remain unchanged. Auth/recovery/Terms/Privacy stay reachable.
@@ -42,6 +40,9 @@ Phone/tablet padding, natural content heights and keyboard/text resizing follow 
 
 - One reused Customer–Shop relationship handles Product/owned Order contexts; thread is not one per Order.
 - First valid message persists the thread; merely opening composer creates no empty conversation.
+- Shop context discovers this Customer's existing thread; fetch its detail/history before reuse.
+- Availability describes business status. Existing-thread send_allowed overrides the generic preview;
+  a prospective owned-Order vacation start remains server-validated. Initial/failed discovery blocks new sends.
 - Start sends shop_id/body and optional Product/Order context; Seller identity is always server-derived.
 - Product context must currently belong to public Shop; owned Order context must belong to that Shop.
 - Later messages can include valid contexts; no arbitrary user recipient search exists.
@@ -95,6 +96,9 @@ A path UUID or slug is encoded before use; do not submit owner, status, financia
 - `GET /api/v1/customer/conversations/unread-count` → HTTP 200; `{unread_count:int}`.
   Request: No parameters.
   Replay: Read retry after bounded backoff; reject obsolete session/query generations.
+- `GET /api/v1/customer/conversations/shops/{shop}` → HTTP 200; `{data:ShopAvailabilityProjection}`.
+  Request: Shop UUID; no body; active Customer + consent; overall throttle120/minute. No thread creation.
+  Replay: Read retry with session guards; scoped403/404 clears affected state; 429 honors Retry-After.
 
 Full per-operation access/status notes and synthetic bodies are in
 [operations](../../../api/operations.md) and
@@ -105,18 +109,17 @@ Current media requests accept ordered distinct `attachment_ids:UUID[]`≤5, read
 
 ### Response fields and nesting
 
-The following top-level DTO fields use `?` for null and `~` for omission; otherwise the field is required.
-Named nested types and all child keys are defined in the local [wire tables](../../../api/field-index.md)
-and [schema](../../../api/dto-schema.json); those definitions are part of this spec, not upstream reading.
-UUID/cursor are strings; int is integral JSON; number accepts JSON int/double; timestamps are ISO-8601
-UTC.
-money is a decimal string with exact minor-unit parsing; URL requires trusted-origin/path validation.
+Fields use `?` for null and `~` for omission; otherwise required. Nested types follow the
+[wire tables](../../../api/field-index.md) and [schema](../../../api/dto-schema.json).
+UUID/cursor are strings, timestamps ISO-8601 UTC; URLs require trusted-origin/path validation.
 Never default a missing required object/list to empty success. Unknown enum values disable unsupported
 actions.
 
 | DTO | Wire fields and types |
 | --- | --- |
 | `ShopConversation` | `id: UUID`, `shop: ChatShop`, `customer_name: null`, `last_message_preview: string?`, `last_message_at: timestamp?`, `last_sequence: int`, `last_read_sequence: int`, `unread_count: int`, `send_allowed: bool` |
+| `ChatShop` | `id: UUID`, `name: string`, `slug: string?`, `availability: online\|offline\|vacation` |
+| `ShopAvailabilityProjection` | `shop: ChatShop`, `conversation_id: UUID?`, `send_allowed: bool` |
 | `ShopMessage` | `id: UUID`, `sequence: int`, `body: string`, `mine: bool`, `sender_role: string`, `context: MessageContext?`, `created_at: timestamp?`, `attachments: ChatAttachment[]~` |
 | `MessageContext` | `type: string`, `id: UUID?`, `label: string`, `url: URL?` |
 
@@ -223,4 +226,4 @@ The Laravel backend now supports private image, MP4 and document attachments for
 
 Local evidence: [private media checks](../../../references/private-media-verification.md) and [image checks](../../../references/dashboard-chat-images-verification.md).
 
-Current [Shop-context read](../../../api/messaging.md#shop-relationship) returns Shop business availability and optional existing conversation ID without creating a thread. Buyer adoption is pending; no human-presence guarantee is implied.
+Buyer adopts the [Shop-context read](../../../api/messaging.md#shop-relationship) and business availability locally (G32/F08). Product/Order context and uncertain endpoint/body/attachment IDs/key survive discovery; obsolete session responses cannot repopulate state. [G32 verification](../../../references/shop-context-verification.md) separates local checks from live/device acceptance.

@@ -9,11 +9,13 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Tests\Support\VerifiedRegistrationEmail;
 use Tests\TestCase;
 
 class LogisticsAuthenticationTest extends TestCase
 {
     use RefreshDatabase;
+    use VerifiedRegistrationEmail;
 
     protected function setUp(): void
     {
@@ -70,7 +72,7 @@ class LogisticsAuthenticationTest extends TestCase
     {
         $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL2qAAAAABJRU5ErkJggg==', true);
 
-        return ['first_name' => 'Logan', 'last_name' => 'Operator', 'middle_name' => 'A', 'contact_number' => '09171234567', 'sex' => 'male', 'birth_date' => '1990-01-01', 'business_name' => 'Aisley Delivery Services', 'email' => 'Logistics@Example.com', 'password' => 'Password123', 'password_confirmation' => 'Password123', 'address' => ['address_line_1' => '1 Hub Road', 'barangay' => 'Poblacion', 'city_municipality' => 'Makati City', 'province' => 'Metro Manila', 'region' => 'National Capital Region', 'postal_code' => '1200'], 'government_id' => UploadedFile::fake()->createWithContent('id.png', $png), 'business_permit' => UploadedFile::fake()->createWithContent('permit.png', $png)];
+        return ['email_verification_token' => $this->registrationEmailToken(UserRole::Logistics, 'logistics@example.com'), 'first_name' => 'Logan', 'last_name' => 'Operator', 'middle_name' => 'A', 'contact_number' => '09171234567', 'sex' => 'male', 'birth_date' => '1990-01-01', 'business_name' => 'Aisley Delivery Services', 'email' => 'Logistics@Example.com', 'password' => 'Password123', 'password_confirmation' => 'Password123', 'address' => ['address_line_1' => '1 Hub Road', 'barangay' => 'Poblacion', 'city_municipality' => 'Makati City', 'province' => 'Metro Manila', 'region' => 'National Capital Region', 'postal_code' => '1200'], 'government_id' => UploadedFile::fake()->createWithContent('id.png', $png), 'business_permit' => UploadedFile::fake()->createWithContent('permit.png', $png)];
     }
 
     private function fromLogisticsApp(): self

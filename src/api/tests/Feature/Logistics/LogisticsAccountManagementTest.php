@@ -11,11 +11,13 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Tests\Support\VerifiesPasswordChanges;
 use Tests\TestCase;
 
 class LogisticsAccountManagementTest extends TestCase
 {
     use RefreshDatabase;
+    use VerifiesPasswordChanges;
 
     protected function setUp(): void
     {
@@ -204,11 +206,11 @@ class LogisticsAccountManagementTest extends TestCase
             ->assertJsonValidationErrors('current_password');
 
         $this->withToken($first->plainTextToken)
-            ->putJson('/api/v1/logistics/account/password', [
+            ->putJson('/api/v1/logistics/account/password', $this->verifiedPasswordPayload($logistics, [
                 'current_password' => 'CurrentLogistics123',
                 'password' => 'UpdatedLogistics456',
                 'password_confirmation' => 'UpdatedLogistics456',
-            ])
+            ]))
             ->assertOk()
             ->assertHeader('Cache-Control', 'no-store, private')
             ->assertJsonPath('message', 'Password updated successfully. All Logistics access tokens have been revoked.')

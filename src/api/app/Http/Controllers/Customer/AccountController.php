@@ -57,6 +57,8 @@ class AccountController extends Controller
             $request->string('current_password')->value(),
             $request->string('password')->value(),
             $accessToken instanceof PersonalAccessToken ? $accessToken : null,
+            $request->string('challenge_id')->value(),
+            $request->string('verification_code')->value(),
         );
 
         if ($request->hasSession()) {

@@ -32,6 +32,8 @@ class RegisterRequest extends FormRequest
             'latitude' => ['nullable', 'numeric', 'between:-90,90', 'required_with:longitude', $this->finiteCoordinate('latitude')],
             'longitude' => ['nullable', 'numeric', 'between:-180,180', 'required_with:latitude', $this->finiteCoordinate('longitude')],
             'government_id' => $this->evidenceRules(), 'business_permit' => $this->evidenceRules(),
+            'email_verification_token' => ['required', 'string', 'size:64'],
+            'email_verified_at' => ['prohibited'],
             'email' => ['required', 'string', 'email', 'max:255'],
             'password' => ['required', 'string', 'confirmed', Password::min(8)->mixedCase()->numbers()],
             'role' => ['prohibited'], 'status' => ['prohibited'], 'reviewer_id' => ['prohibited'],

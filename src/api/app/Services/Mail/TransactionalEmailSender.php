@@ -3,6 +3,7 @@
 namespace App\Services\Mail;
 
 use App\Enums\EmailDeliveryStatus;
+use App\Enums\TransactionalEmailKind;
 use App\Models\TransactionalEmail;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -28,7 +29,7 @@ class TransactionalEmailSender
 
         try {
             $user = User::query()->find($email->user_id);
-            $notification = $user ? $this->notifications->make($email, $user) : null;
+            $notification = $this->notifications->make($email, $user);
             if (! $notification) {
                 $this->finish($email, EmailDeliveryStatus::Skipped, ['last_error_code' => 'obsolete']);
 
@@ -36,7 +37,11 @@ class TransactionalEmailSender
             }
 
             // Delivery is owned by this outbox job, never by a second queued notification.
-            Notification::sendNow($user, $notification, ['mail']);
+            if ($email->kind === TransactionalEmailKind::RegistrationCode) {
+                Notification::route('mail', $email->payload['email'])->notify($notification);
+            } else {
+                Notification::sendNow($user, $notification, ['mail']);
+            }
             $this->finish($email, EmailDeliveryStatus::Accepted, ['accepted_at' => now()]);
         } catch (Throwable) {
             $exhausted = $email->attempts >= self::MAX_ATTEMPTS;

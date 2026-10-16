@@ -4,6 +4,7 @@ namespace App\Services\Customer;
 
 use App\Models\PersonalAccessToken;
 use App\Models\User;
+use App\Services\Account\PasswordChangeVerification;
 use App\Services\Customer\ProfilePhoto\PhotoProcessor;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -36,9 +37,10 @@ class CustomerAccountService
         string $currentPassword,
         string $password,
         ?PersonalAccessToken $currentToken,
+        string $challengeId,
+        string $code,
     ): void {
-        DB::transaction(function () use ($customer, $currentPassword, $password, $currentToken): void {
-            $lockedCustomer = User::query()->lockForUpdate()->findOrFail($customer->id);
+        app(PasswordChangeVerification::class)->complete($customer, $currentPassword, $password, $challengeId, $code, function (User $lockedCustomer) use ($currentPassword, $password, $currentToken): void {
             if (! Hash::check($currentPassword, $lockedCustomer->password)) {
                 throw ValidationException::withMessages([
                     'current_password' => ['The password is incorrect.'],

@@ -111,6 +111,8 @@ Due to native enum column type errors in PostgreSQL migrations, database columns
 
 Password resets (Customer/Seller/Logistics) and registration decisions (Admin-reviewed Customer/Seller/Logistics and Logistics-reviewed Courier) use encrypted transactional email intents, the existing database queue, and minute scheduler recovery. The existing eight `MAIL_*` settings select the external SMTP service and sender. Delivery failure cannot reverse an account decision; SMTP acceptance does not establish inbox delivery. See [email contract](features/shared/transactional-email/spec.md) and [operations](references/smtp-email.md).
 
+Pre-account registration email OTP uses the same encrypted outbox, database workers and scheduler; its additive migration permits nullable User ownership only for the registration mail kind. All four public registration APIs require a verified role/email-bound proof; existing accounts remain unaffected. See [registration contract](references/registration-email-verification.md).
+
 ### Finance gateway simulator
 
 - COD automation uses the existing Laravel database queue/scheduler and installed PDF renderer; no new application framework or provider SDK is required.

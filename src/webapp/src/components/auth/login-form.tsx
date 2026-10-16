@@ -30,7 +30,7 @@ export function LoginForm({ returnTo }: { returnTo: string }) {
         password: String(form.get("password") ?? ""),
         remember: form.get("remember") === "on",
       });
-      setAuthenticatedCustomer(customer);
+      setAuthenticatedCustomer(customer, true);
       router.replace(returnTo);
       router.refresh();
     } catch (caught) {

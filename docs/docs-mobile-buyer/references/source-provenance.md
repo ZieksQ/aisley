@@ -250,3 +250,7 @@ G25/G26 record pending implementation/verification without completing or erasing
 Original local progress/archive bytes, package/SDK records, verification reports and PSGC assets
 are preserved. See [local synchronization evidence](webapp-docs-sync-2026-10-09.md) for this merge.
 Upstream paths/manifests are optional provenance; local API/spec/example documents remain portable.
+
+## Shop context adoption — 2026-10-15
+
+G32 reinspection at Laravel `1d40b5d34fac1bfa93b9c32f5ee4fb0d54f43167` confirms `ShopChatContext`, `ConversationService`, Customer `ConversationController`, scoped routes and `CustomerChatMessagingTest`. Buyer adopts the existing context/availability contract without API/schema changes. [Client verification](shop-context-verification.md) records executed local checks separately from source inspection and unverified deployed/device behavior; historical per-feature baselines remain unchanged.

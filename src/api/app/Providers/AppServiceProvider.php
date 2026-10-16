@@ -33,6 +33,8 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Sanctum::usePersonalAccessTokenModel(PersonalAccessToken::class);
+        RateLimiter::for('registration-email-code', fn (Request $request): Limit => Limit::perHour(30)->by('registration-code-ip|'.$request->ip()));
+        RateLimiter::for('registration-email-verify', fn (Request $request): Limit => Limit::perMinute(30)->by('registration-verify-ip|'.$request->ip()));
         Event::listen(SellerOrderBecameActionable::class, SendSellerOrderActionableNotification::class);
         Event::listen(CustomerOrderStatusChanged::class, SendCustomerOrderStatusNotification::class);
 
@@ -48,6 +50,12 @@ class AppServiceProvider extends ServiceProvider
             RateLimiter::for($name, fn (Request $request): Limit => Limit::perMinute($attempts)
                 ->by($request->user()?->getAuthIdentifier() ?? $request->ip()));
         }
+
+        RateLimiter::for('password-change-code', fn (Request $request): array => [
+            Limit::perMinute(5)->by('password-code-user|'.$request->user()?->id),
+            Limit::perHour(30)->by('password-code-ip|'.$request->ip()),
+        ]);
+        RateLimiter::for('password-change-update', fn (Request $request): Limit => Limit::perMinute(5)->by('password-update|'.$request->user()?->id));
 
         RateLimiter::for('chat-media-upload', fn (Request $request): Limit => Limit::perMinute(15)->by('chat-media-upload|'.$request->user()?->getAuthIdentifier()));
 

@@ -3,7 +3,7 @@ feature: account-management
 title: Customer Account Management
 system: AISLEY
 type: Feature Specification
-version: 2.2
+version: 2.3
 status: Phase 1 implemented
 role: Customer
 scope: Customer web application and Laravel API
@@ -23,6 +23,10 @@ scope: Customer web application and Laravel API
 
 ## MUST
 
+- Password editing now requires the current password and a single-use emailed code. Follow the [password-change verification contract](../../../references/password-change-verification.md) for the code-request route, required confirmation fields, limits, failures and existing session/token outcomes.
+- Keep pending password confirmation, reconciliation and cooldown state in the authenticated session across navigation, Cancel and form recreation. Fresh sign-in or identity loss resets it; profile/consent refresh does not. Secrets stay local to the form, and delayed results settle only their originating session.
+
+
 ### Current foundation and ownership
 
 - Keep `/account/profile` protected and make every displayed mutation state follow the authoritative Phase 1 API response.
@@ -40,7 +44,7 @@ scope: Customer web application and Laravel API
 
 ### Password change
 
-- Add `PATCH /api/v1/customer/account/password` only for an active authenticated Customer. Require `current_password`, `password`, and `password_confirmation`.
+- Add `PATCH /api/v1/customer/account/password` only for an active authenticated Customer. Require `current_password`, `password`, `password_confirmation`, `challenge_id`, and `verification_code` after requesting a code.
 - Laravel validates the current password against the authenticated Customer and applies the same configured strength/confirmation rules as Customer registration and password reset.
 - Rate-limit the endpoint and return safe validation/authentication errors; never log, return, email, or place any password value in an audit payload.
 - On success, rotate the current web session and revoke other Customer personal-access tokens/sessions according to the decided policy. The exact multi-device revocation choice must be implemented and tested consistently, not implied by the UI.

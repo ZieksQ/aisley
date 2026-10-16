@@ -5,7 +5,10 @@ namespace App\Services\Mail;
 use App\Enums\ApplicationStatus;
 use App\Enums\EmailDeliveryStatus;
 use App\Enums\TransactionalEmailKind;
+use App\Models\PasswordChangeChallenge;
 use App\Models\RegistrationApplication;
+use App\Models\RegistrationEmailChallenge;
+use App\Models\RegistrationEmailIdentity;
 use App\Models\TransactionalEmail;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -13,6 +16,28 @@ use Illuminate\Support\Str;
 
 class TransactionalEmailOutbox
 {
+    public function registrationCode(RegistrationEmailIdentity $identity, RegistrationEmailChallenge $challenge, string $code): TransactionalEmail
+    {
+        $email = TransactionalEmail::query()->create([
+            'user_id' => null, 'role' => $identity->role, 'kind' => TransactionalEmailKind::RegistrationCode,
+            'deduplication_key' => 'registration-code:'.$challenge->id,
+            'payload' => ['email' => $identity->email, 'challenge_id' => $challenge->id, 'code' => $code],
+            'status' => EmailDeliveryStatus::Pending, 'available_at' => now(),
+        ]);
+        DB::afterCommit(fn () => app(TransactionalEmailDispatcher::class)->dispatch($email->id));
+
+        return $email;
+    }
+
+    public function passwordChangeCode(User $user, PasswordChangeChallenge $challenge, string $code): TransactionalEmail
+    {
+        return $this->record($user, TransactionalEmailKind::PasswordChangeCode, 'password-change:'.$challenge->id, [
+            'email' => $user->email,
+            'challenge_id' => $challenge->id,
+            'code' => $code,
+        ]);
+    }
+
     public function passwordReset(User $user, string $token): TransactionalEmail
     {
         return $this->record($user, TransactionalEmailKind::PasswordReset, 'reset:'.Str::uuid(), [

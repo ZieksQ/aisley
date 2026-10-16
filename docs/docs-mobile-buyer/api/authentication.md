@@ -47,3 +47,7 @@ Buyer runs at `http://localhost:8766`, independent of Courier `8765`. See [archi
 ## Standalone contract record
 
 New source inspection at57e9eb2 confirmed these auth/session/consent/token effects. [Exact operations](operations.md), [wire types](field-index.md) and [synthetic auth fixtures](examples/customer-auth.json) supply all requests/responses locally; upstream source is optional provenance. Registration profile_photo_path is normally null but is currently serialized; discard it, never construct a storage URL, and retain G24. Login token/storage failure and offline logout remain explicit retry/uncertainty states.
+
+## Registration email OTP
+
+Registration now begins with [email verification](../registration-email.md). Public code and verify operations precede the registration payload, which requires `email_verification_token`; the proof is kept only in memory and is not a Sanctum bearer. Email verification creates no account/session and preserves Admin approval. Existing users keep their authentication behavior.

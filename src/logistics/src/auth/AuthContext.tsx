@@ -1,3 +1,4 @@
+import { createPasswordChangeSession } from "@aisley/ui/password-change"
 import { clearReceivingSession, offlineReceivingSession, rememberReceivingSession } from '../features/linehaulReceiving/offlineSession'
 import { clearLinehaulReceiving } from '../features/linehaulReceiving/db'
 import { clearChatPrivateState } from '@aisley/ui/chat'
@@ -10,15 +11,17 @@ import type { AuthResponse, LogisticsUser } from '../types/auth'
 import { AuthContext } from './context'
 
 export function AuthProvider({ children }: PropsWithChildren) {
+  const [passwordSession] = useState(createPasswordChangeSession)
   const [logistics, setLogistics] = useState<LogisticsUser | null>(null)
   const [loading, setLoading] = useState(true)
   const logisticsId = useRef<string | null>(null)
 
-  const adoptLogistics = useCallback((next: LogisticsUser) => {
+  const adoptLogistics = useCallback((next: LogisticsUser, freshAuthentication = false) => {
+    passwordSession.setIdentity(next.id, freshAuthentication)
     if (logisticsId.current && logisticsId.current !== next.id) clearChatPrivateState()
     logisticsId.current = next.id
     setLogistics(next)
-  }, [])
+  }, [passwordSession])
 
   const refresh = useCallback(async () => {
     const data = await request<AuthResponse>('/api/v1/logistics/auth/me')
@@ -38,6 +41,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, [refresh])
 
   const value = useMemo(() => ({
+    passwordSession,
     logistics,
     loading,
     refresh,
@@ -45,7 +49,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       await csrf()
       const data = await request<AuthResponse>('/api/v1/logistics/auth/login', { method: 'POST', body: JSON.stringify(credentials) })
       rememberReceivingSession(data.logistics)
-      adoptLogistics(data.logistics)
+      adoptLogistics(data.logistics, true)
     },
     logout: async () => {
       try { await request('/api/v1/logistics/auth/logout', { method: 'POST' }) } finally {
@@ -56,11 +60,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
           clearParcelSearchCache().catch(() => undefined),
         ])
         clearReceivingSession()
+        passwordSession.setIdentity(null)
         logisticsId.current = null
         setLogistics(null)
       }
     },
-  }), [adoptLogistics, logistics, loading, refresh])
+  }), [adoptLogistics, logistics, loading, refresh, passwordSession])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

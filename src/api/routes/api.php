@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Account\PasswordChangeCodeController;
 use App\Http\Controllers\AddressOptionController;
 use App\Http\Controllers\Admin\AccountController;
 use App\Http\Controllers\Admin\AuditLogController;
@@ -23,6 +24,7 @@ use App\Http\Controllers\Admin\SellerComplianceController;
 use App\Http\Controllers\Admin\SupportTicketController as AdminSupportTicketController;
 use App\Http\Controllers\Admin\UserAccountController;
 use App\Http\Controllers\Admin\VoucherController;
+use App\Http\Controllers\Auth\RegistrationEmailController;
 use App\Http\Controllers\Courier\AccountController as CourierAccountController;
 use App\Http\Controllers\Courier\AuthController as CourierAuthController;
 use App\Http\Controllers\Courier\CompleteDeliveryController;
@@ -309,6 +311,10 @@ Route::prefix('v1/admin')->name('admin.')->middleware(['auth:sanctum', 'admin.ac
 });
 
 Route::prefix('v1/customer/auth')->name('customer.auth.')->group(function () {
+    Route::post('/registration/verification-code', [RegistrationEmailController::class, 'requestCode'])
+        ->defaults('registration_role', 'customer')->middleware('throttle:registration-email-code')->name('registration.code');
+    Route::post('/registration/verify-email', [RegistrationEmailController::class, 'verify'])
+        ->defaults('registration_role', 'customer')->middleware('throttle:registration-email-verify')->name('registration.verify-email');
     Route::post('/register', [CustomerAuthController::class, 'register'])->name('register');
     Route::post('/login', [CustomerAuthController::class, 'login'])->name('login');
     Route::post('/forgot-password', [CustomerAuthController::class, 'forgotPassword'])->name('password.email');
@@ -330,6 +336,10 @@ Route::prefix('v1/seller/auth')->name('seller.auth.')->group(function () {
     Route::get('/registration-options', [SellerAuthController::class, 'registrationOptions'])
         ->middleware('throttle:60,1')
         ->name('registration-options');
+    Route::post('/registration/verification-code', [RegistrationEmailController::class, 'requestCode'])
+        ->defaults('registration_role', 'seller')->middleware('throttle:registration-email-code')->name('registration.code');
+    Route::post('/registration/verify-email', [RegistrationEmailController::class, 'verify'])
+        ->defaults('registration_role', 'seller')->middleware('throttle:registration-email-verify')->name('registration.verify-email');
     Route::post('/register', [SellerAuthController::class, 'register'])->name('register');
     Route::post('/login', [SellerAuthController::class, 'login'])->name('login');
     Route::post('/forgot-password', [SellerAuthController::class, 'forgotPassword'])->name('password.email');
@@ -414,7 +424,8 @@ Route::prefix('v1/seller')->name('seller.')->middleware(['auth:sanctum', 'seller
     Route::patch('/account/profile', [SellerAccountController::class, 'updateProfile'])->name('account.profile.update');
     Route::patch('/account/storefront', [SellerAccountController::class, 'updateStorefront'])->name('account.storefront.update');
     Route::patch('/account/email', [SellerAccountController::class, 'updateEmail'])->name('account.email.update');
-    Route::put('/account/password', [SellerAccountController::class, 'updatePassword'])->name('account.password.update');
+    Route::post('/account/password/verification-code', PasswordChangeCodeController::class)->middleware('throttle:password-change-code')->name('account.password.code');
+    Route::put('/account/password', [SellerAccountController::class, 'updatePassword'])->middleware('throttle:password-change-update')->name('account.password.update');
     Route::post('/account/profile-photo', [SellerAccountController::class, 'uploadProfilePhoto'])->middleware('throttle:10,1')->name('account.photo.store');
     Route::get('/account/profile-photo', [SellerAccountController::class, 'profilePhoto'])->name('account.photo.show');
     Route::delete('/account/profile-photo', [SellerAccountController::class, 'removeProfilePhoto'])->name('account.photo.destroy');
@@ -488,6 +499,10 @@ Route::prefix('v1/seller')->name('seller.')->middleware(['auth:sanctum', 'seller
 });
 
 Route::prefix('v1/logistics/auth')->name('logistics.auth.')->group(function () {
+    Route::post('/registration/verification-code', [RegistrationEmailController::class, 'requestCode'])
+        ->defaults('registration_role', 'logistics')->middleware('throttle:registration-email-code')->name('registration.code');
+    Route::post('/registration/verify-email', [RegistrationEmailController::class, 'verify'])
+        ->defaults('registration_role', 'logistics')->middleware('throttle:registration-email-verify')->name('registration.verify-email');
     Route::post('/register', [LogisticsAuthController::class, 'register'])->name('register');
     Route::post('/login', [LogisticsAuthController::class, 'login'])->name('login');
     Route::post('/forgot-password', [LogisticsAuthController::class, 'forgotPassword'])->name('password.email');
@@ -590,6 +605,7 @@ Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', '
     Route::patch('/account/profile', [LogisticsAccountController::class, 'updateProfile'])->name('account.profile.update');
     Route::patch('/account/organization', [LogisticsAccountController::class, 'updateOrganization'])->name('account.organization.update');
     Route::put('/account/hub-location', [LogisticsAccountController::class, 'updateHubLocation'])->name('account.hub-location.update');
+    Route::post('/account/password/verification-code', PasswordChangeCodeController::class)->middleware('throttle:password-change-code')->name('account.password.code');
     Route::put('/account/password', [LogisticsAccountController::class, 'updatePassword'])
         ->middleware('throttle:logistics-account-password')
         ->name('account.password.update');
@@ -659,6 +675,10 @@ Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', '
 
 Route::prefix('v1/courier/auth')->name('courier.auth.')->group(function () {
     Route::get('/logistics-options', [CourierAuthController::class, 'options'])->middleware('throttle:60,1')->name('logistics-options');
+    Route::post('/registration/verification-code', [RegistrationEmailController::class, 'requestCode'])
+        ->defaults('registration_role', 'courier')->middleware('throttle:registration-email-code')->name('registration.code');
+    Route::post('/registration/verify-email', [RegistrationEmailController::class, 'verify'])
+        ->defaults('registration_role', 'courier')->middleware('throttle:registration-email-verify')->name('registration.verify-email');
     Route::post('/register', [CourierAuthController::class, 'register'])->middleware('throttle:10,1')->name('register');
     Route::post('/login', [CourierAuthController::class, 'login'])->name('login');
     Route::post('/forgot-password', [CourierAuthController::class, 'forgotPassword'])->name('password.email');
@@ -697,6 +717,7 @@ Route::prefix('v1/courier')->name('courier.')->middleware(['auth:sanctum', 'cour
     Route::get('/linehaul-trips', [CourierLinehaulTripController::class, 'index'])->name('linehaul-trips.index');
     Route::get('/account', [CourierAccountController::class, 'show'])->name('account.show');
     Route::patch('/account/profile', [CourierAccountController::class, 'updateProfile'])->name('account.profile.update');
+    Route::post('/account/password/verification-code', PasswordChangeCodeController::class)->middleware('throttle:password-change-code')->name('account.password.code');
     Route::put('/account/password', [CourierAccountController::class, 'updatePassword'])
         ->middleware('throttle:courier-account-password')
         ->name('account.password.update');
@@ -841,6 +862,7 @@ Route::prefix('v1/customer')->name('customer.')->middleware('throttle:120,1')->g
         Route::get('/account/notification-preferences', [CustomerPromotionPreferenceController::class, 'show'])->name('account.notification-preferences.show');
         Route::patch('/account/notification-preferences', [CustomerPromotionPreferenceController::class, 'update'])->middleware('throttle:30,1')->name('account.notification-preferences.update');
         Route::patch('/account/profile', [CustomerAccountController::class, 'updateProfile'])->name('account.profile.update');
+        Route::post('/account/password/verification-code', PasswordChangeCodeController::class)->middleware('throttle:password-change-code')->name('account.password.code');
         Route::patch('/account/password', [CustomerAccountController::class, 'updatePassword'])
             ->middleware('throttle:customer-account-password')
             ->name('account.password.update');

@@ -12,11 +12,13 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Tests\Support\VerifiesPasswordChanges;
 use Tests\TestCase;
 
 class CourierAccountManagementTest extends TestCase
 {
     use RefreshDatabase;
+    use VerifiesPasswordChanges;
 
     protected function setUp(): void
     {
@@ -197,11 +199,11 @@ class CourierAccountManagementTest extends TestCase
             ->assertJsonValidationErrors('current_password');
 
         $this->withToken($first->plainTextToken)
-            ->putJson('/api/v1/courier/account/password', [
+            ->putJson('/api/v1/courier/account/password', $this->verifiedPasswordPayload($courier, [
                 'current_password' => 'CurrentCourier123',
                 'password' => 'UpdatedCourier456',
                 'password_confirmation' => 'UpdatedCourier456',
-            ])
+            ]))
             ->assertOk()
             ->assertHeader('Cache-Control', 'no-store, private')
             ->assertJsonPath('message', 'Password updated successfully. All Courier access tokens have been revoked.')

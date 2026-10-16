@@ -1,3 +1,4 @@
+import { createPasswordChangeSession } from "@aisley/ui/password-change"
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { clearChatPrivateState } from '@aisley/ui/chat'
 import type { PropsWithChildren } from 'react'
@@ -7,15 +8,17 @@ import { AuthContext } from './context'
 import type { AuthContextValue } from './context'
 
 export function AuthProvider({ children }: PropsWithChildren) {
+  const [passwordSession] = useState(createPasswordChangeSession)
   const [seller, setSeller] = useState<SellerUser | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const sellerId = useRef<string | null>(null)
 
-  const adoptSeller = useCallback((next: SellerUser) => {
+  const adoptSeller = useCallback((next: SellerUser, freshAuthentication = false) => {
+    passwordSession.setIdentity(next.id, freshAuthentication)
     if (sellerId.current && sellerId.current !== next.id) clearChatPrivateState()
     sellerId.current = next.id
     setSeller(next)
-  }, [])
+  }, [passwordSession])
 
   useEffect(() => {
     let isMounted = true
@@ -40,6 +43,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   const value = useMemo<AuthContextValue>(
     () => ({
+      passwordSession,
       seller,
       isLoading,
       login: async (credentials) => {
@@ -48,20 +52,24 @@ export function AuthProvider({ children }: PropsWithChildren) {
           method: 'POST',
           body: JSON.stringify(credentials),
         })
-        adoptSeller(response.seller)
+        adoptSeller(response.seller, true)
       },
       logout: async () => {
         try {
           await apiRequest('/api/v1/seller/auth/logout', { method: 'POST' })
         } finally {
           clearChatPrivateState()
+          passwordSession.setIdentity(null)
           sellerId.current = null
           setSeller(null)
         }
       },
-      updateSeller: setSeller,
+      updateSeller: (next) => {
+        if (next) adoptSeller(next)
+        else { passwordSession.setIdentity(null); sellerId.current = null; setSeller(null) }
+      },
     }),
-    [adoptSeller, seller, isLoading],
+    [adoptSeller, seller, isLoading, passwordSession],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

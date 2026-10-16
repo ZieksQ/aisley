@@ -24,6 +24,7 @@ Customer feature routes generally include `throttle:120,1`; focused throttles ar
 | `GET` | `/api/v1/customer/account` | Active Customer + consent | 120,1 | `Customer\AccountController@show` |
 | `GET` | `/api/v1/customer/account/notification-preferences` | Active Customer + consent | 120,1 | `Customer\PromotionPreferenceController@show` |
 | `PATCH` | `/api/v1/customer/account/notification-preferences` | Active Customer + consent | 120,1, 30,1 | `Customer\PromotionPreferenceController@update` |
+| `POST` | `/api/v1/customer/account/password/verification-code` | Active Customer + consent | password-change-code; 60s resend / 5 per rolling hour | `Account\PasswordChangeCodeController` |
 | `PATCH` | `/api/v1/customer/account/password` | Active Customer + consent | 120,1, customer-account-password | `Customer\AccountController@updatePassword` |
 | `PATCH` | `/api/v1/customer/account/profile` | Active Customer + consent | 120,1 | `Customer\AccountController@updateProfile` |
 | `POST` | `/api/v1/customer/account/profile-photo` | Active Customer + consent | 120,1, customer-profile-photo | `Customer\AccountController@uploadProfilePhoto` |
@@ -277,3 +278,12 @@ The [collection contract](voucher-collection.md) adds seven methods after the hi
 | `GET` | `/api/v1/customer/conversations/shops/{shop}` | Active Customer + consent | 120,1 | `Customer\ConversationController@shopContext` |
 
 This operation is included in the current operation index; historical route snapshots retain their original counts.
+
+## Registration OTP endpoints — 2026-10-14
+
+| Method | Path | Access | Limits | Handler |
+| --- | --- | --- | --- | --- |
+| POST | `/api/v1/customer/auth/registration/verification-code` | Public | Email-role rolling quota and IP/hour | `Auth\RegistrationEmailController@requestCode` |
+| POST | `/api/v1/customer/auth/registration/verify-email` | Public | Five incorrect codes; IP/minute | `Auth\RegistrationEmailController@verify` |
+
+Existing registration requires `email_verification_token`; see [contract](../registration-email.md).

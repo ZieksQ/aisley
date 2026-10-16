@@ -15,12 +15,14 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Laravel\Sanctum\Sanctum;
 use Tests\Support\DeliversTransactionalEmails;
+use Tests\Support\VerifiedRegistrationEmail;
 use Tests\TestCase;
 
 class CustomerAuthenticationTest extends TestCase
 {
     use DeliversTransactionalEmails;
     use RefreshDatabase;
+    use VerifiedRegistrationEmail;
 
     public function test_customer_registration_creates_a_pending_account_profile_and_application_without_authenticating(): void
     {
@@ -362,7 +364,7 @@ class CustomerAuthenticationTest extends TestCase
      */
     private function registrationPayload(array $overrides = []): array
     {
-        return array_merge([
+        $payload = array_merge([
             'first_name' => 'Aisley',
             'last_name' => 'Buyer',
             'middle_name' => null,
@@ -373,6 +375,9 @@ class CustomerAuthenticationTest extends TestCase
             'password' => 'Password1',
             'password_confirmation' => 'Password1',
         ], $overrides);
+        $payload['email_verification_token'] = $this->registrationEmailToken(UserRole::Customer, $payload['email']);
+
+        return $payload;
     }
 
     /**

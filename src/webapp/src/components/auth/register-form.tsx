@@ -1,5 +1,7 @@
 "use client";
 
+import { RegistrationEmailGate, type VerifiedRegistrationEmail } from "@aisley/ui/registration-email";
+import { registrationEmailClient } from "@/lib/registration-email";
 import { Button, SelectField, TextField } from "@aisley/ui";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
@@ -20,39 +22,46 @@ function value(form: FormData, field: string) {
 }
 
 export function RegisterForm() {
+  return <RegistrationEmailGate client={registrationEmailClient}>{(verification) => <RegistrationDetails verification={verification} />}</RegistrationEmailGate>;
+}
+
+function RegistrationDetails({ verification }: { verification: VerifiedRegistrationEmail }) {
   const router = useRouter();
   const [error, setError] = useState<ApiError | null>(null);
-  const [submitting, setSubmitting] = useState(false);
+  const submitting = verification.submitting;
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError(null);
-    setSubmitting(true);
-
+    if (submitting) return;
     const form = new FormData(event.currentTarget);
+    const attempt = verification.beginSubmission();
+    if (!attempt) return;
+    setError(null);
 
     try {
       await registerCustomer({
         birth_date: value(form, "birth_date"),
         contact_number: value(form, "contact_number"),
-        email: value(form, "email"),
+        email: attempt.email,
+        email_verification_token: attempt.token,
         first_name: value(form, "first_name"),
         last_name: value(form, "last_name"),
         middle_name: value(form, "middle_name") || undefined,
         password: value(form, "password"),
         password_confirmation: value(form, "password_confirmation"),
         sex: value(form, "sex"),
-      });
-      router.push("/waiting-for-approval?registered=1");
+      }, attempt.signal);
+      if (attempt.complete()) router.push("/waiting-for-approval?registered=1");
     } catch (caught) {
-      setError(
-        caught instanceof ApiError
-          ? caught
-          : new ApiError(0, { message: "Something went wrong. Please try again." }),
-      );
+      if (!attempt.isCurrent()) return;
+      const failure = caught instanceof ApiError && caught.status > 0 && caught.status < 500 && caught.status !== 408
+        ? caught
+        : new ApiError(0, { message: "The registration result is unconfirmed. Try signing in before deliberately submitting again; your application may already be pending." });
+      setError(failure);
+      attempt.finish({ reverify: !!failure.errors.email_verification_token, message: failure.message });
       window.scrollTo({ behavior: "smooth", top: 0 });
     } finally {
-      setSubmitting(false);
+      attempt.finish();
     }
   }
 
@@ -141,6 +150,8 @@ export function RegisterForm() {
         <TextField
           id="email"
           name="email"
+          value={verification.email}
+          readOnly
           type="email"
           label="Email address"
           placeholder="you@example.com"

@@ -11,7 +11,7 @@
       "response_contract": "{data:ShopAvailabilityProjection}",
       "status": 200,
       "retry": "Read retry with bounded backoff and session/query guards.",
-      "notes": "Shop business availability is online|offline|vacation, never human presence. Missing Shop or unavailable prospective context returns scoped 404. Customer mobile adoption remains open.",
+      "notes": "Shop business availability is online|offline|vacation, never human presence. Missing Shop or unavailable prospective context returns scoped 404. Buyer adopts discovery and availability locally (G32); deployed/live/device acceptance remains open.",
       "request_example": {
         "query": {},
         "headers": {},
