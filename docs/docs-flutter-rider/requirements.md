@@ -145,7 +145,7 @@ MVP responsibilities:
 - View delivery history.
 - View basic earnings/profit.
 - Communicate with relevant users.
-- View assigned company-truck linehaul trips and committed return schedules through the Courier API/mobile client. The Courier does not accept a Logistics-committed return trip and does not need to own a truck personally when authorized to drive a company truck.
+- View assigned company-truck linehaul trips and committed return schedules through the Courier API/mobile client; confirm actual departure after source Logistics releases the load, and report arrival without receiving parcels or freeing the truck. Scheduled times are plans, not automatic transitions. The Courier does not accept a Logistics-committed return trip and does not need to own a truck personally when authorized to drive a company truck.
 - Manage courier account information.
 
 ## Shared order and fulfillment rules

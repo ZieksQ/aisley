@@ -73,7 +73,7 @@ Task-level `rejected` records an eligible final-mile Courier's refusal and is no
 
 ## Physical delivery flow
 
-Company-truck Linehaul implements `in_transfer` between different organizations’ sole hubs; trip acceptance, physical departure, and per-parcel receiving are Logistics-owned. Same-hub processing requires no synthetic transfer event or sub-hub. Sorting remains required before dispatch; automatic offer expiry is deferred.
+Company-truck Linehaul implements `in_transfer` between different organizations’ sole hubs; trip acceptance, source cargo release and per-parcel receiving are Logistics-owned. The assigned Courier confirms actual departure after release and reports arrival separately; Logistics retains an operational departure fallback and independently confirms arrival/unloading. Same-hub processing requires no synthetic transfer event or sub-hub. Sorting remains required before dispatch; automatic offer expiry is deferred.
 
 ```text
 Customer places the Order

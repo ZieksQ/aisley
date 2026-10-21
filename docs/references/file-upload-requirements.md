@@ -46,6 +46,7 @@
   - optional checksum
   - scan/processing state and timestamps when scanning is enabled
 - Do not store absolute server filesystem paths, storage credentials, browser blob URLs, data URIs, or expiring signed URLs in database content.
+- Company-created Courier registration evidence and Logistics organization logos use a shared private-write guard in the multi-hub branch: it rejects a configured public disk, public visibility/public-container marker, or local root under the public web directory before writing, then requests private visibility. This guard does not query or certify a remote storage provider's actual container ACL. Keep deployed evidence/logo containers private and verify their ACL separately; local visibility tests are not a cloud-access guarantee.
 - The existing generic `documents` table remains for private registration evidence. Product gallery and inline-description images need feature-specific asset records so their visibility and lifecycle do not conflict.
 
 ### Access and visibility

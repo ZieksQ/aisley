@@ -1,0 +1,2137 @@
+region,province,locality,postal_code,source
+ncr,Metro Manila,International Correspondence School,0400,directory
+ncr,Metro Manila,Asian Development Bank,0401,directory
+ncr,Metro Manila,Radio Bible Class,0410,directory
+ncr,Metro Manila,Bible School on the Air,0420,directory
+ncr,Metro Manila,Febias College of Bible,0540,directory
+ncr,Metro Manila,Far East Broadcasting Corporation,0560,directory
+ncr,Metro Manila,Plain Truth Ministries,0700,directory
+ncr,Metro Manila,Colgate Palmolive Philippines,0701,directory
+ncr,Metro Manila,Citibank,0702,directory
+ncr,Metro Manila,Sarmiento Enterprises,0703,directory
+ncr,Metro Manila,Producers Bank,0704,directory
+ncr,Metro Manila,Union Ajinomoto,0705,directory
+ncr,Metro Manila,Faith Embassy,0706,directory
+ncr,Metro Manila,Canadian Embassy,0707,directory
+ncr,Metro Manila,Philippine National Oil Company,0708,directory
+ncr,Metro Manila,A-Z Direct Marketing,0709,directory
+ncr,Metro Manila,American Express,0710,directory
+ncr,Metro Manila,Land Bank of the Philippines,0711,directory
+ncr,Metro Manila,Prudential Bank,0712,directory
+ncr,Metro Manila,BPI Family Savings Bank,0713,directory
+ncr,Metro Manila,Philippine Manila Mission,0714,directory
+ncr,Metro Manila,Marcopper Mining Corporation,0715,directory
+ncr,Metro Manila,Diners Club,0717,directory
+ncr,Metro Manila,International Center for Aquatic Resources,0718,directory
+ncr,Metro Manila,Security Bank,0719,directory
+ncr,Metro Manila,Bank of the Philippine Islands,0720,directory
+ncr,Metro Manila,Philippine Long Distance Telephone Company,0721,directory
+ncr,Metro Manila,World Executive Digest,0722,directory
+ncr,Metro Manila,Japanese Embassy,0723,directory
+ncr,Metro Manila,Sun Life Financial,0724,directory
+ncr,Metro Manila,Insular Life Assurance Company,0725,directory
+ncr,Metro Manila,Equitable PCI Bank,0726,directory
+ncr,Metro Manila,Rizal Commercial Banking Corporation,0727,directory
+ncr,Metro Manila,United Coconut Planters Bank,0728,directory
+ncr,Metro Manila,Zuellig Pharma,0730,directory
+ncr,Metro Manila,BCD Direct Marketing,0731,directory
+ncr,Metro Manila,Export and Industry Bank,0732,directory
+ncr,Metro Manila,"Sycip, Gorres, Velayo and Co.",0740,directory
+ncr,Metro Manila,Philippine Airlines,0750,directory
+ncr,Metro Manila,Pilipinas Shell,0760,directory
+ncr,Metro Manila,ACCRA Law Offices,0770,directory
+ncr,Metro Manila,Mead Johnson Philippines,0780,directory
+ncr,Metro Manila,Directories Philippines Corporation,0788,directory
+ncr,Metro Manila,"Atlantic, Gulf and Pacific",0790,directory
+ncr,Metro Manila,Manila Bulletin,0900,directory
+ncr,Metro Manila,Adventist University of the Philippines,0901,directory
+ncr,Metro Manila,Far East Broadcasting Company,0902,directory
+ncr,Metro Manila,Manila Pavilion Hotel,0903,directory
+ncr,Metro Manila,Midland Plaza Manila Hotel,0904,directory
+ncr,Metro Manila,The Philippine Star,0905,directory
+ncr,Metro Manila,Manila Medical Center,0906,directory
+ncr,Metro Manila,San Miguel Corporation,0907,directory
+ncr,Metro Manila,Pan-Filipino Shipping,0908,directory
+ncr,Metro Manila,Summer Institute of Linguistics,0909,directory
+ncr,Metro Manila,Department of Labor and Employment,0910,directory
+ncr,Metro Manila,Philippine Statistics Authority,0911,directory
+ncr,Metro Manila,Bureau of Plant Industry,0912,directory
+ncr,Metro Manila,Manila Hotel,0913,directory
+ncr,Metro Manila,Philippine Refining Company and Unilever Philippines,0914,directory
+ncr,Metro Manila,International Correspondence Institute,0915,directory
+ncr,Metro Manila,Radio Veritas,0916,directory
+ncr,Metro Manila,Ateneo de Manila University,0917,directory
+ncr,Metro Manila,Fil-Japan Shipping Company,0918,directory
+ncr,Metro Manila,Manila Police District,0919,directory
+ncr,Metro Manila,Sunbursts Publications,0920,directory
+ncr,Metro Manila,Sofitel Philippine Plaza,0921,directory
+ncr,Metro Manila,De La Salle University,0922,directory
+ncr,Metro Manila,Don Stewart Evangelistic Association,0923,directory
+ncr,Metro Manila,World Map,0924,directory
+ncr,Metro Manila,Chinabank,0925,directory
+ncr,Metro Manila,Caltex Philippines,0926,directory
+ncr,Metro Manila,Philippine Veterans Affairs Office,0927,directory
+ncr,Metro Manila,Philippine Campus Crusade for Christ,0928,directory
+ncr,Metro Manila,United States Embassy,0930,directory
+ncr,Metro Manila,Philippine National Bank,0940,directory
+ncr,Metro Manila,International Rice Research Institute,0960,directory
+ncr,Metro Manila,Department of Justice,0970,directory
+ncr,Metro Manila,Asian Development Bank,0980,directory
+ncr,Metro Manila,Philippine American Life and General Insurance Company,0990,directory
+ncr,Metro Manila,Manila Central Post Office,1000,directory
+ncr,Metro Manila,Quiapo,1001,directory
+ncr,Metro Manila,Intramuros,1002,directory
+ncr,Metro Manila,Santa Cruz (South),1003,directory
+ncr,Metro Manila,Malate,1004,directory
+ncr,Metro Manila,San Miguel,1005,directory
+ncr,Metro Manila,Binondo,1006,directory
+ncr,Metro Manila,Paco,1007,directory
+ncr,Metro Manila,Sampaloc (East),1008,directory
+ncr,Metro Manila,Santa Ana,1009,directory
+ncr,Metro Manila,San Nicolas,1010,directory
+ncr,Metro Manila,Pandacan,1011,phlpost
+ncr,Metro Manila,Tondo (South),1012,directory
+ncr,Metro Manila,Tondo (North),1013,directory
+ncr,Metro Manila,Santa Cruz (North),1014,directory
+ncr,Metro Manila,Sampaloc (West),1015,directory
+ncr,Metro Manila,Santa Mesa,1016,directory
+ncr,Metro Manila,San Andres,1017,directory
+ncr,Metro Manila,Port Area (South),1018,directory
+ncr,Metro Manila,Makati Central Post Office,1200,directory
+ncr,Metro Manila,Fort Bonifacio,1201,directory
+ncr,Metro Manila,Fort Bonifacio Naval Station,1202,directory
+ncr,Metro Manila,San Antonio Village,1203,directory
+ncr,Metro Manila,"La Paz, Singkamas, and Tejeros",1204,directory
+ncr,Metro Manila,Santa Cruz,1205,directory
+ncr,Metro Manila,Kasilawan,1206,directory
+ncr,Metro Manila,Carmona–Olympia,1207,directory
+ncr,Metro Manila,Valenzuela,1208,directory
+ncr,Metro Manila,Bel-Air,1209,directory
+ncr,Metro Manila,Poblacion,1210,directory
+ncr,Metro Manila,Guadalupe Viejo,1211,directory
+ncr,Metro Manila,Guadalupe Nuevo,1212,directory
+ncr,Metro Manila,Pinagkaisahan–Pitogo,1213,directory
+ncr,Metro Manila,Cembo and South Cembo,1214,directory
+ncr,Metro Manila,West Rembo,1215,directory
+ncr,Metro Manila,East Rembo–Malapad na Bato,1216,directory
+ncr,Metro Manila,Comembo,1217,directory
+ncr,Metro Manila,Pembo,1218,directory
+ncr,Metro Manila,Forbes Park North,1219,directory
+ncr,Metro Manila,Forbes Park South,1220,directory
+ncr,Metro Manila,Dasmariñas Village North,1221,directory
+ncr,Metro Manila,Dasmariñas Village South,1222,directory
+ncr,Metro Manila,San Lorenzo Village,1223,directory
+ncr,Metro Manila,Makati Commercial Center (Ayala Center),1224,directory
+ncr,Metro Manila,Urdaneta Village,1225,directory
+ncr,Metro Manila,Ayala Avenue–Paseo de Roxas,1226,directory
+ncr,Metro Manila,Salcedo Village,1227,directory
+ncr,Metro Manila,Greenbelt,1228,directory
+ncr,Metro Manila,Legaspi Village,1229,directory
+ncr,Metro Manila,Pio del Pilar,1230,directory
+ncr,Metro Manila,Chino Roces,1231,directory
+ncr,Metro Manila,Pasong Tamo–Ecology Village,1231,directory
+ncr,Metro Manila,Magallanes Village,1232,directory
+ncr,Metro Manila,Bangkal,1233,directory
+ncr,Metro Manila,San Isidro,1234,directory
+ncr,Metro Manila,Palanan,1235,directory
+ncr,Metro Manila,Pasay City Central Post Office,1300,directory
+ncr,Metro Manila,Domestic Airport P.O.,1301,directory
+ncr,Metro Manila,San Rafael,1302,directory
+ncr,Metro Manila,San Roque,1303,directory
+ncr,Metro Manila,Santa Clara,1304,directory
+ncr,Metro Manila,San Jose,1305,directory
+ncr,Metro Manila,San Isidro,1306,directory
+ncr,Metro Manila,Philippine International Convention Center,1307,directory
+ncr,Metro Manila,Bay City,1308,directory
+ncr,Metro Manila,Villamor Airbase,1309,directory
+ncr,Metro Manila,Caloocan Central Post Office,1400,directory
+ncr,Metro Manila,Baesa,1401,directory
+ncr,Metro Manila,Santa Quiteria,1402,directory
+ncr,Metro Manila,Grace Park East,1403,directory
+ncr,Metro Manila,San Jose,1404,directory
+ncr,Metro Manila,First Avenue–Seventh Avenue West,1405,directory
+ncr,Metro Manila,Grace Park West,1406,directory
+ncr,Metro Manila,University Hills,1407,directory
+ncr,Metro Manila,Sangandaan,1408,directory
+ncr,Metro Manila,Kaunlaran Village,1409,directory
+ncr,Metro Manila,Maypajo,1410,directory
+ncr,Metro Manila,Fish Market,1411,directory
+ncr,Metro Manila,Isla de Cocomo,1412,directory
+ncr,Metro Manila,Kapitbahayan,1413,directory
+ncr,Metro Manila,Kapitbahayan (East),1413,directory
+ncr,Metro Manila,Laguna,1420,directory
+ncr,Metro Manila,Bagumbong–Villa Crystal,1421,directory
+ncr,Metro Manila,Novaliches,1422,directory
+ncr,Metro Manila,Lilles Ville Subdivision,1423,directory
+ncr,Metro Manila,Capitol Parkland Subdivision,1424,directory
+ncr,Metro Manila,Amparo Subdivision and Dela Costa Homes II Subdivision,1425,directory
+ncr,Metro Manila,Bankers Village,1426,directory
+ncr,Metro Manila,Tala Leprosarium–Victory Heights,1427,directory
+ncr,Metro Manila,Bagong Silang,1428,directory
+ncr,Metro Manila,Valenzuela Central Post Office,1440,directory
+ncr,Metro Manila,Karuhatan–Parada,1441,directory
+ncr,Metro Manila,Fortune Village,1442,directory
+ncr,Metro Manila,General T. de Leon,1442,directory
+ncr,Metro Manila,Paso de Blas,1442,directory
+ncr,Metro Manila,Dalandanan–West Canumay,1443,directory
+ncr,Metro Manila,Arkong Bato,1444,directory
+ncr,Metro Manila,Mabolo,1444,directory
+ncr,Metro Manila,Malanday,1444,directory
+ncr,Metro Manila,Pasolo,1444,directory
+ncr,Metro Manila,Polo,1444,directory
+ncr,Metro Manila,Rincon,1444,directory
+ncr,Metro Manila,Balangkas–Coloong,1445,directory
+ncr,Metro Manila,Lingunan,1446,directory
+ncr,Metro Manila,East Canumay–Lawang Bato Punturin,1447,directory
+ncr,Metro Manila,Mapulang Lupa,1448,directory
+ncr,Metro Manila,Malabon,1470,directory
+ncr,Metro Manila,Tinajeros,1470,directory
+ncr,Metro Manila,Catmon,1471,directory
+ncr,Metro Manila,Longos,1472,directory
+ncr,Metro Manila,Tonsuya,1473,directory
+ncr,Metro Manila,Acacia,1474,directory
+ncr,Metro Manila,Potrero,1475,directory
+ncr,Metro Manila,Araneta Subdivision,1476,directory
+ncr,Metro Manila,Maysilo,1477,directory
+ncr,Metro Manila,Santolan,1478,directory
+ncr,Metro Manila,Muzon,1479,directory
+ncr,Metro Manila,Dampalit,1480,directory
+ncr,Metro Manila,UFO,1480,directory
+ncr,Metro Manila,NCR,1481,directory
+ncr,Metro Manila,Navotas,1485,directory
+ncr,Metro Manila,Tangos,1489,directory
+ncr,Metro Manila,Tanza,1490,directory
+ncr,Metro Manila,Valenzuela P.O. Boxes,1496,directory
+ncr,Metro Manila,San Juan Central Post Office,1500,directory
+ncr,Metro Manila,Greenhills Post Office,1502,directory
+ncr,Metro Manila,Greenhills (North),1503,directory
+ncr,Metro Manila,Eisenhower–Crame,1504,directory
+ncr,Metro Manila,Barangay Plainview,1550,directory
+ncr,Metro Manila,Mandaluyong Central Post Office,1550,directory
+ncr,Metro Manila,Vergara,1551,directory
+ncr,Metro Manila,Shaw Boulevard,1552,directory
+ncr,Metro Manila,National Center for Mental Health,1553,directory
+ncr,Metro Manila,EDSA,1554,directory
+ncr,Metro Manila,Wack Wack,1555,directory
+ncr,Metro Manila,Greenhills South,1556,directory
+ncr,Metro Manila,Pasig Central Post Office,1600,directory
+ncr,Metro Manila,San Joaquin,1601,directory
+ncr,Metro Manila,Pinagbuhatan,1602,directory
+ncr,Metro Manila,Kapitolyo,1603,directory
+ncr,Metro Manila,Ugong,1604,directory
+ncr,Metro Manila,Ortigas Post Office,1605,directory
+ncr,Metro Manila,Caniogan,1606,directory
+ncr,Metro Manila,Maybunga,1607,directory
+ncr,Metro Manila,Santa Lucia,1608,directory
+ncr,Metro Manila,Rosario,1609,directory
+ncr,Metro Manila,Santolan,1610,directory
+ncr,Metro Manila,Manggahan,1611,directory
+ncr,Metro Manila,Green Park,1612,directory
+ncr,Metro Manila,Aguhos,1620,directory
+ncr,Metro Manila,Magtanggol,1620,directory
+ncr,Metro Manila,Santa Ana,1621,directory
+ncr,Metro Manila,San Roque,1622,directory
+ncr,Metro Manila,San Pedro,1623,directory
+ncr,Metro Manila,Bagumbayan–Pinagsama,1630,directory
+ncr,Metro Manila,Palingon,1630,directory
+ncr,Metro Manila,Western Bicutan,1630,directory
+ncr,Metro Manila,Bicutan,1631,directory
+ncr,Metro Manila,Lower Bicutan–Ususan,1632,directory
+ncr,Metro Manila,Upper Bicutan,1633,directory
+ncr,Metro Manila,Nichols–McKinley (Bonifacio Global City),1634,directory
+ncr,Metro Manila,Tilapya,1634,directory
+ncr,Metro Manila,Ususan and Palar Village,1635,directory
+ncr,Metro Manila,Bay Breeze Executive Village,1636,directory
+ncr,Metro Manila,Ibayo–Tipas,1637,directory
+ncr,Metro Manila,Ligid,1638,directory
+ncr,Metro Manila,Tuktukan,1638,directory
+ncr,Metro Manila,Don Galo,1700,directory
+ncr,Metro Manila,Mon-El Subdivision,1700,directory
+ncr,Metro Manila,Parañaque CPO,1700,directory
+ncr,Metro Manila,Tambo,1701,directory
+ncr,Metro Manila,Baclaran,1702,directory
+ncr,Metro Manila,Marina Subdivision,1703,directory
+ncr,Metro Manila,Santo Niño,1704,directory
+ncr,Metro Manila,Ninoy Aquino International Airport,1705,directory
+ncr,Metro Manila,Pulo,1706,directory
+ncr,Metro Manila,San Antonio Valley 11 and 12,1707,directory
+ncr,Metro Manila,Multinational Village,1708,directory
+ncr,Metro Manila,"South Admiral Village, Merville Park, and Moonwalk",1709,directory
+ncr,Metro Manila,Executive Heights Subdivision,1710,directory
+ncr,Metro Manila,Better Living Subdivision,1711,directory
+ncr,Metro Manila,Miramar Subdivision,1712,directory
+ncr,Metro Manila,United Parañaque Subdivision,1713,directory
+ncr,Metro Manila,Ireneville Subdivision II,1714,directory
+ncr,Metro Manila,San Antonio Valley 1,1715,directory
+ncr,Metro Manila,Maywood Village II,1716,directory
+ncr,Metro Manila,Manila Memorial Park,1717,directory
+ncr,Metro Manila,BF Homes 2,1718,directory
+ncr,Metro Manila,Ireneville Subdivision I & III,1719,directory
+ncr,Metro Manila,Maywood Village I,1719,directory
+ncr,Metro Manila,BF Homes 1,1720,directory
+ncr,Metro Manila,Las Piñas Central Post Office,1740,directory
+ncr,Metro Manila,Remarville Subdivision,1741,directory
+ncr,Metro Manila,Pulang Lupa–Zapote,1742,directory
+ncr,Metro Manila,Cut-cut,1743,directory
+ncr,Metro Manila,Manuyo,1744,directory
+ncr,Metro Manila,Gatchalian Subdivision,1745,directory
+ncr,Metro Manila,Verdant Acres Subdivision,1746,directory
+ncr,Metro Manila,Moonwalk Subdivision–Talon,1747,directory
+ncr,Metro Manila,Manila Doctors Village,1748,directory
+ncr,Metro Manila,Angela Village,1749,directory
+ncr,Metro Manila,Almanza,1750,directory
+ncr,Metro Manila,T.S. Cruz Subdivision,1751,directory
+ncr,Metro Manila,Soldiers Hills Subdivision,1752,directory
+ncr,Metro Manila,Muntinlupa Central Post Office,1770,directory
+ncr,Metro Manila,Sucat,1770,directory
+ncr,Metro Manila,Buli and Cupang,1771,directory
+ncr,Metro Manila,Bayanan and Putatan,1772,directory
+ncr,Metro Manila,Tunasan,1773,directory
+ncr,Metro Manila,Poblacion,1776,directory
+ncr,Metro Manila,Aeropark Subdivision,1778,directory
+ncr,Metro Manila,Ayala Alabang,1780,directory
+ncr,Metro Manila,Filinvest City,1781,directory
+ncr,Metro Manila,Alabang,1799,directory
+ncr,Metro Manila,Marikina Central Post Office,1800,directory
+ncr,Metro Manila,San Roque–Calumpang,1801,directory
+ncr,Metro Manila,Industrial Valley,1802,directory
+ncr,Metro Manila,Barangka and Tañong,1803,directory
+ncr,Metro Manila,J. De La Peña (Provident Villages),1804,directory
+ncr,Metro Manila,Malanday,1805,directory
+ncr,Metro Manila,Northern and Western Marikina River,1806,directory
+ncr,Metro Manila,Concepcion 1,1807,directory
+ncr,Metro Manila,Nangka,1808,directory
+ncr,Metro Manila,Parang,1809,directory
+ncr,Metro Manila,Marikina Heights,1810,directory
+ncr,Metro Manila,Concepcion 2 (SSS Village),1811,directory
+car,Benguet,Baguio City,2600,phlpost
+car,Benguet,La Trinidad,2601,phlpost
+car,Benguet,Philippine Military Academy (PMA),2602,phlpost
+car,Benguet,Tuba,2603,phlpost
+car,Benguet,Itogon,2604,phlpost
+car,Benguet,Bokod,2605,phlpost
+car,Benguet,Kabayan,2606,phlpost
+car,Benguet,Buguias,2607,phlpost
+car,Benguet,Mankayan,2608,phlpost
+car,Benguet,"Lepanto, Mankayan",2609,directory
+car,Benguet,Bakun,2610,phlpost
+car,Benguet,Kibungan,2611,phlpost
+car,Benguet,Atok,2612,phlpost
+car,Benguet,Kapangan,2613,phlpost
+car,Benguet,Sablan,2614,phlpost
+car,Benguet,Tublay,2615,phlpost
+car,Mountain Province,Bontoc,2616,directory
+car,Mountain Province,Sadanga,2617,directory
+car,Mountain Province,Besao,2618,directory
+car,Mountain Province,Sagada,2619,directory
+car,Mountain Province,Tadian,2620,directory
+car,Mountain Province,Bauko,2621,directory
+car,Mountain Province,Sabangan,2622,directory
+car,Mountain Province,Barlig,2623,directory
+car,Mountain Province,Natonin,2624,directory
+car,Mountain Province,Paracelis,2625,directory
+car,Abra,Bangued,2800,phlpost
+car,Abra,Dolores,2801,phlpost
+car,Abra,Lagangilang,2802,phlpost
+car,Abra,Tayum,2803,phlpost
+car,Abra,Peñarrubia,2804,phlpost
+car,Abra,Bucay,2805,phlpost
+car,Abra,Pidigan,2806,phlpost
+car,Abra,Langiden,2807,phlpost
+car,Abra,San Quintin,2808,phlpost
+car,Abra,San Isidro,2809,phlpost
+car,Abra,Manabo,2810,phlpost
+car,Abra,Villaviciosa,2811,phlpost
+car,Abra,Pilar,2812,phlpost
+car,Abra,Luba,2813,phlpost
+car,Abra,Tubo,2814,phlpost
+car,Abra,Boliney,2815,phlpost
+car,Abra,Daguioman,2816,phlpost
+car,Abra,Bucloc,2817,phlpost
+car,Abra,Sallapadan,2818,phlpost
+car,Abra,Licuan-Baay,2819,phlpost
+car,Abra,Malibcong,2820,phlpost
+car,Abra,Lacub,2821,phlpost
+car,Abra,Tineg,2822,phlpost
+car,Abra,San Juan,2823,phlpost
+car,Abra,Lagayan,2824,phlpost
+car,Abra,Danglas,2825,phlpost
+car,Abra,La Paz,2826,phlpost
+car,Ifugao,Lagawe,3600,phlpost
+car,Ifugao,Banaue,3601,phlpost
+car,Ifugao,Mayoyao,3602,phlpost
+car,Ifugao,Hungduan,3603,phlpost
+car,Ifugao,Kiangan,3604,phlpost
+car,Ifugao,Lamut,3605,phlpost
+car,Ifugao,Aguinaldo,3606,phlpost
+car,Ifugao,Hingyon,3607,phlpost
+car,Ifugao,Alfonso Lista (formerly Potia),3608,phlpost
+car,Ifugao,Tinoc,3609,phlpost
+car,Ifugao,Asipulo,3610,phlpost
+car,Kalinga,Tabuk City,3800,phlpost
+car,Kalinga,Balbalan,3801,phlpost
+car,Kalinga,Lubuagan,3802,phlpost
+car,Kalinga,Pasil,3803,phlpost
+car,Kalinga,Tinglayan,3804,phlpost
+car,Kalinga,Tanudan,3805,phlpost
+car,Kalinga,Pinukpuk,3806,phlpost
+car,Apayao,Conner,3807,phlpost
+car,Kalinga,Rizal,3808,phlpost
+car,Apayao,Kabugao,3809,phlpost
+car,Apayao,Flora,3810,phlpost
+car,Apayao,Santa Marcela,3811,phlpost
+car,Apayao,Pudtol,3812,phlpost
+car,Apayao,Luna,3813,phlpost
+car,Apayao,Calanasan,3814,phlpost
+region-1,Pangasinan,Dagupan,2400,directory
+region-1,Pangasinan,Lingayen,2401,directory
+region-1,Pangasinan,Labrador,2402,directory
+region-1,Pangasinan,Sual,2403,phlpost
+region-1,Pangasinan,Alaminos,2404,directory
+region-1,Pangasinan,Anda,2405,directory
+region-1,Pangasinan,Bolinao,2406,directory
+region-1,Pangasinan,Bani,2407,directory
+region-1,Pangasinan,Agno,2408,directory
+region-1,Pangasinan,Mabini,2409,directory
+region-1,Pangasinan,Burgos,2410,directory
+region-1,Pangasinan,Dasol,2411,directory
+region-1,Pangasinan,Infanta,2412,directory
+region-1,Pangasinan,Mangatarem,2413,phlpost
+region-1,Pangasinan,Urbiztondo,2414,phlpost
+region-1,Pangasinan,Aguilar,2415,directory
+region-1,Pangasinan,Bugallon,2416,directory
+region-1,Pangasinan,Binmaley,2417,directory
+region-1,Pangasinan,Calasiao,2418,directory
+region-1,Pangasinan,Santa Barbara,2419,phlpost
+region-1,Pangasinan,San Carlos City,2420,phlpost
+region-1,Pangasinan,Malasiqui,2421,directory
+region-1,Pangasinan,Basista,2422,directory
+region-1,Pangasinan,Bayambang,2423,directory
+region-1,Pangasinan,Balungao,2424,directory
+region-1,Pangasinan,Bautista,2424,directory
+region-1,Pangasinan,Alcala,2425,directory
+region-1,Pangasinan,Santo Tomas,2426,phlpost
+region-1,Pangasinan,Villasis,2427,phlpost
+region-1,Pangasinan,Urdaneta,2428,phlpost
+region-1,Pangasinan,Mapandan,2429,phlpost
+region-1,Pangasinan,Manaoag,2430,directory
+region-1,Pangasinan,San Jacinto,2431,phlpost
+region-1,Pangasinan,Mangaldan,2432,phlpost
+region-1,Pangasinan,San Fabian,2433,phlpost
+region-1,Pangasinan,Sison,2434,phlpost
+region-1,Pangasinan,Pozorrubio,2435,phlpost
+region-1,Pangasinan,Binalonan,2436,directory
+region-1,Pangasinan,Laoac,2437,directory
+region-1,Pangasinan,San Manuel,2438,phlpost
+region-1,Pangasinan,Asingan,2439,directory
+region-1,Pangasinan,Santa Maria,2440,phlpost
+region-1,Pangasinan,Rosales,2441,phlpost
+region-1,Pangasinan,Umingan,2443,phlpost
+region-1,Pangasinan,San Quintin,2444,phlpost
+region-1,Pangasinan,Tayug,2445,phlpost
+region-1,Pangasinan,Natividad,2446,phlpost
+region-1,Pangasinan,San Nicolas,2447,phlpost
+region-1,La Union,San Fernando,2500,directory
+region-1,La Union,Bauang,2501,directory
+region-1,La Union,Caba,2502,directory
+region-1,La Union,Aringay,2503,directory
+region-1,La Union,Agoo,2504,directory
+region-1,La Union,Santo Tomas,2505,directory
+region-1,La Union,Rosario,2506,directory
+region-1,La Union,Pugo,2508,directory
+region-1,La Union,Tubao,2509,directory
+region-1,La Union,Burgos,2510,directory
+region-1,La Union,Naguilian,2511,directory
+region-1,La Union,Bagulin,2512,directory
+region-1,La Union,San Gabriel,2513,directory
+region-1,La Union,San Juan,2514,directory
+region-1,La Union,Bacnotan,2515,directory
+region-1,La Union,Santol,2516,directory
+region-1,La Union,Balaoan,2517,directory
+region-1,La Union,Luna,2518,directory
+region-1,La Union,Bangar,2519,directory
+region-1,La Union,Sudipen,2520,directory
+region-1,Ilocos Sur,Vigan,2700,directory
+region-1,Ilocos Sur,Santa Catalina,2701,directory
+region-1,Ilocos Sur,Caoayan,2702,directory
+region-1,Ilocos Sur,Santa,2703,directory
+region-1,Ilocos Sur,Narvacan,2704,directory
+region-1,Ilocos Sur,Santa Maria,2705,directory
+region-1,Ilocos Sur,San Esteban,2706,directory
+region-1,Ilocos Sur,Santiago,2707,directory
+region-1,Ilocos Sur,Banayoyo,2708,directory
+region-1,Ilocos Sur,Galimuyod,2709,directory
+region-1,Ilocos Sur,Candon,2710,directory
+region-1,Ilocos Sur,Salcedo (Baugen),2711,directory
+region-1,Ilocos Sur,Santa Lucia,2712,directory
+region-1,Ilocos Sur,Santa Cruz,2713,directory
+region-1,Ilocos Sur,Tagudin,2714,directory
+region-1,Ilocos Sur,Suyo,2715,directory
+region-1,Ilocos Sur,Alilem,2716,directory
+region-1,Ilocos Sur,Sugpon,2717,directory
+region-1,Ilocos Sur,Cervantes,2718,directory
+region-1,Ilocos Sur,Sigay,2719,directory
+region-1,Ilocos Sur,Gregorio del Pilar,2720,directory
+region-1,Ilocos Sur,Quirino (Angkaki),2721,directory
+region-1,Ilocos Sur,San Emilio,2722,directory
+region-1,Ilocos Sur,Lidlidda,2723,directory
+region-1,Ilocos Sur,Burgos,2724,directory
+region-1,Ilocos Sur,Nagbukel,2725,directory
+region-1,Ilocos Sur,San Vicente,2726,directory
+region-1,Ilocos Sur,Bantay,2727,directory
+region-1,Ilocos Sur,San Ildefonso,2728,directory
+region-1,Ilocos Sur,Santo Domingo,2729,directory
+region-1,Ilocos Sur,Magsingal,2730,directory
+region-1,Ilocos Sur,San Juan (Lapog),2731,directory
+region-1,Ilocos Sur,Cabugao,2732,directory
+region-1,Ilocos Sur,Sinait,2733,directory
+region-1,Ilocos Norte,Laoag,2900,directory
+region-1,Ilocos Norte,San Nicolas,2901,directory
+region-1,Ilocos Norte,Paoay,2902,directory
+region-1,Ilocos Norte,Currimao,2903,directory
+region-1,Ilocos Norte,Badoc,2904,directory
+region-1,Ilocos Norte,Pinili,2905,directory
+region-1,Ilocos Norte,Batac,2906,directory
+region-1,Ilocos Norte,Marcos,2907,directory
+region-1,Ilocos Norte,Banna (Espiritu),2908,directory
+region-1,Ilocos Norte,Nueva Era,2909,directory
+region-1,Ilocos Norte,Solsona,2910,directory
+region-1,Ilocos Norte,Carasi,2911,directory
+region-1,Ilocos Norte,Piddig,2912,directory
+region-1,Ilocos Norte,Dingras,2913,directory
+region-1,Ilocos Norte,Sarrat,2914,directory
+region-1,Ilocos Norte,Vintar,2915,directory
+region-1,Ilocos Norte,Bacarra,2916,directory
+region-1,Ilocos Norte,Pasuquin,2917,directory
+region-1,Ilocos Norte,Burgos,2918,directory
+region-1,Ilocos Norte,Pagudpud,2919,directory
+region-1,Ilocos Norte,Bangui,2920,directory
+region-1,Ilocos Norte,Dumalneg,2921,directory
+region-1,Ilocos Norte,Adams,2922,directory
+region-2,Isabela,City of Ilagan,3300,phlpost
+region-2,Isabela,Gamu,3301,phlpost
+region-2,Isabela,Naguillan,3302,phlpost
+region-2,Isabela,Reina Mercedes,3303,phlpost
+region-2,Isabela,Luna,3304,phlpost
+region-2,Isabela,City of Cauayan,3305,phlpost
+region-2,Isabela,Alicia,3306,phlpost
+region-2,Isabela,Angadanan,3307,phlpost
+region-2,Isabela,San Guillermo,3308,phlpost
+region-2,Isabela,Echague,3309,phlpost
+region-2,Isabela,San Isidro,3310,phlpost
+region-2,Isabela,Santiago CIty,3311,phlpost
+region-2,Isabela,Cordon,3312,phlpost
+region-2,Isabela,Jones,3313,phlpost
+region-2,Isabela,San Agustin,3314,phlpost
+region-2,Isabela,Cabatuan,3315,phlpost
+region-2,Isabela,Aurora,3316,phlpost
+region-2,Isabela,San Manuel,3317,phlpost
+region-2,Isabela,San Mateo,3318,phlpost
+region-2,Isabela,Ramon,3319,phlpost
+region-2,Isabela,Roxas,3320,phlpost
+region-2,Isabela,Quirino,3321,phlpost
+region-2,Isabela,Burgos,3322,phlpost
+region-2,Isabela,Mallig,3323,phlpost
+region-2,Isabela,Quezon,3324,phlpost
+region-2,Isabela,Tumauini,3325,phlpost
+region-2,Isabela,Delfin Albano,3326,phlpost
+region-2,Isabela,Santo Tomas,3327,phlpost
+region-2,Isabela,Cabagan,3328,phlpost
+region-2,Isabela,San Pablo,3329,phlpost
+region-2,Isabela,Santa Maria,3330,phlpost
+region-2,Isabela,Benito Soliven,3331,phlpost
+region-2,Isabela,San Mariano,3332,phlpost
+region-2,Isabela,Maconacon,3333,phlpost
+region-2,Isabela,Palanan,3334,phlpost
+region-2,Isabela,Divilacan,3335,phlpost
+region-2,Isabela,Dinapigue,3336,phlpost
+region-2,Quirino,Cabarroguis,3400,phlpost
+region-2,Quirino,Diffun,3401,phlpost
+region-2,Quirino,Saguday,3402,phlpost
+region-2,Quirino,Aglipay,3403,phlpost
+region-2,Quirino,Maddela,3404,phlpost
+region-2,Quirino,Nagtipunan,3405,phlpost
+region-2,Cagayan,Tuguegarao City,3500,phlpost
+region-2,Cagayan,Enrile,3501,phlpost
+region-2,Cagayan,Peñablanca,3502,phlpost
+region-2,Cagayan,Solana,3503,phlpost
+region-2,Cagayan,Iguig,3504,phlpost
+region-2,Cagayan,Amulung,3505,phlpost
+region-2,Cagayan,Baggao,3506,phlpost
+region-2,Cagayan,Alcala,3507,phlpost
+region-2,Cagayan,Gattaran,3508,phlpost
+region-2,Cagayan,Lal-lo,3509,phlpost
+region-2,Cagayan,Camalaniugan,3510,phlpost
+region-2,Cagayan,Buguey,3511,phlpost
+region-2,Cagayan,Santa Teresita,3512,phlpost
+region-2,Cagayan,Gonzaga,3513,phlpost
+region-2,Cagayan,Santa Ana,3514,phlpost
+region-2,Cagayan,Aparri,3515,phlpost
+region-2,Cagayan,Ballesteros,3516,phlpost
+region-2,Cagayan,Abulug,3517,phlpost
+region-2,Cagayan,Sanchez-Mira,3518,phlpost
+region-2,Cagayan,Claveria,3519,phlpost
+region-2,Cagayan,Calayan,3520,phlpost
+region-2,Cagayan,Santa Praxedes,3521,phlpost
+region-2,Cagayan,Pamplona,3522,phlpost
+region-2,Cagayan,Allacapan,3523,phlpost
+region-2,Cagayan,Lasam,3524,phlpost
+region-2,Cagayan,Santo Niño,3525,phlpost
+region-2,Cagayan,Rizal,3526,phlpost
+region-2,Cagayan,Piat,3527,phlpost
+region-2,Cagayan,Tuao,3528,phlpost
+region-2,Nueva Vizcaya,Bayombong,3700,phlpost
+region-2,Nueva Vizcaya,Ambaguio,3701,phlpost
+region-2,Nueva Vizcaya,Bambang,3702,phlpost
+region-2,Nueva Vizcaya,Kasibu,3703,phlpost
+region-2,Nueva Vizcaya,Aritao,3704,phlpost
+region-2,Nueva Vizcaya,Santa Fe,3705,phlpost
+region-2,Nueva Vizcaya,Dupax del Norte,3706,phlpost
+region-2,Nueva Vizcaya,Dupax del Sur,3707,phlpost
+region-2,Nueva Vizcaya,Kayapa,3708,phlpost
+region-2,Nueva Vizcaya,Solano,3709,phlpost
+region-2,Nueva Vizcaya,Villa Verde (Ibung),3710,directory
+region-2,Nueva Vizcaya,Bagabag,3711,phlpost
+region-2,Nueva Vizcaya,Diadi,3712,phlpost
+region-2,Nueva Vizcaya,Quezon,3713,phlpost
+region-2,Nueva Vizcaya,Alfonso Castañeda,3714,phlpost
+region-2,Batanes,Basco,3900,phlpost
+region-2,Batanes,Mahatao,3901,phlpost
+region-2,Batanes,Ivana,3902,phlpost
+region-2,Batanes,Uyugan,3903,phlpost
+region-2,Batanes,Sabtang,3904,phlpost
+region-2,Batanes,Itbayat,3905,phlpost
+region-3,Pampanga,San Fernando,2000,phlpost
+region-3,Pampanga,Bacolor,2001,phlpost
+region-3,Pampanga,Santa Rita,2002,phlpost
+region-3,Pampanga,Guagua,2003,phlpost
+region-3,Pampanga,Sasmuan,2004,phlpost
+region-3,Pampanga,Lubao,2005,phlpost
+region-3,Pampanga,Floridablanca,2006,phlpost
+region-3,Pampanga,Basa airbase,2007,phlpost
+region-3,Pampanga,Porac,2008,phlpost
+region-3,Pampanga,Angeles City,2009,phlpost
+region-3,Pampanga,Mabalacat,2010,phlpost
+region-3,Pampanga,Magalang,2011,phlpost
+region-3,Pampanga,Arayat,2012,phlpost
+region-3,Pampanga,Candaba,2013,phlpost
+region-3,Pampanga,San Luis,2014,phlpost
+region-3,Pampanga,San Simon,2015,phlpost
+region-3,Pampanga,Apalit,2016,phlpost
+region-3,Pampanga,Masantol,2017,phlpost
+region-3,Pampanga,Macabebe,2018,phlpost
+region-3,Pampanga,Minalin,2019,phlpost
+region-3,Pampanga,Santo Tomas,2020,phlpost
+region-3,Pampanga,Mexico,2021,phlpost
+region-3,Pampanga,Santa Ana,2022,phlpost
+region-3,Pampanga,"CSEZ, Clark",2023,phlpost
+region-3,Pampanga,"Balibago, Angeles",2024,directory
+region-3,Pampanga,"Santa Cruz, Lubao",2025,phlpost
+region-3,Pampanga,"Dau, Mabalacat",2026,phlpost
+region-3,Bataan,Balanga,2100,phlpost
+region-3,Bataan,Pilar,2101,directory
+region-3,Bataan,Orion,2102,directory
+region-3,Bataan,Limay,2103,phlpost
+region-3,Bataan,Lamao,2104,phlpost
+region-3,Bataan,"Bataan Export Processing Zone, Mariveles",2105,directory
+region-3,Bataan,Mariveles,2105,directory
+region-3,Bataan,FAB (Freefort Area of Bataan),2106,phlpost
+region-3,Bataan,Bagac,2107,phlpost
+region-3,Bataan,Morong,2108,directory
+region-3,Bataan,Cabcaben,2109,phlpost
+region-3,Bataan,Dinalupihan,2110,phlpost
+region-3,Bataan,Hermosa,2111,phlpost
+region-3,Bataan,Orani,2112,directory
+region-3,Bataan,Samal,2113,directory
+region-3,Bataan,Abucay,2114,phlpost
+region-3,Zambales,Olongapo City,2200,phlpost
+region-3,Zambales,Iba,2201,phlpost
+region-3,Zambales,Botolan,2202,phlpost
+region-3,Zambales,Cabangan,2203,phlpost
+region-3,Zambales,San Felipe,2204,phlpost
+region-3,Zambales,San Narciso,2205,phlpost
+region-3,Zambales,San Antonio,2206,phlpost
+region-3,Zambales,San Marcelino,2207,phlpost
+region-3,Zambales,Castillejos,2208,phlpost
+region-3,Zambales,Subic,2209,phlpost
+region-3,Zambales,Palauig,2210,phlpost
+region-3,Zambales,Masinloc,2211,directory
+region-3,Zambales,Candelaria,2212,phlpost
+region-3,Zambales,Santa Cruz,2213,phlpost
+region-3,Zambales,Subic Bay Freeport Zone,2222,directory
+region-3,Tarlac,Tarlac,2300,phlpost
+region-3,Tarlac,"San Miguel, Tarlac City",2301,directory
+region-3,Tarlac,Gerona,2302,phlpost
+region-3,Tarlac,Santa Ignacia,2303,phlpost
+region-3,Tarlac,Mayantoc,2304,phlpost
+region-3,Tarlac,San Clemente,2305,phlpost
+region-3,Tarlac,Camiling,2306,phlpost
+region-3,Tarlac,Paniqui,2307,phlpost
+region-3,Tarlac,Moncada,2308,phlpost
+region-3,Tarlac,San Manuel,2309,phlpost
+region-3,Tarlac,Anao,2310,phlpost
+region-3,Tarlac,Ramos,2311,phlpost
+region-3,Tarlac,Pura,2312,phlpost
+region-3,Tarlac,Victoria,2313,phlpost
+region-3,Tarlac,La Paz,2314,phlpost
+region-3,Tarlac,Capas,2315,phlpost
+region-3,Tarlac,Concepcion,2316,phlpost
+region-3,Tarlac,Bamban,2317,phlpost
+region-3,Tarlac,San Jose,2318,phlpost
+region-3,Bulacan,Malolos,3000,phlpost
+region-3,Bulacan,Paombong,3001,phlpost
+region-3,Bulacan,Hagonoy,3002,phlpost
+region-3,Bulacan,Calumpit,3003,phlpost
+region-3,Bulacan,Plaridel,3004,phlpost
+region-3,Bulacan,Pulilan,3005,phlpost
+region-3,Bulacan,Baliuag,3006,phlpost
+region-3,Bulacan,Bustos,3007,phlpost
+region-3,Bulacan,San Rafael,3008,phlpost
+region-3,Bulacan,Doña Remedios Trinidad,3009,phlpost
+region-3,Bulacan,San Ildefonso,3010,phlpost
+region-3,Bulacan,San Miguel,3011,phlpost
+region-3,Bulacan,Angat,3012,phlpost
+region-3,Bulacan,Norzagaray,3013,phlpost
+region-3,Bulacan,Pandi,3014,phlpost
+region-3,Bulacan,Guiguinto,3015,phlpost
+region-3,Bulacan,Balagtas,3016,phlpost
+region-3,Bulacan,Bulacan,3017,phlpost
+region-3,Bulacan,Bocaue,3018,phlpost
+region-3,Bulacan,Marilao,3019,phlpost
+region-3,Bulacan,Meycauayan,3020,phlpost
+region-3,Bulacan,Obando,3021,phlpost
+region-3,Bulacan,Santa Maria,3022,phlpost
+region-3,Bulacan,San Jose Del Monte,3023,phlpost
+region-3,Bulacan,Sapang Palay,3024,phlpost
+region-3,Bulacan,Cruz Na Daan,3025,phlpost
+region-3,Nueva Ecija,Cabanatuan City,3100,phlpost
+region-3,Nueva Ecija,Santa Rosa,3101,phlpost
+region-3,Nueva Ecija,San Leonardo,3102,phlpost
+region-3,Nueva Ecija,Peñaranda,3103,phlpost
+region-3,Nueva Ecija,Gen. Tinio,3104,phlpost
+region-3,Nueva Ecija,Gapan City,3105,phlpost
+region-3,Nueva Ecija,San Isidro,3106,phlpost
+region-3,Nueva Ecija,Cabiao,3107,phlpost
+region-3,Nueva Ecija,San Antonio,3108,phlpost
+region-3,Nueva Ecija,Jaen,3109,phlpost
+region-3,Nueva Ecija,Zaragoza,3110,phlpost
+region-3,Nueva Ecija,Aliaga,3111,phlpost
+region-3,Nueva Ecija,Licab,3112,phlpost
+region-3,Nueva Ecija,Quezon,3113,phlpost
+region-3,Nueva Ecija,Talavera,3114,phlpost
+region-3,Nueva Ecija,Guimba,3115,phlpost
+region-3,Nueva Ecija,Nampicuan,3116,phlpost
+region-3,Nueva Ecija,Cuyapo,3117,phlpost
+region-3,Nueva Ecija,Talugtug,3118,phlpost
+region-3,Nueva Ecija,Muñoz,3119,phlpost
+region-3,Nueva Ecija,Central Luzon State University,3120,phlpost
+region-3,Nueva Ecija,San Jose City,3121,phlpost
+region-3,Nueva Ecija,Lupao,3122,phlpost
+region-3,Nueva Ecija,Carrangalan,3123,phlpost
+region-3,Nueva Ecija,Pantabangan,3124,phlpost
+region-3,Nueva Ecija,Gen. M. Natividad,3125,phlpost
+region-3,Nueva Ecija,Llanera,3126,phlpost
+region-3,Nueva Ecija,Rizal,3127,phlpost
+region-3,Nueva Ecija,Bongabon,3128,phlpost
+region-3,Nueva Ecija,Laur,3129,phlpost
+region-3,Nueva Ecija,Fort Magsaysay,3130,phlpost
+region-3,Nueva Ecija,Gabaldon,3131,phlpost
+region-3,Nueva Ecija,Palayan City,3132,phlpost
+region-3,Nueva Ecija,Santo Domingo,3133,phlpost
+region-3,Aurora,Baler,3200,phlpost
+region-3,Aurora,San Luis,3201,phlpost
+region-3,Aurora,Maria Aurora,3202,phlpost
+region-3,Aurora,Dipaculao,3203,phlpost
+region-3,Aurora,Casiguran,3204,phlpost
+region-3,Aurora,Dilasag,3205,phlpost
+region-3,Aurora,Dinalungan,3206,phlpost
+region-3,Aurora,Dingalan,3207,phlpost
+region-3,Aurora,Sapang dalaga,7212,phlpost
+region-3,Aurora,Tagoloan,9001,phlpost
+region-4a,Quezon,Social Security System,0800,directory
+region-4a,Quezon,Camp Crame,0801,directory
+region-4a,Quezon,Camp Aguinaldo,0802,directory
+region-4a,Quezon,Araneta Center,0810,directory
+region-4a,Quezon,Bureau of Internal Revenue,0820,directory
+region-4a,Quezon,National Irrigation Administration,0830,directory
+region-4a,Quezon,V. Luna Hospital,0840,directory
+region-4a,Quezon,Philippine Heart Center,0850,directory
+region-4a,Quezon,Quezon City Hall,0860,directory
+region-4a,Quezon,Veterans Hospital,0870,directory
+region-4a,Quezon,Commission on Audit,0880,directory
+region-4a,Quezon,Central,1100,directory
+region-4a,Quezon,Piñahan,1100,directory
+region-4a,Quezon,Project 6,1100,directory
+region-4a,Quezon,Botocan,1101,directory
+region-4a,Quezon,Diliman,1101,directory
+region-4a,Quezon,Krus na Ligas,1101,directory
+region-4a,Quezon,Malaya,1101,directory
+region-4a,Quezon,Old Capitol Site,1101,directory
+region-4a,Quezon,San Vicente,1101,directory
+region-4a,Quezon,Sikatuna Village,1101,directory
+region-4a,Quezon,Teachers Village,1101,directory
+region-4a,Quezon,University of the Philippines Post Office,1101,directory
+region-4a,Quezon,University of the Philippines Village,1101,directory
+region-4a,Quezon,Amihan,1102,directory
+region-4a,Quezon,Claro,1102,directory
+region-4a,Quezon,Duyan-Duyan,1102,directory
+region-4a,Quezon,E. Rodriguez,1102,directory
+region-4a,Quezon,Kamias,1102,directory
+region-4a,Quezon,Quirino District (Project 2 and 3),1102,directory
+region-4a,Quezon,Silangan,1102,directory
+region-4a,Quezon,Kamuning,1103,directory
+region-4a,Quezon,Laging Handa,1103,directory
+region-4a,Quezon,Obrero,1103,directory
+region-4a,Quezon,Paligsahan,1103,directory
+region-4a,Quezon,Roxas District,1103,directory
+region-4a,Quezon,Sacred Heart,1103,directory
+region-4a,Quezon,South Triangle,1103,directory
+region-4a,Quezon,Damayan,1104,directory
+region-4a,Quezon,Mariblo,1104,directory
+region-4a,Quezon,Nayon Kaunlaran,1104,directory
+region-4a,Quezon,Paraiso,1104,directory
+region-4a,Quezon,Phil-Am,1104,directory
+region-4a,Quezon,Santa Cruz,1104,directory
+region-4a,Quezon,Talayan,1104,directory
+region-4a,Quezon,West Triangle,1104,directory
+region-4a,Quezon,Alicia,1105,directory
+region-4a,Quezon,Bagong Pag-Asa,1105,directory
+region-4a,Quezon,Bungad,1105,directory
+region-4a,Quezon,Del Monte,1105,directory
+region-4a,Quezon,Katipunan,1105,directory
+region-4a,Quezon,Paltok,1105,directory
+region-4a,Quezon,Project 7 (Veterans Village),1105,directory
+region-4a,Quezon,R. Magsaysay,1105,directory
+region-4a,Quezon,San Antonio,1105,directory
+region-4a,Quezon,Santo Cristo,1105,directory
+region-4a,Quezon,Veterans Village,1105,directory
+region-4a,Quezon,Apolonio Samson,1106,directory
+region-4a,Quezon,Baesa,1106,directory
+region-4a,Quezon,Bahay Toro,1106,directory
+region-4a,Quezon,Balintawak,1106,directory
+region-4a,Quezon,Balumbato,1106,directory
+region-4a,Quezon,Project 8,1106,directory
+region-4a,Quezon,Unang Sigaw,1106,directory
+region-4a,Quezon,New Era,1107,directory
+region-4a,Quezon,Pasong Tamo,1107,directory
+region-4a,Quezon,Loyola Heights,1108,directory
+region-4a,Quezon,Pansol,1108,directory
+region-4a,Quezon,Bagumbuhay,1109,directory
+region-4a,Quezon,Bayanihan,1109,directory
+region-4a,Quezon,Blue Ridge,1109,directory
+region-4a,Quezon,Cubao,1109,directory
+region-4a,Quezon,Dioquino Zobel,1109,directory
+region-4a,Quezon,Escopa,1109,directory
+region-4a,Quezon,Mangga,1109,directory
+region-4a,Quezon,Marilag,1109,directory
+region-4a,Quezon,Masagana,1109,directory
+region-4a,Quezon,Milagrosa,1109,directory
+region-4a,Quezon,Project 4,1109,directory
+region-4a,Quezon,San Roque,1109,directory
+region-4a,Quezon,Socorro,1109,directory
+region-4a,Quezon,Tagumpay,1109,directory
+region-4a,Quezon,Villa Maria Clara,1109,directory
+region-4a,Quezon,Bagumbayan,1110,directory
+region-4a,Quezon,Camp Aguinaldo,1110,directory
+region-4a,Quezon,Libis,1110,directory
+region-4a,Quezon,St. Ignatius,1110,directory
+region-4a,Quezon,Talampas,1110,directory
+region-4a,Quezon,Ugong Norte,1110,directory
+region-4a,Quezon,White Plains,1110,directory
+region-4a,Quezon,Bagong Lipunan,1111,directory
+region-4a,Quezon,Crame,1111,directory
+region-4a,Quezon,Immaculate Concepcion,1111,directory
+region-4a,Quezon,Kaunlaran,1111,directory
+region-4a,Quezon,Pinagkaisahan,1111,directory
+region-4a,Quezon,St. Martin de Porres,1111,directory
+region-4a,Quezon,Damayang Lagi,1112,directory
+region-4a,Quezon,Horseshoe,1112,directory
+region-4a,Quezon,Kalusugan,1112,directory
+region-4a,Quezon,Kristong Hari,1112,directory
+region-4a,Quezon,Mariana,1112,directory
+region-4a,Quezon,Valencia,1112,directory
+region-4a,Quezon,Don Manuel,1113,directory
+region-4a,Quezon,Doña Aurora,1113,directory
+region-4a,Quezon,Doña Imelda,1113,directory
+region-4a,Quezon,Doña Josefa,1113,directory
+region-4a,Quezon,San Isidro,1113,directory
+region-4a,Quezon,Santo Niño,1113,directory
+region-4a,Quezon,Santol,1113,directory
+region-4a,Quezon,Tatalon,1113,directory
+region-4a,Quezon,La Loma,1114,directory
+region-4a,Quezon,Lourdes,1114,directory
+region-4a,Quezon,Maharlika,1114,directory
+region-4a,Quezon,N.S Amoranto (Gintong Silahis),1114,directory
+region-4a,Quezon,Paang Bundok,1114,directory
+region-4a,Quezon,Salvacion,1114,directory
+region-4a,Quezon,San Isidro Labrador,1114,directory
+region-4a,Quezon,Santa Teresita,1114,directory
+region-4a,Quezon,Sienna,1114,directory
+region-4a,Quezon,St. Peter,1114,directory
+region-4a,Quezon,Sto. Domingo (Matalahib),1114,directory
+region-4a,Quezon,Balingasa,1115,directory
+region-4a,Quezon,Damar,1115,directory
+region-4a,Quezon,Manresa,1115,directory
+region-4a,Quezon,Masambong,1115,directory
+region-4a,Quezon,Pag-ibig sa Nayon,1115,directory
+region-4a,Quezon,San Jose,1115,directory
+region-4a,Quezon,Bagbag,1116,directory
+region-4a,Quezon,San Bartolome,1116,directory
+region-4a,Quezon,Sangandaan (GSIS Village),1116,directory
+region-4a,Quezon,Sauyo,1116,directory
+region-4a,Quezon,Talipapa,1116,directory
+region-4a,Quezon,Tandang Sora,1116,directory
+region-4a,Quezon,Capri,1117,directory
+region-4a,Quezon,Gulod,1117,directory
+region-4a,Quezon,San Agustin,1117,directory
+region-4a,Quezon,Santa Lucia,1117,directory
+region-4a,Quezon,Santa Monica,1117,directory
+region-4a,Quezon,Fairview,1118,directory
+region-4a,Quezon,Pasong Putik,1118,directory
+region-4a,Quezon,Bagong Silangan,1119,directory
+region-4a,Quezon,Matandang Balara,1119,directory
+region-4a,Quezon,Payatas,1119,directory
+region-4a,Quezon,BF Homes,1120,directory
+region-4a,Quezon,Violago Homes,1120,directory
+region-4a,Quezon,Commonwealth,1121,directory
+region-4a,Quezon,Fairview (North),1121,directory
+region-4a,Quezon,Fairview (South),1122,directory
+region-4a,Quezon,Damong Maliit,1123,directory
+region-4a,Quezon,Novaliches Proper,1123,directory
+region-4a,Quezon,Kaligayahan,1124,directory
+region-4a,Quezon,Doña Faustina Subdivision,1125,directory
+region-4a,Quezon,Nagkaisang Nayon,1125,directory
+region-4a,Quezon,Batasan Hills,1126,directory
+region-4a,Quezon,Capitol Hills/Park,1126,directory
+region-4a,Quezon,Holy Spirit,1127,directory
+region-4a,Quezon,Culiat,1128,directory
+region-4a,Quezon,Vasra,1128,directory
+region-4a,Quezon,Araneta Center P.O. Boxes,1135,directory
+region-4a,Quezon,Murphy District P.O. Boxes,1138,directory
+region-4a,Quezon,Broadway Center P.O. Boxes,1141,directory
+region-4a,Quezon,University of the Philippines P.O. Boxes,1144,directory
+region-4a,Quezon,Novaliches P.O. Boxes,1147,directory
+region-4a,Rizal,"Bagong Nayon, Cupang, Mambagat, and Mayamot",1820,directory
+region-4a,Rizal,San Mateo,1850,phlpost
+region-4a,Rizal,Rodriguez (Montalban),1860,phlpost
+region-4a,Rizal,Antipolo,1870,phlpost
+region-4a,Rizal,Mayamot,1871,phlpost
+region-4a,Rizal,Bagong Nayon (Cogeo),1872,phlpost
+region-4a,Rizal,Langhaya,1874,phlpost
+region-4a,Rizal,Mambagat,1875,phlpost
+region-4a,Rizal,Teresa,1880,phlpost
+region-4a,Rizal,Cainta,1900,phlpost
+region-4a,Rizal,Pililla,1910,phlpost
+region-4a,Rizal,Taytay,1920,phlpost
+region-4a,Rizal,Angono,1930,phlpost
+region-4a,Rizal,Binangonan,1940,phlpost
+region-4a,Rizal,Cardona,1950,phlpost
+region-4a,Rizal,Morong,1960,phlpost
+region-4a,Rizal,Baras,1970,phlpost
+region-4a,Rizal,Tanay,1980,phlpost
+region-4a,Rizal,Jalajala,1990,phlpost
+region-4a,Laguna,San Pablo City,4000,phlpost
+region-4a,Laguna,Alaminos,4001,phlpost
+region-4a,Laguna,Nagcarlan,4002,phlpost
+region-4a,Laguna,Rizal,4003,phlpost
+region-4a,Laguna,Liliw,4004,phlpost
+region-4a,Laguna,Majayjay,4005,phlpost
+region-4a,Laguna,Botocan,4006,phlpost
+region-4a,Laguna,Magdalena,4007,phlpost
+region-4a,Laguna,Pagsanjan,4008,phlpost
+region-4a,Laguna,Santa Cruz,4009,phlpost
+region-4a,Laguna,Pila,4010,phlpost
+region-4a,Laguna,Victoria,4011,phlpost
+region-4a,Laguna,Calauan,4012,phlpost
+region-4a,Laguna,Cavinti,4013,phlpost
+region-4a,Laguna,Lumban,4014,phlpost
+region-4a,Laguna,Kalayaan,4015,phlpost
+region-4a,Laguna,Paete,4016,phlpost
+region-4a,Laguna,Pakil,4017,phlpost
+region-4a,Laguna,Pangil,4018,phlpost
+region-4a,Laguna,Siniloan,4019,phlpost
+region-4a,Laguna,Mabitac,4020,phlpost
+region-4a,Laguna,Famy,4021,phlpost
+region-4a,Laguna,Santa Maria,4022,phlpost
+region-4a,Laguna,San Pedro,4023,phlpost
+region-4a,Laguna,Biñan,4024,phlpost
+region-4a,Laguna,Cabuyao,4025,phlpost
+region-4a,Laguna,Santa Rosa,4026,phlpost
+region-4a,Laguna,Calamba,4027,phlpost
+region-4a,Laguna,"Canlubang, Calamba",4028,directory
+region-4a,Laguna,"Camp Vicente Lim, Calamba",4029,directory
+region-4a,Laguna,Los Baños,4030,phlpost
+region-4a,Laguna,College Los Baños,4031,phlpost
+region-4a,Laguna,Luisiana,4032,phlpost
+region-4a,Laguna,Bay,4033,phlpost
+region-4a,Laguna,Laguna Technopark,4034,phlpost
+region-4a,Cavite,Cavite City,4100,phlpost
+region-4a,Cavite,"Sangley Point Naval Base, Cavite City",4101,directory
+region-4a,Cavite,Bacoor,4102,phlpost
+region-4a,Cavite,Imus,4103,phlpost
+region-4a,Cavite,Kawit,4104,phlpost
+region-4a,Cavite,Noveleta,4105,phlpost
+region-4a,Cavite,Rosario,4106,phlpost
+region-4a,Cavite,Gen. Trias,4107,phlpost
+region-4a,Cavite,Tanza,4108,phlpost
+region-4a,Cavite,Trece Martires City,4109,phlpost
+region-4a,Cavite,Naic,4110,phlpost
+region-4a,Cavite,Ternate,4111,phlpost
+region-4a,Cavite,Maragondon,4112,phlpost
+region-4a,Cavite,Magallanes,4113,phlpost
+region-4a,Cavite,Dasmariñas,4114,phlpost
+region-4a,Cavite,Dasmariñas Resettlement Area,4115,phlpost
+region-4a,Cavite,Carmona,4116,phlpost
+region-4a,Cavite,Gen. Mariano Alvarez,4117,phlpost
+region-4a,Cavite,Silang,4118,phlpost
+region-4a,Cavite,Amadeo,4119,phlpost
+region-4a,Cavite,Tagaytay,4120,phlpost
+region-4a,Cavite,Mendez,4121,phlpost
+region-4a,Cavite,Indang,4122,phlpost
+region-4a,Cavite,Alfonso,4123,phlpost
+region-4a,Cavite,Gen. Aguinaldo (Bailen),4124,phlpost
+region-4a,Cavite,"Corregidor Island, Cavite City",4125,directory
+region-4a,Cavite,"First Cavite Industrial Estate, Dasmariñas",4126,directory
+region-4a,Cavite,Molino,4135,phlpost
+region-4a,Batangas,Batangas City,4200,phlpost
+region-4a,Batangas,Bauan,4201,phlpost
+region-4a,Batangas,Mabini,4202,phlpost
+region-4a,Batangas,Tingloy,4203,phlpost
+region-4a,Batangas,San Pascual,4204,phlpost
+region-4a,Batangas,Alitagtag,4205,phlpost
+region-4a,Batangas,Santa Teresita,4206,phlpost
+region-4a,Batangas,San Nicolas,4207,phlpost
+region-4a,Batangas,Taal,4208,phlpost
+region-4a,Batangas,Lemery,4209,phlpost
+region-4a,Batangas,San Luis,4210,phlpost
+region-4a,Batangas,Agoncillo,4211,phlpost
+region-4a,Batangas,Calaca,4212,phlpost
+region-4a,Batangas,Balayan,4213,phlpost
+region-4a,Batangas,Tuy,4214,phlpost
+region-4a,Batangas,Calatagan,4215,phlpost
+region-4a,Batangas,Lian,4216,phlpost
+region-4a,Batangas,Lipa City,4217,phlpost
+region-4a,Batangas,Fernando Airbase,4218,phlpost
+region-4a,Batangas,Balete,4219,phlpost
+region-4a,Batangas,Talisay,4220,phlpost
+region-4a,Batangas,Laurel,4221,phlpost
+region-4a,Batangas,Cuenca,4222,phlpost
+region-4a,Batangas,Mataas na Kahoy,4223,phlpost
+region-4a,Batangas,Padre Garcia,4224,phlpost
+region-4a,Batangas,Rosario,4225,phlpost
+region-4a,Batangas,San Juan,4226,phlpost
+region-4a,Batangas,San Jose,4227,phlpost
+region-4a,Batangas,Taysan,4228,phlpost
+region-4a,Batangas,Lobo,4229,phlpost
+region-4a,Batangas,Ibaan,4230,phlpost
+region-4a,Batangas,Nasugbu,4231,phlpost
+region-4a,Batangas,Tanauan,4232,phlpost
+region-4a,Batangas,Malvar,4233,phlpost
+region-4a,Batangas,Santo Tomas,4234,phlpost
+region-4a,Quezon,Quezon Capitol,4300,phlpost
+region-4a,Quezon,Lucena City,4301,phlpost
+region-4a,Quezon,Pagbilao,4302,phlpost
+region-4a,Quezon,Padre Burgos,4303,phlpost
+region-4a,Quezon,Agdangan,4304,phlpost
+region-4a,Quezon,Unisan,4305,phlpost
+region-4a,Quezon,Plaridel,4306,phlpost
+region-4a,Quezon,Gumaca,4307,phlpost
+region-4a,Quezon,Pitogo,4308,phlpost
+region-4a,Quezon,Macalelon,4309,phlpost
+region-4a,Quezon,General Luna,4310,phlpost
+region-4a,Quezon,Catanauan,4311,phlpost
+region-4a,Quezon,Mulanay,4312,phlpost
+region-4a,Quezon,San Narciso,4313,phlpost
+region-4a,Quezon,San Andres,4314,phlpost
+region-4a,Quezon,San Francisco,4315,phlpost
+region-4a,Quezon,Lopez,4316,phlpost
+region-4a,Quezon,Hondagua,4317,phlpost
+region-4a,Quezon,Calauag,4318,phlpost
+region-4a,Quezon,Guinayangan,4319,phlpost
+region-4a,Quezon,Buenavista,4320,phlpost
+region-4a,Quezon,Tagkawayan,4321,phlpost
+region-4a,Quezon,Sariaya,4322,phlpost
+region-4a,Quezon,Candelaria,4323,phlpost
+region-4a,Quezon,San Antonio,4324,phlpost
+region-4a,Quezon,Tiaong,4325,phlpost
+region-4a,Quezon,Dolores,4326,phlpost
+region-4a,Quezon,Tayabas,4327,phlpost
+region-4a,Quezon,Lucban,4328,phlpost
+region-4a,Quezon,Sampaloc,4329,phlpost
+region-4a,Quezon,Mauban,4330,phlpost
+region-4a,Quezon,Atimonan,4331,phlpost
+region-4a,Quezon,Quezon,4332,phlpost
+region-4a,Quezon,Alabat,4333,phlpost
+region-4a,Quezon,Perez,4334,phlpost
+region-4a,Quezon,Real,4335,phlpost
+region-4a,Quezon,Infanta,4336,phlpost
+region-4a,Quezon,Panukulan,4337,phlpost
+region-4a,Quezon,General Nakar,4338,phlpost
+region-4a,Quezon,Polillo,4339,phlpost
+region-4a,Quezon,Burdeos,4340,phlpost
+region-4a,Quezon,Patnanungan,4341,phlpost
+region-4a,Quezon,Jomalig,4342,phlpost
+region-4b,Marinduque,Boac,4900,phlpost
+region-4b,Marinduque,Mogpog,4901,phlpost
+region-4b,Marinduque,Santa Cruz,4902,phlpost
+region-4b,Marinduque,Torrijos,4903,phlpost
+region-4b,Marinduque,Buenavista,4904,phlpost
+region-4b,Marinduque,Gasan,4905,phlpost
+region-4b,Occidental Mindoro,San Jose,5100,phlpost
+region-4b,Occidental Mindoro,Magsaysay,5101,phlpost
+region-4b,Occidental Mindoro,Calintaan,5102,phlpost
+region-4b,Occidental Mindoro,Rizal,5103,phlpost
+region-4b,Occidental Mindoro,Sablayan,5104,phlpost
+region-4b,Occidental Mindoro,Santa Cruz,5105,phlpost
+region-4b,Occidental Mindoro,Mamburao,5106,phlpost
+region-4b,Occidental Mindoro,Paluan,5107,phlpost
+region-4b,Occidental Mindoro,Abra de Ilog,5108,phlpost
+region-4b,Occidental Mindoro,Lubang,5109,phlpost
+region-4b,Occidental Mindoro,Tilik,5110,phlpost
+region-4b,Occidental Mindoro,Looc,5111,phlpost
+region-4b,Oriental Mindoro,Calapan,5200,phlpost
+region-4b,Oriental Mindoro,Baco,5201,phlpost
+region-4b,Oriental Mindoro,San Teodoro,5202,phlpost
+region-4b,Oriental Mindoro,Puerto Galera,5203,phlpost
+region-4b,Oriental Mindoro,Naujan,5204,phlpost
+region-4b,Oriental Mindoro,Victoria,5205,phlpost
+region-4b,Oriental Mindoro,Pola,5206,phlpost
+region-4b,Oriental Mindoro,Socorro,5207,phlpost
+region-4b,Oriental Mindoro,Pinamalayan,5208,phlpost
+region-4b,Oriental Mindoro,Gloria,5209,phlpost
+region-4b,Oriental Mindoro,Bansud,5210,phlpost
+region-4b,Oriental Mindoro,Bongabong,5211,phlpost
+region-4b,Oriental Mindoro,Roxas,5212,phlpost
+region-4b,Oriental Mindoro,Mansalay,5213,phlpost
+region-4b,Oriental Mindoro,Bulalacao,5214,phlpost
+region-4b,Palawan,Puerto Princesa City,5300,phlpost
+region-4b,Palawan,Iwahig Penal Colony,5301,phlpost
+region-4b,Palawan,Aborlan,5302,phlpost
+region-4b,Palawan,Narra (Panacan),5303,phlpost
+region-4b,Palawan,Quezon,5304,phlpost
+region-4b,Palawan,Brooke's Point,5305,phlpost
+region-4b,Palawan,Bataraza,5306,phlpost
+region-4b,Palawan,Balabac,5307,phlpost
+region-4b,Palawan,Roxas,5308,phlpost
+region-4b,Palawan,San Vicente,5309,phlpost
+region-4b,Palawan,Dumaran,5310,phlpost
+region-4b,Palawan,Araceli,5311,phlpost
+region-4b,Palawan,Taytay,5312,phlpost
+region-4b,Palawan,El Nido (Baquit),5313,phlpost
+region-4b,Palawan,Linapacan,5314,phlpost
+region-4b,Palawan,Culion,5315,phlpost
+region-4b,Palawan,Coron,5316,phlpost
+region-4b,Palawan,Busuanga,5317,phlpost
+region-4b,Palawan,Cuyo,5318,phlpost
+region-4b,Palawan,Magsaysay,5319,phlpost
+region-4b,Palawan,Agutaya,5320,phlpost
+region-4b,Palawan,Cagayancillo,5321,phlpost
+region-4b,Palawan,Kalayaan,5322,phlpost
+region-4b,Palawan,Rizal (Marcos),5323,phlpost
+region-4b,Palawan,Sofronio Española,5324,phlpost
+region-4b,Romblon,Romblon,5500,phlpost
+region-4b,Romblon,San Agustin,5501,phlpost
+region-4b,Romblon,Santa Maria (formerly Imelda),5502,phlpost
+region-4b,Romblon,Calatrava,5503,phlpost
+region-4b,Romblon,San Andres,5504,phlpost
+region-4b,Romblon,Odiongan,5505,phlpost
+region-4b,Romblon,Ferrol,5506,phlpost
+region-4b,Romblon,Looc,5507,phlpost
+region-4b,Romblon,Santa Fe,5508,phlpost
+region-4b,Romblon,Alcantara,5509,phlpost
+region-4b,Romblon,San Jose,5510,phlpost
+region-4b,Romblon,Magdiwang,5511,phlpost
+region-4b,Romblon,Cajidiocan,5512,directory
+region-4b,Romblon,San fernando,5513,phlpost
+region-4b,Romblon,Corcuera,5514,phlpost
+region-4b,Romblon,Banton (Jones),5515,phlpost
+region-4b,Romblon,Concepcion,5516,phlpost
+region-5,Camarines Sur,Naga City,4400,phlpost
+region-5,Camarines Sur,Camaligan,4401,phlpost
+region-5,Camarines Sur,Canaman,4402,phlpost
+region-5,Camarines Sur,Magarao,4403,phlpost
+region-5,Camarines Sur,Bombon,4404,phlpost
+region-5,Camarines Sur,Calabanga,4405,phlpost
+region-5,Camarines Sur,Cabusao,4406,phlpost
+region-5,Camarines Sur,Libmanan,4407,phlpost
+region-5,Camarines Sur,Sipocot,4408,phlpost
+region-5,Camarines Sur,Lupi,4409,phlpost
+region-5,Camarines Sur,Ragay,4410,phlpost
+region-5,Camarines Sur,Del Gallego,4411,phlpost
+region-5,Camarines Sur,Gainza,4412,phlpost
+region-5,Camarines Sur,Milaor,4413,phlpost
+region-5,Camarines Sur,Minalabac,4414,phlpost
+region-5,Camarines Sur,San Fernando,4415,phlpost
+region-5,Camarines Sur,Pamplona,4416,phlpost
+region-5,Camarines Sur,Pasacao,4417,phlpost
+region-5,Camarines Sur,Pili,4418,phlpost
+region-5,Camarines Sur,Ocampo,4419,phlpost
+region-5,Camarines Sur,Tigaon,4420,phlpost
+region-5,Camarines Sur,Sagnay,4421,phlpost
+region-5,Camarines Sur,Goa,4422,phlpost
+region-5,Camarines Sur,San Jose,4423,phlpost
+region-5,Camarines Sur,Presentacion,4424,phlpost
+region-5,Camarines Sur,Lagonoy,4425,phlpost
+region-5,Camarines Sur,Tinambac,4426,phlpost
+region-5,Camarines Sur,Siruma,4427,phlpost
+region-5,Camarines Sur,Garchitorena,4428,phlpost
+region-5,Camarines Sur,Caramoan,4429,phlpost
+region-5,Camarines Sur,Bula,4430,phlpost
+region-5,Camarines Sur,Iriga City,4431,phlpost
+region-5,Camarines Sur,Baao,4432,phlpost
+region-5,Camarines Sur,Buhi,4433,phlpost
+region-5,Camarines Sur,Nabua,4434,phlpost
+region-5,Camarines Sur,Bato,4435,phlpost
+region-5,Camarines Sur,Balatan,4436,phlpost
+region-5,Albay,Legazpi City,4500,phlpost
+region-5,Albay,Daraga (Locsin),4501,phlpost
+region-5,Albay,Camalig,4502,phlpost
+region-5,Albay,Guinobatan,4503,phlpost
+region-5,Albay,Ligao,4504,phlpost
+region-5,Albay,Oas,4505,phlpost
+region-5,Albay,Polangui,4506,phlpost
+region-5,Albay,Libon,4507,phlpost
+region-5,Albay,Santo Domingo,4508,phlpost
+region-5,Albay,Bacacay,4509,phlpost
+region-5,Albay,Malilipot,4510,phlpost
+region-5,Albay,Tabaco,4511,phlpost
+region-5,Albay,Malinao,4512,phlpost
+region-5,Albay,Tiwi,4513,phlpost
+region-5,Albay,Manito,4514,phlpost
+region-5,Albay,Jovellar,4515,phlpost
+region-5,Albay,Pio Duran (Malacbalac),4516,phlpost
+region-5,Albay,Rapu-Rapu,4517,phlpost
+region-5,Camarines Norte,Daet,4600,phlpost
+region-5,Camarines Norte,Mercedes,4601,phlpost
+region-5,Camarines Norte,Talisay,4602,phlpost
+region-5,Camarines Norte,Vinzons,4603,phlpost
+region-5,Camarines Norte,Labo,4604,phlpost
+region-5,Camarines Norte,Paracale,4605,phlpost
+region-5,Camarines Norte,Jose Panganiban,4606,phlpost
+region-5,Camarines Norte,Capalonga,4607,phlpost
+region-5,Camarines Norte,Basud,4608,phlpost
+region-5,Camarines Norte,San Vicente,4609,phlpost
+region-5,Camarines Norte,San Lorenzo Ruiz (formerly Imelda),4610,phlpost
+region-5,Camarines Norte,Santa Elena,4611,phlpost
+region-5,Camarines Norte,Tulay na Lupa,4612,phlpost
+region-5,Sorsogon,Sorsogon,4700,phlpost
+region-5,Sorsogon,Bacon,4701,phlpost
+region-5,Sorsogon,Casiguran,4702,phlpost
+region-5,Sorsogon,Juban,4703,phlpost
+region-5,Sorsogon,Bulusan,4704,phlpost
+region-5,Sorsogon,Magallanes,4705,phlpost
+region-5,Sorsogon,Bulan,4706,phlpost
+region-5,Sorsogon,Irosin,4707,phlpost
+region-5,Sorsogon,Matnog,4708,phlpost
+region-5,Sorsogon,Santa Magdalena,4709,phlpost
+region-5,Sorsogon,Gubat,4710,phlpost
+region-5,Sorsogon,Prieto Diaz,4711,phlpost
+region-5,Sorsogon,Barcelona,4712,phlpost
+region-5,Sorsogon,Castilla,4713,phlpost
+region-5,Sorsogon,Pilar,4714,phlpost
+region-5,Sorsogon,Donsol,4715,phlpost
+region-5,Catanduanes,Virac,4800,phlpost
+region-5,Catanduanes,Bato,4801,phlpost
+region-5,Catanduanes,San Miguel,4802,phlpost
+region-5,Catanduanes,Baras,4803,phlpost
+region-5,Catanduanes,Gigmoto,4804,phlpost
+region-5,Catanduanes,Viga,4805,phlpost
+region-5,Catanduanes,Panganiban,4806,phlpost
+region-5,Catanduanes,Bagamanoc,4807,phlpost
+region-5,Catanduanes,Caramoran,4808,phlpost
+region-5,Catanduanes,Pandan,4809,phlpost
+region-5,Catanduanes,San Andres,4810,phlpost
+region-5,Masbate,Masbate,5400,phlpost
+region-5,Masbate,Mobo,5401,phlpost
+region-5,Masbate,Uson,5402,phlpost
+region-5,Masbate,Dimasalang,5403,phlpost
+region-5,Masbate,Palanas,5404,phlpost
+region-5,Masbate,Cataingan,5405,phlpost
+region-5,Masbate,Pio V. Corpuz,5406,phlpost
+region-5,Masbate,Esperanza,5407,phlpost
+region-5,Masbate,Placer,5408,phlpost
+region-5,Masbate,Cawayan,5409,phlpost
+region-5,Masbate,Milagros,5410,phlpost
+region-5,Masbate,Mandaon,5411,phlpost
+region-5,Masbate,Balud,5412,phlpost
+region-5,Masbate,Baleno,5413,phlpost
+region-5,Masbate,Aroroy,5414,phlpost
+region-5,Masbate,Batuan,5415,phlpost
+region-5,Masbate,San Fernando,5416,phlpost
+region-5,Masbate,San Jacinto,5417,phlpost
+region-5,Masbate,Monreal,5418,phlpost
+region-5,Masbate,Claveria,5419,phlpost
+region-5,Masbate,San Pascual,5420,phlpost
+region-5,Masbate,Buenavista,5421,directory
+region-6,Iloilo,Iloilo City,5000,directory
+region-6,Iloilo,Pavia,5001,directory
+region-6,Iloilo,Santa Barbara,5002,directory
+region-6,Iloilo,Leganes,5003,directory
+region-6,Iloilo,Zarraga,5004,directory
+region-6,Iloilo,New Lucena,5005,directory
+region-6,Iloilo,Dumangas,5006,directory
+region-6,Iloilo,Barotac Nuevo,5007,directory
+region-6,Iloilo,Pototan,5008,directory
+region-6,Iloilo,Anilao,5009,directory
+region-6,Iloilo,Banate,5010,directory
+region-6,Iloilo,Barotac Viejo,5011,directory
+region-6,Iloilo,Ajuy,5012,directory
+region-6,Iloilo,Concepcion,5013,directory
+region-6,Iloilo,Sara,5014,directory
+region-6,Iloilo,San Dionisio,5015,directory
+region-6,Iloilo,Batad,5016,directory
+region-6,Iloilo,Estancia,5017,directory
+region-6,Iloilo,Balasan,5018,directory
+region-6,Iloilo,Carles,5019,directory
+region-6,Iloilo,Oton,5020,directory
+region-6,Iloilo,Tigbauan,5021,directory
+region-6,Iloilo,Guimbal,5022,directory
+region-6,Iloilo,Miagao,5023,directory
+region-6,Iloilo,San Joaquin,5024,directory
+region-6,Iloilo,San Miguel,5025,directory
+region-6,Iloilo,Leon,5026,directory
+region-6,Iloilo,Tubungan,5027,directory
+region-6,Iloilo,Alimodian,5028,directory
+region-6,Iloilo,Igbaras,5029,directory
+region-6,Iloilo,Maasin,5030,directory
+region-6,Iloilo,Cabatuan,5031,directory
+region-6,Iloilo,Mina,5032,directory
+region-6,Iloilo,Badiangan,5033,directory
+region-6,Iloilo,Janiuay,5034,directory
+region-6,Iloilo,Dingle,5035,directory
+region-6,Iloilo,San Enrique,5036,directory
+region-6,Iloilo,Passi,5037,directory
+region-6,Iloilo,Duenas,5038,directory
+region-6,Iloilo,San Rafael,5039,directory
+region-6,Iloilo,Calinog,5040,directory
+region-6,Iloilo,Bingawan,5041,directory
+region-6,Iloilo,Lambunao,5042,directory
+region-6,Iloilo,Lemery,5043,directory
+region-6,Guimaras,Buenavista,5044,directory
+region-6,Guimaras,Jordan,5045,directory
+region-6,Guimaras,Nueva Valencia,5046,directory
+region-6,Guimaras,San Lorenzo,5047,directory
+region-6,Guimaras,Sibunag,5048,directory
+region-6,Aklan,Kalibo,5600,directory
+region-6,Aklan,Banga,5601,directory
+region-6,Aklan,Libacao,5602,directory
+region-6,Aklan,Madalag,5603,directory
+region-6,Aklan,Numancia,5604,directory
+region-6,Aklan,Lezo,5605,directory
+region-6,Aklan,Malinao,5606,directory
+region-6,Aklan,Nabas,5607,directory
+region-6,Aklan,Malay,5608,directory
+region-6,Aklan,Buruanga,5609,directory
+region-6,Aklan,New Washington,5610,directory
+region-6,Aklan,Makato,5611,directory
+region-6,Aklan,Tangalan,5612,directory
+region-6,Aklan,Ibajay,5613,directory
+region-6,Aklan,Balete,5614,directory
+region-6,Aklan,Batan,5615,directory
+region-6,Aklan,Altavas,5616,directory
+region-6,Antique,San Jose,5700,directory
+region-6,Antique,Belison,5701,directory
+region-6,Antique,Patnongon,5702,directory
+region-6,Antique,Valderrama,5703,directory
+region-6,Antique,Bugasong,5704,directory
+region-6,Antique,Laua-an,5705,directory
+region-6,Antique,Barbaza,5706,directory
+region-6,Antique,Tibiao,5707,directory
+region-6,Antique,Culasi,5708,directory
+region-6,Antique,Sebaste,5709,directory
+region-6,Antique,Libertad,5710,directory
+region-6,Antique,Caluya,5711,directory
+region-6,Antique,Pandan,5712,directory
+region-6,Antique,Sibalom,5713,directory
+region-6,Antique,San Remigio,5714,directory
+region-6,Antique,Hamtic,5715,directory
+region-6,Antique,Tobias Fornier (Dao),5716,directory
+region-6,Antique,Anini-y,5717,directory
+region-6,Capiz,Roxas,5800,directory
+region-6,Capiz,Pan-ay,5801,directory
+region-6,Capiz,Pontevedra,5802,directory
+region-6,Capiz,President Roxas,5803,directory
+region-6,Capiz,Pilar,5804,directory
+region-6,Capiz,Ivisan,5805,directory
+region-6,Capiz,Sapian,5806,directory
+region-6,Capiz,Mambusao,5807,directory
+region-6,Capiz,Jamindan,5808,directory
+region-6,Capiz,Ma-ayon,5809,directory
+region-6,Capiz,Dao,5810,directory
+region-6,Capiz,Cuartero,5811,directory
+region-6,Capiz,Dumarao,5812,directory
+region-6,Capiz,Dumalag,5813,directory
+region-6,Capiz,Tapaz,5814,directory
+region-6,Capiz,Panitan,5815,directory
+region-6,Capiz,Sigma,5816,directory
+nir,Negros Occidental,Bacolod,6100,directory
+nir,Negros Occidental,Bago,6101,directory
+nir,Negros Occidental,Pulupandan,6102,directory
+nir,Negros Occidental,Valladolid,6103,directory
+nir,Negros Occidental,San Enrique,6104,directory
+nir,Negros Occidental,Pontevedra,6105,directory
+nir,Negros Occidental,Hinigaran,6106,directory
+nir,Negros Occidental,Binalbagan,6107,directory
+nir,Negros Occidental,Himamaylan,6108,directory
+nir,Negros Occidental,Ilog,6109,directory
+nir,Negros Occidental,Candoni,6110,directory
+nir,Negros Occidental,Kabankalan,6111,directory
+nir,Negros Occidental,Cauayan,6112,directory
+nir,Negros Occidental,Sipalay,6113,directory
+nir,Negros Occidental,Hinoba-an,6114,directory
+nir,Negros Occidental,Talisay,6115,directory
+nir,Negros Occidental,Silay,6116,directory
+nir,Negros Occidental,Salvador Benedicto,6117,directory
+nir,Negros Occidental,Enrique B. Magalona,6118,directory
+nir,Negros Occidental,Victorias,6119,directory
+nir,Negros Occidental,Manapla,6120,directory
+nir,Negros Occidental,Cadiz,6121,directory
+nir,Negros Occidental,Sagay,6122,directory
+nir,Negros Occidental,Paraiso (Fabrica),6123,directory
+nir,Negros Occidental,Escalante,6124,directory
+nir,Negros Occidental,Toboso,6125,directory
+nir,Negros Occidental,Calatrava,6126,directory
+nir,Negros Occidental,San Carlos,6127,directory
+nir,Negros Occidental,Isabela,6128,directory
+nir,Negros Occidental,Murcia,6129,directory
+nir,Negros Occidental,La Carlota,6130,directory
+nir,Negros Occidental,La Castellana,6131,directory
+nir,Negros Occidental,Moises Padilla,6132,directory
+nir,Negros Oriental,Dumaguete,6200,directory
+nir,Negros Oriental,Sibulan,6201,directory
+nir,Negros Oriental,San Jose,6202,directory
+nir,Negros Oriental,Amlan,6203,directory
+nir,Negros Oriental,Tanjay,6204,directory
+nir,Negros Oriental,Pamplona,6205,directory
+nir,Negros Oriental,Bais,6206,directory
+nir,Negros Oriental,Mabinay,6207,directory
+nir,Negros Oriental,Manjuyod,6208,directory
+nir,Negros Oriental,Bindoy,6209,directory
+nir,Negros Oriental,Ayungon,6210,directory
+nir,Negros Oriental,Tayasan,6211,directory
+nir,Negros Oriental,Jimalalud,6212,directory
+nir,Negros Oriental,La Libertad,6213,directory
+nir,Negros Oriental,Guihulngan,6214,directory
+nir,Negros Oriental,Valencia,6215,directory
+nir,Negros Oriental,Bacong,6216,directory
+nir,Negros Oriental,Dauin,6217,directory
+nir,Negros Oriental,Zamboanguita,6218,directory
+nir,Negros Oriental,Siaton,6219,directory
+nir,Negros Oriental,Santa Catalina,6220,directory
+nir,Negros Oriental,Bayawan,6221,directory
+nir,Negros Oriental,Basay,6222,directory
+nir,Negros Oriental,Canlaon,6223,directory
+nir,Negros Oriental,Vallehermoso,6224,directory
+nir,Siquijor,Siquijor,6225,directory
+nir,Siquijor,Larena,6226,directory
+nir,Siquijor,San Juan,6227,directory
+nir,Siquijor,Lazi,6228,directory
+nir,Siquijor,Maria,6229,directory
+nir,Siquijor,Enrique Villanueva,6230,directory
+region-7,Cebu,Cebu City,6000,directory
+region-7,Cebu,Consolacion,6001,directory
+region-7,Cebu,Liloan,6002,directory
+region-7,Cebu,Compostela,6003,directory
+region-7,Cebu,Danao,6004,directory
+region-7,Cebu,Carmen,6005,directory
+region-7,Cebu,Catmon,6006,directory
+region-7,Cebu,Sogod,6007,directory
+region-7,Cebu,Borbon,6008,directory
+region-7,Cebu,Tabogon,6009,directory
+region-7,Cebu,Bogo,6010,directory
+region-7,Cebu,San Remigio,6011,directory
+region-7,Cebu,Medellin,6012,directory
+region-7,Cebu,Daanbantayan,6013,directory
+region-7,Cebu,Mandaue,6014,directory
+region-7,Cebu,Lapu-Lapu (Opon),6015,directory
+region-7,Cebu,Mactan Airport,6016,directory
+region-7,Cebu,Cordova,6017,directory
+region-7,Cebu,San Fernando,6018,directory
+region-7,Cebu,Carcar,6019,directory
+region-7,Cebu,Sibonga,6020,directory
+region-7,Cebu,Argao,6021,directory
+region-7,Cebu,Dalaguete,6022,directory
+region-7,Cebu,Alcoy,6023,directory
+region-7,Cebu,Boljoon,6024,directory
+region-7,Cebu,Oslob,6025,directory
+region-7,Cebu,Santander,6026,directory
+region-7,Cebu,Samboan,6027,directory
+region-7,Cebu,Ginatilan,6028,directory
+region-7,Cebu,Malabuyoc,6029,directory
+region-7,Cebu,Alegria,6030,directory
+region-7,Cebu,Badian,6031,directory
+region-7,Cebu,Moalboal,6032,directory
+region-7,Cebu,Alcantara,6033,directory
+region-7,Cebu,Ronda,6034,directory
+region-7,Cebu,Dumanjug,6035,directory
+region-7,Cebu,Barili,6036,directory
+region-7,Cebu,Naga,6037,directory
+region-7,Cebu,Toledo,6038,directory
+region-7,Cebu,Pinamungajan,6039,directory
+region-7,Cebu,Aloguinsan,6040,directory
+region-7,Cebu,Balamban,6041,directory
+region-7,Cebu,Asturias,6042,directory
+region-7,Cebu,Tuburan,6043,directory
+region-7,Cebu,Tabuelan,6044,directory
+region-7,Cebu,Talisay,6045,directory
+region-7,Cebu,Minglanilla,6046,directory
+region-7,Cebu,Santa Fe,6047,directory
+region-7,Cebu,Pilar,6048,directory
+region-7,Cebu,Poro,6049,directory
+region-7,Cebu,San Francisco,6050,directory
+region-7,Cebu,Tudela,6051,directory
+region-7,Cebu,Bantayan,6052,directory
+region-7,Cebu,Madridejos,6053,directory
+region-7,Bohol,Tagbilaran,6300,directory
+region-7,Bohol,Baclayon,6301,directory
+region-7,Bohol,Alburquerque,6302,directory
+region-7,Bohol,Loay,6303,directory
+region-7,Bohol,Lila,6304,directory
+region-7,Bohol,Dimiao,6305,directory
+region-7,Bohol,Valencia,6306,directory
+region-7,Bohol,Garcia Hernandez,6307,directory
+region-7,Bohol,Jagna,6308,directory
+region-7,Bohol,Duero,6309,directory
+region-7,Bohol,Guindulman,6310,directory
+region-7,Bohol,Anda,6311,directory
+region-7,Bohol,Candijay,6312,directory
+region-7,Bohol,Mabini,6313,directory
+region-7,Bohol,Alicia,6314,directory
+region-7,Bohol,Ubay,6315,directory
+region-7,Bohol,Loboc,6316,directory
+region-7,Bohol,Bilar,6317,directory
+region-7,Bohol,Batuan,6318,directory
+region-7,Bohol,Carmen,6319,directory
+region-7,Bohol,Sierra Bullones,6320,directory
+region-7,Bohol,Pilar,6321,directory
+region-7,Bohol,Dagohoy,6322,directory
+region-7,Bohol,San Miguel,6323,directory
+region-7,Bohol,Trinidad,6324,directory
+region-7,Bohol,Talibon,6325,directory
+region-7,Bohol,Bien Unido,6326,directory
+region-7,Bohol,Loon,6327,directory
+region-7,Bohol,Calape,6328,directory
+region-7,Bohol,Tubigon,6329,directory
+region-7,Bohol,Clarin,6330,directory
+region-7,Bohol,Sagbayan,6331,directory
+region-7,Bohol,Inabanga,6332,directory
+region-7,Bohol,Buenavista,6333,directory
+region-7,Bohol,Jetafe,6334,directory
+region-7,Bohol,Antequera,6335,directory
+region-7,Bohol,Maribojoc,6336,directory
+region-7,Bohol,Corella,6337,directory
+region-7,Bohol,Sikatuna,6338,directory
+region-7,Bohol,Dauis,6339,directory
+region-7,Bohol,Panglao,6340,directory
+region-7,Bohol,Cortes,6341,directory
+region-7,Bohol,Balilihan,6342,directory
+region-7,Bohol,Catigbian,6343,directory
+region-7,Bohol,Danao,6344,directory
+region-7,Bohol,San Isidro,6345,directory
+region-7,Bohol,Pres. Carlos P. Garcia (Pitogo),6346,directory
+region-7,Bohol,Sevilla,6347,directory
+region-8,Northern Samar,Catarman,6400,directory
+region-8,Northern Samar,Bobon,6401,directory
+region-8,Northern Samar,San Jose,6402,directory
+region-8,Northern Samar,Lope de Vega,6403,directory
+region-8,Northern Samar,Lavezares,6404,directory
+region-8,Northern Samar,Allen,6405,directory
+region-8,Northern Samar,Victoria,6406,directory
+region-8,Northern Samar,San Antonio,6407,directory
+region-8,Northern Samar,Capul,6408,directory
+region-8,Northern Samar,San Isidro,6409,directory
+region-8,Northern Samar,Biri,6410,directory
+region-8,Northern Samar,Laoang,6411,directory
+region-8,Northern Samar,Mapanas,6412,directory
+region-8,Northern Samar,Pambujan,6413,directory
+region-8,Northern Samar,Silvino Lobos,6414,directory
+region-8,Northern Samar,San Roque,6415,directory
+region-8,Northern Samar,Rosario,6416,directory
+region-8,Northern Samar,Mondragon,6417,directory
+region-8,Northern Samar,Catubig,6418,directory
+region-8,Northern Samar,San Vicente,6419,directory
+region-8,Northern Samar,Las Navas,6420,directory
+region-8,Northern Samar,Palapag,6421,directory
+region-8,Northern Samar,Gamay,6422,directory
+region-8,Northern Samar,Lapinig,6423,directory
+region-8,Leyte,Tacloban,6500,directory
+region-8,Leyte,Palo,6501,directory
+region-8,Leyte,Tanauan,6502,directory
+region-8,Leyte,Tolosa,6503,directory
+region-8,Leyte,Tabontabon,6504,directory
+region-8,Leyte,Dulag,6505,directory
+region-8,Leyte,Julita,6506,directory
+region-8,Leyte,Mayorga,6507,directory
+region-8,Leyte,La Paz,6508,directory
+region-8,Leyte,MacArthur,6509,directory
+region-8,Leyte,Abuyog,6510,directory
+region-8,Leyte,Javier,6511,directory
+region-8,Leyte,Mahaplag,6512,directory
+region-8,Leyte,Santa Fe,6513,directory
+region-8,Leyte,Pastrana,6514,directory
+region-8,Leyte,Dagami,6515,directory
+region-8,Leyte,Burauen,6516,directory
+region-8,Leyte,Alangalang,6517,directory
+region-8,Leyte,San Miguel,6518,directory
+region-8,Leyte,Barugo,6519,directory
+region-8,Leyte,Babatngon,6520,directory
+region-8,Leyte,Baybay,6521,directory
+region-8,Leyte,Inopacan,6522,directory
+region-8,Leyte,Hindang,6523,directory
+region-8,Leyte,Hilongos,6524,directory
+region-8,Leyte,Bato,6525,directory
+region-8,Leyte,Matalom,6526,directory
+region-8,Leyte,Jaro,6527,directory
+region-8,Leyte,Tunga,6528,directory
+region-8,Leyte,Carigara,6529,directory
+region-8,Leyte,Capoocan,6530,directory
+region-8,Leyte,Kananga,6531,directory
+region-8,Leyte,Matag-ob,6532,directory
+region-8,Leyte,Leyte,6533,directory
+region-8,Leyte,Calubian,6534,directory
+region-8,Leyte,San Isidro,6535,directory
+region-8,Leyte,Tabango,6536,directory
+region-8,Leyte,Villaba,6537,directory
+region-8,Leyte,Palompon,6538,directory
+region-8,Leyte,Isabel,6539,directory
+region-8,Leyte,Merida,6540,directory
+region-8,Leyte,Ormoc,6541,directory
+region-8,Leyte,Albuera,6542,directory
+region-8,Biliran,Naval,6543,directory
+region-8,Biliran,Almeria,6544,directory
+region-8,Biliran,Kawayan,6545,directory
+region-8,Biliran,Maripipi,6546,directory
+region-8,Biliran,Culaba,6547,directory
+region-8,Biliran,Caibiran,6548,directory
+region-8,Biliran,Biliran,6549,directory
+region-8,Biliran,Cabucgayan,6550,directory
+region-8,Southern Leyte,Maasin,6600,directory
+region-8,Southern Leyte,Macrohon,6601,directory
+region-8,Southern Leyte,Padre Burgos,6602,directory
+region-8,Southern Leyte,Malitbog,6603,directory
+region-8,Southern Leyte,Bontoc,6604,directory
+region-8,Southern Leyte,Tomas Oppus,6605,directory
+region-8,Southern Leyte,Sogod,6606,directory
+region-8,Southern Leyte,Silago,6607,directory
+region-8,Southern Leyte,Hinunangan,6608,directory
+region-8,Southern Leyte,Hinundayan,6609,directory
+region-8,Southern Leyte,Anahawan,6610,directory
+region-8,Southern Leyte,San Juan (Cabalian),6611,directory
+region-8,Southern Leyte,Liloan,6612,directory
+region-8,Southern Leyte,San Francisco,6613,directory
+region-8,Southern Leyte,Pintuyan,6614,directory
+region-8,Southern Leyte,Libagon,6615,directory
+region-8,Southern Leyte,Saint Bernard,6616,directory
+region-8,Southern Leyte,San Ricardo,6617,directory
+region-8,Southern Leyte,Limasawa,6618,directory
+region-8,Samar,Catbalogan,6700,phlpost
+region-8,Samar,Jiabong,6701,phlpost
+region-8,Samar,Motiong,6702,phlpost
+region-8,Samar,Wright,6703,phlpost
+region-8,Samar,Tarangnan,6704,phlpost
+region-8,Samar,Pagsanghan,6705,phlpost
+region-8,Samar,Gandara,6706,phlpost
+region-8,Samar,San Jorge,6707,phlpost
+region-8,Samar,Matuguinao,6708,phlpost
+region-8,Samar,Santa Margarita,6709,phlpost
+region-8,Samar,Calbayog City,6710,phlpost
+region-8,Samar,Santo Niño,6711,phlpost
+region-8,Samar,Tagapul-an,6712,phlpost
+region-8,Samar,Hinabangan,6713,phlpost
+region-8,Samar,San Sebastian,6714,phlpost
+region-8,Samar,Calbiga,6715,phlpost
+region-8,Samar,Pinabacdao,6716,phlpost
+region-8,Samar,Villareal,6717,phlpost
+region-8,Samar,Santa Rita,6718,phlpost
+region-8,Samar,Talalora,6719,phlpost
+region-8,Samar,Basey,6720,phlpost
+region-8,Samar,Marabut,6721,phlpost
+region-8,Samar,Daram,6722,phlpost
+region-8,Samar,San Jose de Buan,6723,phlpost
+region-8,Samar,Almagro,6724,phlpost
+region-8,Samar,Zumarraga,6725,phlpost
+region-8,Eastern Samar,Borongan,6800,directory
+region-8,Eastern Samar,Balangkayan,6801,directory
+region-8,Eastern Samar,Maydolong,6802,directory
+region-8,Eastern Samar,Llorente,6803,directory
+region-8,Eastern Samar,Hernani,6804,directory
+region-8,Eastern Samar,General MacArthur,6805,directory
+region-8,Eastern Samar,Can-avid,6806,directory
+region-8,Eastern Samar,Salcedo,6807,directory
+region-8,Eastern Samar,Mercedes,6808,directory
+region-8,Eastern Samar,Guiuan,6809,directory
+region-8,Eastern Samar,Quinapondan,6810,directory
+region-8,Eastern Samar,Giporlos,6811,directory
+region-8,Eastern Samar,Balangiga,6812,directory
+region-8,Eastern Samar,Lawaan,6813,directory
+region-8,Eastern Samar,San Julian,6814,directory
+region-8,Eastern Samar,Sulat,6815,directory
+region-8,Eastern Samar,Taft,6816,directory
+region-8,Eastern Samar,Dolores,6817,directory
+region-8,Eastern Samar,Oras,6818,directory
+region-8,Eastern Samar,Jipapad,6819,directory
+region-8,Eastern Samar,Maslog,6820,directory
+region-8,Eastern Samar,San Policarpo,6821,directory
+region-8,Eastern Samar,Arteche,6822,directory
+region-9,Zamboanga del Sur,Zamboanga City,7000,directory
+region-9,Zamboanga Sibugay,Ipil,7001,directory
+region-9,Zamboanga Sibugay,Roseller T. Lim,7002,directory
+region-9,Zamboanga Sibugay,Titay,7003,directory
+region-9,Zamboanga Sibugay,Naga,7004,directory
+region-9,Zamboanga Sibugay,Kabasalan,7005,directory
+region-9,Zamboanga Sibugay,Siay,7006,directory
+region-9,Zamboanga Sibugay,Imelda,7007,directory
+region-9,Zamboanga Sibugay,Payao,7008,directory
+region-9,Zamboanga Sibugay,Buug,7009,directory
+region-9,Zamboanga Sibugay,Mabuhay,7010,directory
+region-9,Zamboanga del Sur,Bayog,7011,directory
+region-9,Zamboanga Sibugay,Talusan,7012,directory
+region-9,Zamboanga del Sur,Kumalarang,7013,directory
+region-9,Zamboanga del Sur,Lakewood,7014,directory
+region-9,Zamboanga del Sur,Dumalinao,7015,directory
+region-9,Zamboanga del Sur,Pagadian,7016,directory
+region-9,Zamboanga del Sur,Labangan,7017,directory
+region-9,Zamboanga Sibugay,Tungawan,7018,directory
+region-9,Zamboanga del Sur,Tukuran,7019,directory
+region-9,Zamboanga del Sur,Aurora,7020,directory
+region-9,Zamboanga del Sur,Midsalip,7021,directory
+region-9,Zamboanga del Sur,Sominot (Don Mariano Marcos),7022,directory
+region-9,Zamboanga del Sur,Molave,7023,directory
+region-9,Zamboanga del Sur,Ramon Magsaysay (Liargo),7024,directory
+region-9,Zamboanga del Sur,Tambulig,7025,directory
+region-9,Zamboanga del Sur,Mahayag,7026,directory
+region-9,Zamboanga del Sur,Josefina,7027,directory
+region-9,Zamboanga del Sur,Dumingag,7028,directory
+region-9,Zamboanga del Sur,San Miguel,7029,directory
+region-9,Zamboanga del Sur,Dinas,7030,directory
+region-9,Zamboanga del Sur,San Pablo,7031,directory
+region-9,Zamboanga del Sur,Dimataling,7032,directory
+region-9,Zamboanga del Sur,Pitogo,7033,directory
+region-9,Zamboanga del Sur,Tabina,7034,directory
+region-9,Zamboanga del Sur,Margosatubig,7035,directory
+region-9,Zamboanga del Sur,Vincenzo A. Sagun,7036,directory
+region-9,Zamboanga del Sur,Lapuyan,7037,directory
+region-9,Zamboanga Sibugay,Malangas,7038,directory
+region-9,Zamboanga Sibugay,Diplahan,7039,directory
+region-9,Zamboanga Sibugay,Alicia,7040,directory
+region-9,Zamboanga Sibugay,Olutanga,7041,directory
+region-9,Zamboanga del Sur,Guipos,7042,directory
+region-9,Zamboanga del Sur,Tigbao,7043,directory
+region-9,Zamboanga del Norte,Dipolog,7100,directory
+region-9,Zamboanga del Norte,Dapitan,7101,directory
+region-9,Zamboanga del Norte,Pres. Manuel A. Roxas,7102,directory
+region-9,Zamboanga del Norte,Sibutad,7103,directory
+region-9,Zamboanga del Norte,Rizal,7104,directory
+region-9,Zamboanga del Norte,Piñan,7105,directory
+region-9,Zamboanga del Norte,Polanco,7106,directory
+region-9,Zamboanga del Norte,Mutia,7107,directory
+region-9,Zamboanga del Norte,Sergio Osmeña Sr.,7108,directory
+region-9,Zamboanga del Norte,Katipunan,7109,directory
+region-9,Zamboanga del Norte,Manukan,7110,directory
+region-9,Zamboanga del Norte,Jose Dalman (Ponot),7111,directory
+region-9,Zamboanga del Norte,Sindangan,7112,directory
+region-9,Zamboanga del Norte,Siayan,7113,directory
+region-9,Zamboanga del Norte,Godod,7114,directory
+region-9,Zamboanga del Norte,Salug,7114,directory
+region-9,Zamboanga del Norte,Liloy,7115,directory
+region-9,Zamboanga del Norte,Tampilisan,7116,directory
+region-9,Zamboanga del Norte,Labason,7117,directory
+region-9,Zamboanga del Norte,Gutalac,7118,directory
+region-9,Zamboanga del Norte,La Libertad,7119,directory
+region-9,Zamboanga del Norte,Siocon,7120,directory
+region-9,Zamboanga del Norte,Sirawai,7121,directory
+region-9,Zamboanga del Norte,Sibuco,7122,directory
+region-9,Zamboanga del Norte,Baliguian,7123,directory
+region-9,Zamboanga del Norte,Kalawit,7124,directory
+region-9,Zamboanga del Norte,Leon B. Postigo,7125,directory
+region-9,Basilan,Isabela City,7300,directory
+region-9,Sulu,Jolo,7400,directory
+region-9,Sulu,Pandami,7400,directory
+region-9,Sulu,Patikul,7401,directory
+region-9,Sulu,Old Panamao,7402,directory
+region-9,Sulu,Talipao,7403,directory
+region-9,Sulu,Luuk (Omar),7404,directory
+region-9,Sulu,Pata,7405,directory
+region-9,Sulu,Banguingui (Tongkil),7406,directory
+region-9,Sulu,Indanan,7407,directory
+region-9,Sulu,Parang,7408,directory
+region-9,Sulu,Maimbung,7409,directory
+region-9,Sulu,Tapul,7410,directory
+region-9,Sulu,Lugus,7411,directory
+region-9,Sulu,Siasi,7412,directory
+region-9,Sulu,Hadji Panglima Tahil,7413,directory
+region-9,Sulu,Pangutaran,7414,directory
+region-9,Sulu,Panglima Estino (New Panamao),7415,directory
+region-9,Sulu,Kalingalan Calauang,7416,directory
+region-10,Misamis Occidental,Ozamis City,7200,phlpost
+region-10,Misamis Occidental,Clarin,7201,phlpost
+region-10,Misamis Occidental,Tudela,7202,phlpost
+region-10,Misamis Occidental,Sinacaban,7203,phlpost
+region-10,Misamis Occidental,Jimenez,7204,phlpost
+region-10,Misamis Occidental,Panaon,7205,phlpost
+region-10,Misamis Occidental,Aloran,7206,phlpost
+region-10,Misamis Occidental,Oroquieta City,7207,phlpost
+region-10,Misamis Occidental,Lopez Jaena,7208,phlpost
+region-10,Misamis Occidental,Plaridel,7209,phlpost
+region-10,Misamis Occidental,Calamba,7210,phlpost
+region-10,Misamis Occidental,Baliangao,7211,phlpost
+region-10,Misamis Occidental,Concepcion,7213,phlpost
+region-10,Misamis Occidental,Tangub City,7214,phlpost
+region-10,Misamis Occidental,Bonifacio,7215,phlpost
+region-10,Misamis Occidental,Don Victoriano Chiongbian,7216,phlpost
+region-10,Bukidnon,Malaybalay,8700,phlpost
+region-10,Bukidnon,Sumilao,8701,phlpost
+region-10,Bukidnon,Impasugong,8702,directory
+region-10,Bukidnon,Manolo Fortich,8703,phlpost
+region-10,Bukidnon,Malitbog,8704,phlpost
+region-10,Bukidnon,Phillips,8705,phlpost
+region-10,Bukidnon,Libona,8706,phlpost
+region-10,Bukidnon,Baungon,8707,directory
+region-10,Bukidnon,Talakag,8708,phlpost
+region-10,Bukidnon,Valencia,8709,phlpost
+region-10,Bukidnon,Musuan,8710,phlpost
+region-10,Bukidnon,San Fernando,8711,phlpost
+region-10,Bukidnon,Don Carlos,8712,directory
+region-10,Bukidnon,Kadingilan,8713,directory
+region-10,Bukidnon,Maramag,8714,phlpost
+region-10,Bukidnon,Quezon,8715,phlpost
+region-10,Bukidnon,Kitaotao,8716,phlpost
+region-10,Bukidnon,Pangantucan,8717,phlpost
+region-10,Bukidnon,Kalilangan,8718,directory
+region-10,Bukidnon,Dangcagan,8719,directory
+region-10,Bukidnon,Kibawe,8720,directory
+region-10,Bukidnon,Damulog,8721,directory
+region-10,Bukidnon,Lantapan,8722,phlpost
+region-10,Bukidnon,Cabanglasan,8723,directory
+region-10,Misamis Oriental,Cagayan de Oro City,9000,phlpost
+region-10,Misamis Oriental,Villanueva,9002,phlpost
+region-10,Misamis Oriental,Jasaan,9003,phlpost
+region-10,Misamis Oriental,Claveria,9004,phlpost
+region-10,Misamis Oriental,Balingasag,9005,phlpost
+region-10,Misamis Oriental,Lagonglong,9006,phlpost
+region-10,Misamis Oriental,Salay,9007,phlpost
+region-10,Misamis Oriental,Binuangan,9008,phlpost
+region-10,Misamis Oriental,Sugbongcogon,9009,phlpost
+region-10,Misamis Oriental,Kinoguitan,9010,phlpost
+region-10,Misamis Oriental,Balingoan,9011,phlpost
+region-10,Misamis Oriental,Talisayan,9012,phlpost
+region-10,Misamis Oriental,Medina,9013,phlpost
+region-10,Misamis Oriental,Gingoog City,9014,phlpost
+region-10,Misamis Oriental,Magsaysay,9015,phlpost
+region-10,Misamis Oriental,Opol,9016,phlpost
+region-10,Misamis Oriental,El Salvador,9017,phlpost
+region-10,Misamis Oriental,Alubijid,9018,phlpost
+region-10,Misamis Oriental,Laguindingan,9019,phlpost
+region-10,Misamis Oriental,Gitagum,9020,phlpost
+region-10,Misamis Oriental,Libertad,9021,phlpost
+region-10,Misamis Oriental,Initao,9022,phlpost
+region-10,Misamis Oriental,Naawan,9023,phlpost
+region-10,Misamis Oriental,Manticao,9024,phlpost
+region-10,Misamis Oriental,Lugait,9025,phlpost
+region-10,Camiguin,Mambajao,9100,phlpost
+region-10,Camiguin,Mahinog,9101,phlpost
+region-10,Camiguin,Guinsiliban,9102,phlpost
+region-10,Camiguin,Sagay,9103,phlpost
+region-10,Camiguin,Catarman,9104,phlpost
+region-10,Lanao del Norte,Iligan City,9200,phlpost
+region-10,Lanao del Norte,Linamon,9201,phlpost
+region-10,Lanao del Norte,Kauswagan,9202,phlpost
+region-10,Lanao del Norte,Matungao,9203,phlpost
+region-10,Lanao del Norte,Poona Piagapo,9204,phlpost
+region-10,Lanao del Norte,Bacolod,9205,phlpost
+region-10,Lanao del Norte,Maigo,9206,phlpost
+region-10,Lanao del Norte,Kolambugan,9207,phlpost
+region-10,Lanao del Norte,Pantao Ragat,9208,phlpost
+region-10,Lanao del Norte,Tubod,9209,phlpost
+region-10,Lanao del Norte,Baroy,9210,phlpost
+region-10,Lanao del Norte,Lala,9211,phlpost
+region-10,Lanao del Norte,Salvador,9212,phlpost
+region-10,Lanao del Norte,Sapad,9213,phlpost
+region-10,Lanao del Norte,Kapatagan,9214,phlpost
+region-10,Lanao del Norte,Sultan Naga Dimaporo (formerly Karomatan),9215,phlpost
+region-10,Lanao del Norte,Nunungan,9216,phlpost
+region-10,Lanao del Norte,Baloi,9217,phlpost
+region-10,Lanao del Norte,Pantar,9218,phlpost
+region-10,Lanao del Norte,Munai,9219,phlpost
+region-10,Lanao del Norte,Tangcal,9220,phlpost
+region-10,Lanao del Norte,Magsaysay,9221,phlpost
+region-10,Lanao del Norte,Tagoloan,9222,phlpost
+region-11,Davao del Sur,Davao City,8000,phlpost
+region-11,Davao del Sur,Santa Cruz,8001,phlpost
+region-11,Davao del Sur,Digos,8002,phlpost
+region-11,Davao del Sur,Matanao,8003,phlpost
+region-11,Davao del Sur,Magsaysay,8004,phlpost
+region-11,Davao del Sur,Bansalan,8005,phlpost
+region-11,Davao del Sur,Hagonoy,8006,phlpost
+region-11,Davao del Sur,Padada,8007,phlpost
+region-11,Davao del Sur,Kiblawan,8008,phlpost
+region-11,Davao del Sur,Sulop,8009,phlpost
+region-11,Davao del Sur,Malalag,8010,phlpost
+region-11,Davao Occidental,Santa Maria,8011,phlpost
+region-11,Davao Occidental,Malita,8012,phlpost
+region-11,Davao Occidental,Don Marcelino,8013,phlpost
+region-11,Davao Occidental,Jose Abad Santos,8014,phlpost
+region-11,Davao Occidental,Sarangani,8015,phlpost
+region-11,Davao del Sur,Ateneo,8016,phlpost
+region-11,Davao del Sur,Bunawan,8017,phlpost
+region-11,Davao del Sur,Calinan,8018,phlpost
+region-11,Davao del Sur,Davao International Airport,8019,phlpost
+region-11,Davao del Sur,Mandug,8020,phlpost
+region-11,Davao del Sur,Matina,8021,phlpost
+region-11,Davao del Sur,Mintal,8022,phlpost
+region-11,Davao del Sur,Talomo,8023,phlpost
+region-11,Davao del Sur,Tibungco,8024,phlpost
+region-11,Davao del Sur,Toril,8025,phlpost
+region-11,Davao del Sur,University of Mindanao,8026,phlpost
+region-11,Davao del Norte,Tagum,8100,phlpost
+region-11,Davao del Norte,Carmen,8101,phlpost
+region-11,Davao del Norte,Asuncion (formerly Saug),8102,phlpost
+region-11,Davao del Norte,New Corella,8104,phlpost
+region-11,Davao del Norte,Panabo,8105,phlpost
+region-11,Davao del Norte,Braulio E. Dujali,8106,phlpost
+region-11,Davao del Norte,Talaingod,8107,phlpost
+region-11,Davao del Norte,Santo Tomas,8112,phlpost
+region-11,Davao del Norte,Kapalong,8113,phlpost
+region-11,Davao del Norte,Babak,8118,phlpost
+region-11,Davao del Norte,Samal,8119,phlpost
+region-11,Davao del Norte,Kaputian,8120,phlpost
+region-11,Davao del Norte,San Isidro,8121,phlpost
+region-11,Davao Oriental,Mati,8200,phlpost
+region-11,Davao Oriental,Tarragona,8201,phlpost
+region-11,Davao Oriental,Manay,8202,phlpost
+region-11,Davao Oriental,Caraga,8203,phlpost
+region-11,Davao Oriental,Baganga,8204,phlpost
+region-11,Davao Oriental,Cateel,8205,phlpost
+region-11,Davao Oriental,Boston,8206,phlpost
+region-11,Davao Oriental,Lupon,8207,phlpost
+region-11,Davao Oriental,Banaybanay,8208,phlpost
+region-11,Davao Oriental,San Isidro,8209,phlpost
+region-11,Davao Oriental,Gov. Generoso,8210,phlpost
+region-11,Davao de Oro,Nabunturan,8800,phlpost
+region-11,Davao de Oro,Montevista,8801,phlpost
+region-11,Davao de Oro,Mawab,8802,phlpost
+region-11,Davao de Oro,Compostela,8803,phlpost
+region-11,Davao de Oro,New Bataan,8804,phlpost
+region-11,Davao de Oro,Monkayo,8805,phlpost
+region-11,Davao de Oro,Maco,8806,phlpost
+region-11,Davao de Oro,Mabini,8807,phlpost
+region-11,Davao de Oro,Maragusan (formerly San Mariano),8808,phlpost
+region-11,Davao de Oro,Pantukan,8809,phlpost
+region-11,Davao de Oro,Laak (formerly San Vicente),8810,phlpost
+region-12,Cotabato,Kidapawan,9400,phlpost
+region-12,Cotabato,Makilala,9401,phlpost
+region-12,Cotabato,M'lang,9402,phlpost
+region-12,Cotabato,Tulunan,9403,phlpost
+region-12,Cotabato,Magpet,9404,phlpost
+region-12,Cotabato,Pre. Roxas,9405,phlpost
+region-12,Cotabato,Matalam,9406,phlpost
+region-12,Cotabato,Kabacan,9407,phlpost
+region-12,Cotabato,Carmen,9408,phlpost
+region-12,Cotabato,Pikit,9409,phlpost
+region-12,Cotabato,Midsayap,9410,phlpost
+region-12,Cotabato,Libungan,9411,phlpost
+region-12,Cotabato,Pigkawayan,9412,phlpost
+region-12,Cotabato,Alamada,9413,phlpost
+region-12,Cotabato,Antipas,9414,phlpost
+region-12,Cotabato,Aleosan,9415,phlpost
+region-12,Cotabato,Banisilan,9416,phlpost
+region-12,Cotabato,Arakan,9417,phlpost
+region-12,South Cotabato,Gen. Santos City,9500,phlpost
+region-12,Sarangani,Alabel,9501,phlpost
+region-12,Sarangani,Maasim,9502,phlpost
+region-12,Sarangani,Malungon,9503,phlpost
+region-12,South Cotabato,Polomolok,9504,phlpost
+region-12,South Cotabato,Tupi,9505,phlpost
+region-12,South Cotabato,Koronadal,9506,phlpost
+region-12,South Cotabato,Tampakan,9507,phlpost
+region-12,South Cotabato,Norala,9508,phlpost
+region-12,South Cotabato,Santo Niño,9509,phlpost
+region-12,South Cotabato,Tantangan,9510,phlpost
+region-12,South Cotabato,Banga,9511,phlpost
+region-12,South Cotabato,Surallah,9512,phlpost
+region-12,South Cotabato,T'boli,9513,phlpost
+region-12,Sarangani,Kiamba,9514,phlpost
+region-12,Sarangani,Maitum,9515,phlpost
+region-12,Sarangani,Malapatan,9516,phlpost
+region-12,Sarangani,Glan,9517,phlpost
+region-12,South Cotabato,Lake Sebu,9518,phlpost
+region-12,Sultan Kudarat,Tacurong,9800,phlpost
+region-12,Sultan Kudarat,Columbio,9801,phlpost
+region-12,Sultan Kudarat,Lambayong,9802,phlpost
+region-12,Sultan Kudarat,Lutayan,9803,phlpost
+region-12,Sultan Kudarat,Pres. Quirino,9804,phlpost
+region-12,Sultan Kudarat,Isulan,9805,phlpost
+region-12,Sultan Kudarat,Esperanza (Ampatuan),9806,phlpost
+region-12,Sultan Kudarat,Lebak (Salaman),9807,phlpost
+region-12,Sultan Kudarat,Kalamansig,9808,phlpost
+region-12,Sultan Kudarat,Palimbang,9809,phlpost
+region-12,Sultan Kudarat,Bagumbayan,9810,phlpost
+region-12,Sultan Kudarat,Sen. Ninoy Aquino,9811,phlpost
+region-13,Surigao del Sur,Tandag,8300,phlpost
+region-13,Surigao del Sur,San Miguel,8301,phlpost
+region-13,Surigao del Sur,Tago,8302,phlpost
+region-13,Surigao del Sur,Bayabas,8303,phlpost
+region-13,Surigao del Sur,Cagwait,8304,phlpost
+region-13,Surigao del Sur,San Agustin,8305,phlpost
+region-13,Surigao del Sur,Marihatag,8306,phlpost
+region-13,Surigao del Sur,Lianga,8307,phlpost
+region-13,Surigao del Sur,Tagbina,8308,phlpost
+region-13,Surigao del Sur,Barobo,8309,phlpost
+region-13,Surigao del Sur,Hinatuan,8310,phlpost
+region-13,Surigao del Sur,Bislig,8311,phlpost
+region-13,Surigao del Sur,Lingig,8312,phlpost
+region-13,Surigao del Sur,Cortes,8313,phlpost
+region-13,Surigao del Sur,Lanuza,8314,phlpost
+region-13,Surigao del Norte,Carmen,8315,phlpost
+region-13,Surigao del Sur,Madrid,8316,phlpost
+region-13,Surigao del Sur,Cantilan,8317,phlpost
+region-13,Surigao del Sur,Carrascal,8318,phlpost
+region-13,Surigao del Sur,Malixi (Tagbina),8319,phlpost
+region-13,Surigao del Norte,Surigao City,8400,phlpost
+region-13,Surigao del Norte,San Francisco,8401,phlpost
+region-13,Surigao del Norte,Malimono,8402,phlpost
+region-13,Surigao del Norte,Tagana-an,8403,phlpost
+region-13,Surigao del Norte,Sison,8404,phlpost
+region-13,Surigao del Norte,Placer,8405,phlpost
+region-13,Surigao del Norte,Tubod,8406,phlpost
+region-13,Surigao del Norte,Mainit,8407,phlpost
+region-13,Surigao del Norte,Bacuag,8408,phlpost
+region-13,Surigao del Norte,Gigaquit,8409,phlpost
+region-13,Surigao del Norte,Claver,8410,phlpost
+region-13,Dinagat Islands,Cagdianao,8411,phlpost
+region-13,Dinagat Islands,Dinagat,8412,phlpost
+region-13,Dinagat Islands,Basilisa (formerly Rizal),8413,phlpost
+region-13,Dinagat Islands,Libjo (Albor),8414,phlpost
+region-13,Dinagat Islands,Loreto,8415,phlpost
+region-13,Surigao del Norte,Socorro,8416,phlpost
+region-13,Surigao del Norte,Dapa,8417,phlpost
+region-13,Surigao del Norte,Del Carmen,8418,phlpost
+region-13,Surigao del Norte,Gen. Luna,8419,phlpost
+region-13,Surigao del Norte,Pilar,8420,phlpost
+region-13,Surigao del Norte,San Isidro,8421,phlpost
+region-13,Surigao del Norte,Santa Monica,8422,phlpost
+region-13,Surigao del Norte,San Benito,8423,phlpost
+region-13,Surigao del Norte,Burgos,8424,phlpost
+region-13,Surigao del Norte,Alegria,8425,phlpost
+region-13,Dinagat Islands,Tubajon,8426,phlpost
+region-13,Dinagat Islands,San Jose,8427,phlpost
+region-13,Agusan del Sur,Prosperidad,8500,phlpost
+region-13,Agusan del Sur,San Francisco,8501,phlpost
+region-13,Agusan del Sur,Bayugan,8502,phlpost
+region-13,Agusan del Sur,Sibagat,8503,phlpost
+region-13,Agusan del Sur,Rosario,8504,phlpost
+region-13,Agusan del Sur,Trento,8505,phlpost
+region-13,Agusan del Sur,Bunawan,8506,phlpost
+region-13,Agusan del Sur,Loreto,8507,phlpost
+region-13,Agusan del Sur,La Paz,8508,phlpost
+region-13,Agusan del Sur,Veruela,8509,phlpost
+region-13,Agusan del Sur,Talacogon,8510,phlpost
+region-13,Agusan del Sur,San Luis,8511,phlpost
+region-13,Agusan del Sur,Santa Josefa,8512,phlpost
+region-13,Agusan del Sur,Esperanza,8513,phlpost
+region-13,Agusan del Norte,Butuan City,8600,phlpost
+region-13,Agusan del Norte,Buenavista,8601,phlpost
+region-13,Agusan del Norte,Nasipit,8602,phlpost
+region-13,Agusan del Norte,Carmen,8603,phlpost
+region-13,Agusan del Norte,Magallanes,8604,phlpost
+region-13,Agusan del Norte,Cabadbaran,8605,phlpost
+region-13,Agusan del Norte,Tubay,8606,phlpost
+region-13,Agusan del Norte,Jabonga,8607,phlpost
+region-13,Agusan del Norte,Santiago,8608,phlpost
+region-13,Agusan del Norte,Kitcharao,8609,phlpost
+region-13,Agusan del Norte,Las Nieves,8610,phlpost
+region-13,Agusan del Norte,Remedios T. Romualdez,8611,phlpost
+barmm,Basilan,Lantawan,7301,directory
+barmm,Basilan,Lamitan,7302,directory
+barmm,Basilan,Maluso,7303,directory
+barmm,Basilan,Tipo-Tipo,7304,directory
+barmm,Basilan,Sumisip,7305,directory
+barmm,Basilan,Tuburan,7306,directory
+barmm,Tawi-Tawi,Bongao,7500,directory
+barmm,Tawi-Tawi,Panglima Sugala (Balimbing),7501,directory
+barmm,Tawi-Tawi,Tandubas,7502,directory
+barmm,Tawi-Tawi,Sapa-Sapa,7503,directory
+barmm,Tawi-Tawi,South Ubian,7504,directory
+barmm,Tawi-Tawi,Simunul,7505,directory
+barmm,Tawi-Tawi,Sitangkai,7506,directory
+barmm,Tawi-Tawi,Turtle Islands (Taganak),7507,directory
+barmm,Tawi-Tawi,Mapun (Cagayan de Sulu),7508,directory
+barmm,Tawi-Tawi,Languyan,7509,directory
+barmm,Tawi-Tawi,Sibutu,7510,directory
+barmm,Lanao del Sur,Malabang,9300,directory
+barmm,Lanao del Sur,Picong (Sultan Gumander),9301,directory
+barmm,Lanao del Sur,Balabagan,9302,directory
+barmm,Lanao del Sur,Marogong,9303,directory
+barmm,Lanao del Sur,Tubaran,9304,directory
+barmm,Lanao del Sur,Butig,9305,directory
+barmm,Lanao del Sur,Lumbayanague,9306,directory
+barmm,Lanao del Sur,Lumbatan,9307,directory
+barmm,Lanao del Sur,Lumbaca-Unayan and Macadar Andong,9308,directory
+barmm,Lanao del Sur,Bayang,9309,directory
+barmm,Lanao del Sur,Binidayan,9310,directory
+barmm,Lanao del Sur,Ganassi,9311,directory
+barmm,Lanao del Sur,Pagayawan,9312,directory
+barmm,Lanao del Sur,Pualas,9313,directory
+barmm,Lanao del Sur,Madamba,9314,directory
+barmm,Lanao del Sur,Madalum,9315,directory
+barmm,Lanao del Sur,Bacolod-Kalawi (Bacolod Grande),9316,directory
+barmm,Lanao del Sur,Tugaya,9317,directory
+barmm,Lanao del Sur,Balindong,9318,directory
+barmm,Lanao del Sur,Calanogas,9319,directory
+barmm,Lanao del Sur,Amai Manabilang (Bumbaran),9320,directory
+barmm,Lanao del Sur,Tagoloan II,9321,directory
+barmm,Maguindanao del Norte,Cotabato City,9600,directory
+barmm,Maguindanao del Norte,Datu Odin Sinsuat (Dinaig),9601,directory
+barmm,Maguindanao del Norte,Upi,9602,directory
+barmm,Maguindanao del Sur,South Upi,9603,directory
+barmm,Maguindanao del Norte,Parang,9604,directory
+barmm,Maguindanao del Norte,Sultan Kudarat,9605,directory
+barmm,Maguindanao del Norte,Kabuntalan,9606,directory
+barmm,Maguindanao del Sur,Datu Piang,9607,directory
+barmm,Maguindanao del Sur,Shariff Aguak (Maganoy),9608,directory
+barmm,Maguindanao del Sur,Ampatuan,9609,directory
+barmm,Maguindanao del Sur,Pagalungan,9610,directory
+barmm,Maguindanao del Sur,Sultan sa Barongis,9611,directory
+barmm,Maguindanao del Sur,Talayan,9612,directory
+barmm,Maguindanao del Norte,Matanog,9613,directory
+barmm,Maguindanao del Norte,Barira,9614,directory
+barmm,Maguindanao del Norte,Buldon,9615,directory
+barmm,Maguindanao del Sur,Buluan,9616,directory
+barmm,Maguindanao del Sur,Datu Paglas,9617,directory
+barmm,Maguindanao del Sur,Gen. S.K. Pendatun,9618,directory
+barmm,Maguindanao del Sur,Shariff Aguak,9619,directory
+barmm,Maguindanao del Sur,Mangudadatu,9620,directory
+barmm,Maguindanao del Sur,Datu Abdullah Sangki,9621,directory
+barmm,Maguindanao del Sur,Datu Anggal Midtimbang,9622,directory
+barmm,Maguindanao del Norte,Datu Blah T. Sinsuat,9623,directory
+barmm,Maguindanao del Sur,Datu Hoffer Ampatuan,9624,directory
+barmm,Maguindanao del Sur,Datu Salibo,9625,directory
+barmm,Maguindanao del Sur,Datu Saudi-Ampatuan,9626,directory
+barmm,Maguindanao del Sur,Datu Unsay,9627,directory
+barmm,Maguindanao del Sur,Guindulungan,9628,directory
+barmm,Maguindanao del Sur,Mamasapano,9629,directory
+barmm,Maguindanao del Norte,Northern Kabuntalan,9630,directory
+barmm,Maguindanao del Sur,Datu Montawal (Pagagawan),9631,directory
+barmm,Maguindanao del Sur,Paglat,9632,directory
+barmm,Maguindanao del Sur,Pandag,9633,directory
+barmm,Maguindanao del Sur,Rajah Buayan,9634,directory
+barmm,Maguindanao del Sur,Shariff Saydona Mustapha,9635,directory
+barmm,Maguindanao del Norte,Sultan Mastura,9636,directory
+barmm,Maguindanao del Sur,Sultan Sumagka (Talitay),9637,directory
+barmm,Lanao del Sur,Kapatagan,9700,directory
+barmm,Lanao del Sur,Marawi,9700,directory
+barmm,Lanao del Sur,Saguiaran,9701,directory
+barmm,Lanao del Sur,Mulondo,9702,directory
+barmm,Lanao del Sur,Lumba-Bayabao,9703,directory
+barmm,Lanao del Sur,Tamparan,9704,directory
+barmm,Lanao del Sur,Poona Bayabao,9705,directory
+barmm,Lanao del Sur,Masiu,9706,directory
+barmm,Lanao del Sur,Bubong,9708,directory
+barmm,Lanao del Sur,Kapai,9709,directory
+barmm,Lanao del Sur,Piagapo,9710,directory
+barmm,Lanao del Sur,Marantao,9711,directory
+barmm,Lanao del Sur,Taraka,9712,directory
+barmm,Lanao del Sur,Ditsaan-Ramain,9713,directory
+barmm,Lanao del Sur,Buadiposo-Buntong,9714,directory
+barmm,Lanao del Sur,Maguing,9715,directory
+barmm,Lanao del Sur,Wao,9716,directory

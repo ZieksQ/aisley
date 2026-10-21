@@ -171,6 +171,7 @@ class DatabaseSeedersTest extends TestCase
     public function test_product_seeder_does_not_create_the_demo_catalog_in_production(): void
     {
         $this->configureInitialSeller();
+        config()->set('demo.allow_seeders_in_production', false);
         $originalEnvironment = app()->environment();
         app()->detectEnvironment(fn (): string => 'production');
 
@@ -183,6 +184,54 @@ class DatabaseSeedersTest extends TestCase
         $this->assertDatabaseCount('shops', 0);
         $this->assertDatabaseCount('products', 0);
         $this->assertDatabaseCount('users', 0);
+    }
+
+    public function test_product_seeder_seeds_and_repairs_missing_packages_in_production_with_explicit_opt_in(): void
+    {
+        $this->configureInitialSeller();
+        config()->set('demo.allow_seeders_in_production', true);
+        $originalEnvironment = app()->environment();
+        app()->detectEnvironment(fn (): string => 'production');
+
+        try {
+            app(ProductSeeder::class)->run();
+
+            $this->assertDatabaseCount('products', 30);
+            $this->assertTrue(Product::query()->get()->every(
+                fn (Product $product) => $product->shipping_weight_grams > 0
+                    && $product->shipping_length_mm > 0
+                    && $product->shipping_width_mm > 0
+                    && $product->shipping_height_mm > 0,
+            ));
+
+            $product = Product::query()->where('slug', 'wireless-precision-mouse')->firstOrFail();
+            $variant = ProductVariant::query()->whereNotNull('shipping_weight_grams')->firstOrFail();
+            $packageFields = ['shipping_weight_grams', 'shipping_length_mm', 'shipping_width_mm', 'shipping_height_mm'];
+            $productPackage = $product->only($packageFields);
+            $variantPackage = $variant->only($packageFields);
+            $movementsBefore = InventoryMovement::query()->count();
+
+            $product->update([
+                'name' => 'Seller-edited Mouse',
+                ...array_fill_keys($packageFields, null),
+                'shipping_weight_grams' => 1234,
+            ]);
+            $variant->update(array_fill_keys($packageFields, null));
+
+            app(ProductSeeder::class)->run();
+
+            $this->assertSame('Seller-edited Mouse', $product->fresh()->name);
+            $this->assertSame(
+                [...$productPackage, 'shipping_weight_grams' => 1234],
+                $product->fresh()->only($packageFields),
+            );
+            $this->assertSame($variantPackage, $variant->fresh()->only($packageFields));
+            $this->assertDatabaseCount('products', 30);
+            $this->assertDatabaseCount('product_variants', 13);
+            $this->assertSame($movementsBefore, InventoryMovement::query()->count());
+        } finally {
+            app()->detectEnvironment(fn (): string => $originalEnvironment);
+        }
     }
 
     public function test_initial_seller_seeder_uses_configuration_without_overwriting_an_existing_account(): void

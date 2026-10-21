@@ -45,7 +45,7 @@ class LinehaulTripService
             'ready_groups' => app(LinehaulService::class)->readyGroups($actor),
             'trucks' => CompanyTruck::query()->where('logistics_organization_id', $org->id)->where('is_active', true)->where('availability', CompanyTruckAvailability::Available)->orderBy('plate_number')->get()->map(fn (CompanyTruck $truck): array => $this->truckOption($truck))->values(),
             'drivers' => $this->eligibleDrivers($org->id, $org->hub->id),
-            'outbound' => LinehaulTrip::query()->where('owner_logistics_organization_id', $org->id)->with($load)->latest()->limit(50)->get()->map(fn (LinehaulTrip $trip): array => $this->projection($trip, $org->hub->id))->values(),
+            'outbound' => LinehaulTrip::query()->where(fn ($query) => $query->where('owner_logistics_organization_id', $org->id)->orWhere('from_hub_id', $org->hub->id))->with($load)->latest()->limit(50)->get()->map(fn (LinehaulTrip $trip): array => $this->projection($trip, $org->hub->id))->values(),
             'inbound' => LinehaulTrip::query()->where('to_hub_id', $org->hub->id)->with($load)->latest()->limit(50)->get()->map(fn (LinehaulTrip $trip): array => $this->projection($trip, $org->hub->id))->values(),
             'visitors' => LinehaulTrip::query()->where('to_hub_id', $org->hub->id)->where('direction', LinehaulTripDirection::Outbound)->where('status', LinehaulTripStatus::Received)
                 ->whereDoesntHave('returnTrip')->with($load)->latest()->get()->map(fn (LinehaulTrip $trip): array => $this->projection($trip, $org->hub->id))->values(),
@@ -161,15 +161,14 @@ class LinehaulTripService
             if ($trip->revision !== $expectedRevision || $trip->status !== LinehaulTripStatus::Scheduled) {
                 throw FulfillmentException::conflict('LINEHAUL_TRIP_CHANGED', 'This trip is not ready to depart.');
             }
-            $this->assertFeature();
-            $this->assertConnections($trip->from_hub_id, $trip->to_hub_id);
-            $this->revalidateResources($trip);
+            $this->validateDeparture($trip);
             if ($trip->parcel_count > 0) {
                 $manifest = app(LinehaulService::class)->departTrip($actor, $trip);
                 $trip->linehaul_manifest_id = $manifest['id'];
             }
             $trip->status = LinehaulTripStatus::InTransfer;
             $trip->departed_at = now();
+            $trip->departed_by ??= $actor->id;
             $trip->revision++;
             $trip->save();
             $trip->truck()->update(['availability' => CompanyTruckAvailability::InTransit, 'last_confirmed_hub_id' => null, 'revision' => DB::raw('revision + 1')]);
@@ -254,7 +253,28 @@ class LinehaulTripService
     public function courierTrips(User $courier): Collection
     {
         return LinehaulTrip::query()->where('driver_id', $courier->id)->with(['truck', 'fromHub:id,name', 'toHub:id,name', 'shipments.shipment.parcel.waybill'])
-            ->latest()->limit(50)->get()->map(fn (LinehaulTrip $trip): array => $this->projection($trip, null))->values();
+            ->latest()->limit(50)->get()->map(fn (LinehaulTrip $trip): array => $this->courierProjection($trip))->values();
+    }
+
+    public function courierProjection(LinehaulTrip $trip): array
+    {
+        $data = $this->projection($trip, null);
+
+        return [...$data,
+            'courier_can_depart' => $trip->status === LinehaulTripStatus::Scheduled && $trip->released_for_departure_at !== null && ! $data['lane_blocked'] && LinehaulService::enabled(),
+            'courier_can_report_arrival' => $trip->status === LinehaulTripStatus::InTransfer && $trip->courier_arrived_at === null,
+        ];
+    }
+
+    /** Caller holds the network, source hub and trip locks. No custody writes. */
+    public function validateDeparture(LinehaulTrip $trip): void
+    {
+        $this->assertFeature();
+        $this->assertConnections($trip->from_hub_id, $trip->to_hub_id);
+        $this->revalidateResources($trip);
+        foreach ($trip->shipments as $member) {
+            app(SortingAssignmentService::class)->assertOpen($member->shipment);
+        }
     }
 
     public function projection(LinehaulTrip $trip, ?string $viewerHub): array
@@ -280,6 +300,12 @@ class LinehaulTripService
             'empty_return' => $trip->direction === LinehaulTripDirection::Return && $trip->parcel_count === 0,
             'rejection_reason' => $trip->rejection_reason,
             'revision' => $trip->revision,
+            'released_for_departure_at' => $trip->released_for_departure_at?->toISOString(),
+            'released_for_departure_by' => $trip->released_for_departure_by,
+            'departed_by' => $trip->departed_by,
+            'courier_arrived_at' => $trip->courier_arrived_at?->toISOString(),
+            'courier_arrived_by' => $trip->courier_arrived_by,
+            'can_release' => $viewerHub === $trip->from_hub_id && $trip->status === LinehaulTripStatus::Scheduled && $trip->released_for_departure_at === null,
             'can_decide' => $viewerHub === $trip->to_hub_id && $trip->direction === LinehaulTripDirection::Outbound && $trip->status === LinehaulTripStatus::PendingAcceptance,
             'can_depart' => $viewerHub === $trip->from_hub_id && $trip->status === LinehaulTripStatus::Scheduled && ! $trip->shipments->contains(fn ($item) => $item->shipment?->sortingLane?->operational_state !== SortingLaneState::Open),
             'can_receive' => $viewerHub === $trip->to_hub_id && $trip->status === LinehaulTripStatus::InTransfer,

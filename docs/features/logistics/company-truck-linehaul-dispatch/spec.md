@@ -3,7 +3,7 @@ role: Logistics and Courier
 feature: Company Truck Linehaul Dispatch
 system: AISLEY
 type: Feature Specification
-version: 1.2
+version: 1.4
 status: Implemented
 canonical: true
 source_issue: https://github.com/ZieksQ/aisley/issues/97
@@ -11,6 +11,25 @@ related_issue: https://github.com/ZieksQ/aisley/issues/98
 ---
 
 # Company Truck Linehaul Dispatch
+
+## Courier development mockup — 2026-10-21
+
+The development-only `src/couriermockup` displays assigned linehaul transfer jobs using `GET /api/v1/courier/linehaul-trips` with the current bearer token. The server resolves the driver and returns up to 50 newest trips in `{data: [...]}`. Show outbound and return jobs, including pending, scheduled, in-transfer, receiving, received, rejected and cancelled states; allow manual refresh and selection to review route, truck, scheduled departure, parcel count, waybill references and available event timestamps. Preserve selection when refreshing if the trip remains present. Loading, empty and failed reads must be explicit; failed refreshes clear stale trip details. Destination acceptance and receiving remain Logistics-owned. The Courier can now confirm released departure and report arrival under the v1 operations contract below; production Flutter implementation remains unadopted.
+
+### Courier hub route — contract v1
+
+- `GET /api/v1/courier/linehaul-trips/{trip}/route` is an advisory read under Sanctum, active Courier/approved affiliation/active organization and policy-consent middleware. Resolve the assigned driver from authentication before cache/provider access; foreign and unknown UUIDs return `404 LINEHAUL_TRIP_NOT_FOUND`. No body, client hub/driver selection, status mutation or idempotency header. Reads are rate-limited to 30/minute and return `{data: route}`, `Cache-Control: private, no-store`.
+- `route` contains `status: ready|unavailable`, nullable safe `reason`, `hubs` in fixed origin/destination order, nullable `summary: {distance_metres, duration_seconds}`, and nullable `geometry: {type: LineString, coordinates: [[longitude, latitude], ...]}`. Each hub has `kind: origin|destination`, `name`, an address string (no contact/name fields), and nullable numeric `latitude`/`longitude`. Missing or invalid pairs become null; never fabricate a pin. Geometry exists only for a validated road route, and summary is null when unavailable.
+- Routing uses only the two persisted hub pins, never a Courier GPS location, and sends coordinates only to Geoapify using the server key. Reuse shared daily Routing credit limits (two waypoint credits/request), short timeouts and private tile proxy. Cache by trip and ordered coordinate fingerprint: successful routes for 24 hours, failed provider reads for one minute. Reauthorize every read and recalculate after pin changes. No cache of bearer tokens or provider URLs.
+- Missing pins (`missing_hub_coordinates`), missing key (`provider_unconfigured`), quota guards (`quota_guard`), upstream 429 (`provider_quota`), invalid/unreachable responses (`route_unavailable`) and exceptions (`provider_failure`) return honest unavailable data with known hubs preserved. Existing `401`, `403`, `429`, and recoverable network/server failures retain normal auth/error behavior. Map failures cannot change trip/custody state.
+- The mockup displays labelled origin/destination markers and a road line, or a clearly labelled straight-line fallback between known hubs. Show distance/estimated driving time only from validated provider metrics; fit the viewport to the full geometry. Keep hub addresses usable if tiles/WebGL fail. Explicit **Open directions** passes only the destination coordinates to an external navigation app; never send tokens or personal data. This is advisory navigation, not proof of arrival or delivery. Refresh also retries the route read.
+- The map read has no mutation side effects. Courier departure/arrival actions follow the separate operations contract below; destination approval and parcel receiving remain Logistics-owned. Production Flutter linehaul UI remains unadopted.
+
+## Courier departure and arrival — 2026-10-22
+
+See [Courier linehaul operations v1](../../courier/linehaul-trips/spec.md) for the exact request/response, replay, authorization and UI contract. Origin Logistics uses `POST /api/v1/logistics/linehaul/trips/{trip}/release` after destination approval to authorize the ready truck/load without moving custody. The assigned Courier uses `POST /api/v1/courier/linehaul-trips/{trip}/depart` to commit the actual departure and `POST /api/v1/courier/linehaul-trips/{trip}/arrival` to report arrival. Each request requires `expected_revision` and `confirmation: true`. Actual event times are server-recorded; the schedule never triggers a status change or prevents early/late physical departure.
+
+The source Linehaul dispatch list includes owned trips and departures originating at that hub, including another organization's visiting-truck return. Source-scoped **Release to driver** appears for approved scheduled trips, alongside the existing Logistics departure fallback. Destination inbound lists show the driver report timestamp separately from Logistics arrival confirmation. Release is authorization only; source-authorized cargo events retain the release authorizer, while `departed_by` identifies the actual initiating driver. The Courier arrival report leaves status `in_transfer`, parcel custody, reservations, truck availability/location and receiving metadata unchanged. Logistics alone confirms receiving/empty-return closure; driver reports cannot bypass scans or free a truck.
 
 ## Sorting provenance and lane blocks — 2026-10-06
 
@@ -69,11 +88,11 @@ The owner and home hub never change. Confirmed operational events, not GPS, dete
 - B closes unloading after individual receipt and discrepancy reconciliation. The truck becomes a visiting A-owned asset at B; B sees only the visitor fields needed to return it.
 - Only B may schedule the received visitor B → A. The return is immediately `scheduled`, requires no second approval by A, B, or the Courier, and notifies A and the driver. B cannot choose C or local/final-mile work.
 - A return may reserve same-next-hub cargo up to the capacity snapshot or be explicitly empty. Empty returns create no parcel manifest.
-- B confirms physical return departure and A confirms receipt. Receipt closes the visit and restores the truck to available at its confirmed home hub.
+- B releases the return to the driver; the driver confirms actual departure (B retains an operational departure fallback), and A confirms receipt. Receipt closes the visit and restores the truck to available at its confirmed home hub.
 - Legacy immediate manifest and standalone transfer-departure entry points reject new departures with `LINEHAUL_TRIP_REQUIRED`; already-departed historical manifests remain receivable.
 - Pickup/final-mile work and active linehaul work block conflicting driver assignment. Active linehaul work also blocks reuse of the truck and removal of driver capability.
 - Fleet APIs and UI allow the owning Logistics tenant to register, edit, activate/deactivate, view, and monitor trucks, capacities, confirmed locations, active driver/trip/load, remaining capacity, and trip history.
-- Courier API exposes only that Courier's linehaul trips. Courier production UI remains external/mobile-only.
+- Courier API exposes only that Courier's linehaul trips and their scoped departure/arrival actions. Courier production UI remains external/mobile-only.
 
 ## API and pages
 
@@ -81,7 +100,7 @@ The owner and home hub never change. Confirmed operational events, not GPS, dete
 - Trips: `GET/POST /api/v1/logistics/linehaul/trips`, plus scoped `decision`, `cancel`, `depart`, `receive`, and `return` actions with revision checks. `POST` requires the exact selected `shipment_ids`; the API revalidates their tenant, custody, route destination, lane, reservation, and truck capacity under locks.
 - Outbound company-truck work has a separate protected `/linehaul-dispatch` page. `/dispatch` is last-mile only, and `/inbound-linehaul` remains dedicated to approvals, receipts, and visiting-truck returns. Linehaul dispatch and Inbound linehaul carry Beta sidebar tags.
 - Inbound: protected `/inbound-linehaul` page for request decisions, physical receipts, and visiting-truck return scheduling.
-- Courier: `GET /api/v1/courier/linehaul-trips` and `courier-linehaul.trip-scheduled` return notification.
+- Courier: `GET /api/v1/courier/linehaul-trips`, assigned-driver `POST /linehaul-trips/{trip}/depart` and `/arrival`, and `courier-linehaul.trip-scheduled` return notification. Origin Logistics releases the load via `POST /api/v1/logistics/linehaul/trips/{trip}/release` before Courier departure.
 - The personal Courier vehicle registry accepts `truck` as a supported type but remains a separate asset model and is never eligible as a company linehaul truck.
 
 ## Acceptance criteria

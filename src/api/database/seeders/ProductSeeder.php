@@ -32,8 +32,8 @@ class ProductSeeder extends Seeder
 {
     public function run(): void
     {
-        if (app()->environment('production')) {
-            $this->command?->warn('The demo catalog was not seeded in production.');
+        if (app()->environment('production') && ! config('demo.allow_seeders_in_production', false)) {
+            $this->command?->warn('Production demo fixtures are disabled; set ALLOW_DEMO_SEEDERS_IN_PRODUCTION=true to allow seeding.');
 
             return;
         }

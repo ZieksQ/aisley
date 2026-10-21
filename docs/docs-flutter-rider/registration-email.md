@@ -26,6 +26,10 @@ Missing, invalid, consumed, expired, or wrong-email/wrong-role proofs return `42
 
 There is no durable registration replay key or applicant polling API. After an uncertain response or upload cancellation, show that registration may already have committed and suggest explicit sign-in before deliberately resubmitting. Duplicate-email handling remains authoritative; never automatically replay registration, log proofs/codes, or claim that cancellation reversed a committed account.
 
+## Separate authenticated Courier account email flow
+
+The backend exposes a distinct email-change flow only for active company-created Couriers. It reuses the role/email-bound OTP and proof store but does not alter public registration requirements, legacy public-Courier email editability, or the public Courier registration cutover response. See the [Courier Account Management contract](features/courier/account-management/specs.md#backend-contract-company-created-courier-email-change-flutter-adoption-pending) for routes and lifecycle. Flutter implementation/adoption and the focused backend tests are pending; no mobile behavior is implied here.
+
 ## Client flow
 
 Email entry → code entry/resend → registration details → existing approval destination. Keep proofs/codes in memory only. Changing email invalidates local verification and requires another code; expiry returns to verification while preserving draft details and selected evidence. Protect existing unsaved work; preserve each client's password-clearing and upload-cancellation behavior. Ignore late responses after reset, route exit, disposal, or a newer attempt.

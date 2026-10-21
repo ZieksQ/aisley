@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Linehaul release fixture</title></head>
+  <body class="text-zinc-950 dark:text-white">
+    <div id="root"></div>
+    <script type="module">
+      import React from 'react'
+      import { createRoot } from 'react-dom/client'
+      import { LinehaulDispatch } from '/src/components/LinehaulDispatch.tsx'
+      import '/src/index.css'
+
+      const trip = {
+        id: 'synthetic-trip', direction: 'return', status: 'scheduled', revision: 1,
+        from_hub: { name: 'Calamba hub' }, to_hub: { name: 'Manila hub' },
+        truck: { plate_number: 'TEST-001' }, driver: { name: 'Test driver' },
+        scheduled_for: '2026-10-22T09:00:00+08:00', parcel_count: 0, capacity_snapshot: 100,
+        parcels: [], can_release: true, can_depart: true, lane_blocked: false,
+        released_for_departure_at: null, courier_arrived_at: null,
+      }
+      window.releaseFixture = { trip, requests: [], fail: false, confirmed: false }
+      const state = window.releaseFixture
+      window.confirm = () => state.confirmed
+      window.fetch = async (input, options = {}) => {
+        const url = new URL(typeof input === 'string' ? input : input.url, location.origin)
+        state.requests.push({ path: url.pathname, credentials: options.credentials, method: options.method ?? 'GET', body: options.body ? JSON.parse(options.body) : null })
+        if (url.pathname === '/sanctum/csrf-cookie') return new Response(null, { status: 204 })
+        const json = (body, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
+        if (options.method === 'POST' && url.pathname.endsWith('/release')) {
+          if (state.fail) return json({ message: 'The trip changed. Refresh before releasing it.' }, 409)
+          Object.assign(trip, { can_release: false, released_for_departure_at: '2026-10-22T08:00:00+08:00', revision: 2 })
+          return json({ data: trip })
+        }
+        if (url.pathname === '/api/v1/logistics/linehaul/trips') return json({ data: { enabled: true, ready_groups: [], trucks: [], drivers: [], outbound: [trip], inbound: [], visitors: [] } })
+        throw new Error(`Unexpected fixture request: ${url.pathname}`)
+      }
+      createRoot(document.getElementById('root')).render(React.createElement(LinehaulDispatch))
+    </script>
+  </body>
+</html>

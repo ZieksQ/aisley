@@ -44,3 +44,13 @@ Short, dated implementation log. Append entries; archive complete logs after 150
 
 - Updated only the affected media API contract: new PNG/JPG/JPEG/MP4 uploads and bindings are limited to 8,000,000 bytes each; images have 4,096-pixel edge/8-megapixel bounds, and the school backend can explicitly disable malware scanning. Previously committed WebP/documents and exact message replay remain readable.
 - External Flutter implementation and adoption evidence are unchanged. Removing WebP from new selection and adopting the revised image bounds require client verification; deployed/installed-device gates remain open. Backend/storage/web checks belong to the platform progress log.
+
+## 2026-10-21 — Additive linehaul hub route contract
+
+- Documented the new assigned-driver `GET /api/v1/courier/linehaul-trips/{trip}/route` read, hub DTO, road metrics/geometry, missing-pin/provider fallbacks, private transport and unchanged Logistics mutation authority in the route guide and feature index.
+- Only the development React harness adopts this route here. Flutter linehaul screens remain unadopted; no Flutter tests/builds, live provider/API or installed-device acceptance is claimed. Backend and synthetic-browser verification belongs to the platform progress log.
+
+## 2026-10-22 — Courier linehaul operations contract v1
+
+- Added the assigned-driver departure and arrival-report request/response, release prerequisite, revision/confirmation/replay handling and custody boundaries in [linehaul-trips.md](linehaul-trips.md). Updated affected route/index/domain/requirements guidance without changing historical adoption baselines.
+- Laravel and its development React mockup implement these actions; source Logistics authorizes cargo release and receiving Logistics independently confirms arrival/receipt/unloading. Flutter linehaul UI remains unadopted. No Flutter tests/builds or live/deployed/device acceptance ran here; platform checks are recorded in the main progress log.

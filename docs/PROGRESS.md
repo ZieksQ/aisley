@@ -43,3 +43,37 @@ Short, dated log of what's been implemented. Update after each completed feature
 
 - Resolved the platform, Buyer and Courier progress-log conflicts by retaining every dated entry from both branches, preserving both platform archives and keeping the existing Flutter adoption and acceptance records.
 - Verification: checked entry preservation, duplicate headings, relative links, log lengths, conflict markers and Git whitespace.
+
+## 2026-10-21 — Courier mockup linehaul transfer jobs
+
+- Added a compact assigned-transfer list and detail view to the development Courier harness using the existing bearer-authenticated, driver-scoped linehaul endpoint. Shows outbound/return routes, status guidance, company truck, schedule, parcel references, arrival/unloading evidence and lane blocks. Includes manual refresh, preserved selection, loading/empty/error states and responsive reference layout; failed refreshes remove stale details.
+- Updated the canonical linehaul specification and harness README. Logistics retains departure/receiving authority; no backend, dependency or production Flutter changes.
+- Verification: Courier mockup TypeScript/production build, lint and Git whitespace checks pass. Existing large-bundle warnings remain. Browser/device and live API verification were not run.
+
+## 2026-10-21 — Courier linehaul hub route maps
+
+- Added an assigned-driver-only, Sanctum/RBAC/approval/consent-protected linehaul route read using saved origin/destination hub pins and server-side Geoapify Routing. Uses bounded validated geometry/metrics, shared waypoint-credit guards, short timeouts and coordinate-sensitive caching; foreign trips are hidden before cache/provider access. Missing pins, quota and upstream failures preserve known hub details without fabricated road geometry or metrics.
+- Added outbound/return hub maps, labelled road/direct-line fallback, drive distance/time, route reload and explicit destination-only external directions to the development mockup. Private tiles use per-map bearer fetches with browser credentials omitted. Grouped the linehaul feature files, fixed narrow status wrapping, and retained Logistics-owned approval/departure/arrival/unloading after the user chose the existing workflow. Updated canonical/location and affected portable Courier contracts; Flutter linehaul adoption stays open.
+- Verification: 16 isolated SQLite API/regression tests/227 assertions, scoped Pint, Courier mockup build/typecheck/lint and whitespace checks pass. Chromium with synthetic API/raster data passes road/return selection, refresh, missing pins, quota/auth/tile/list failures, empty state, mobile overflow, directions and bearer-only GET checks. Reviewed desktop/mobile screenshots under `node_modules/.cache/linehaul-browser/`. Existing bundle warnings remain; live PostgreSQL/Geoapify/API and physical-device acceptance were not run.
+
+## 2026-10-22 — Production demo product seeding override
+
+- Made `ProductSeeder` honor `ALLOW_DEMO_SEEDERS_IN_PRODUCTION=true`, allowing the demo catalog and missing Product/Variant packed weights and dimensions to be seeded in production. Default production blocking, existing measurements, Seller edits, ownership guards and inventory ledgers remain preserved. Updated the product specification and production seeding instructions.
+- Verification: 11 isolated SQLite seeder tests/99 assertions, scoped Pint and Git whitespace checks pass, including production opt-in, default denial and measurement repair without duplicate inventory movements. No production database was accessed or seeded.
+
+## 2026-10-22 — Regional postal coverage and named demo lanes
+
+- Added a researched offline postal catalogue with 2,136 locality rows / 1,992 distinct codes across all 18 regional fixtures, using PHLPost and a supplementary nationwide directory with current bundled PSGC assignments. Documented sources, corrections, regional counts and the full CSV, including NIR, Sulu in Region IX and leading-zero codes.
+- Regional seeding adds missing supported codes and locality-named lanes, including `Santa Cruz Lane` / `STC-01` / `4009`. Production expansion honors `ALLOW_DEMO_SEEDERS_IN_PRODUCTION=true`; default denial remains. Reruns preserve disabled coverage, dedicated/legacy lanes, operator edits, drafts, schedules and immutable history. Shared destination lanes receive separate lanes without renaming the original physical lane; active plans gain validated successors.
+- Verification: 20 distinct focused catalogue, production-upgrade, regional-network, shipping, provider and legacy-Luzon tests pass using isolated SQLite, plus scoped Pint, documentation links and whitespace checks. The initial combined regression run terminated before its summary; smaller completed batches cover every case. No production database, live carrier serviceability, PostgreSQL or physical-fulfillment verification is claimed.
+
+## 2026-10-22 — Courier linehaul departure and arrival reports
+
+- Added source Logistics cargo release, assigned-Courier departure and driver arrival-report APIs with Sanctum/RBAC/approval/consent gates, strict confirmation/revision validation, scoped row locks and state-idempotent retries. Reuse the existing atomic manifest/custody workflow and recheck resources, lanes and source authorization; immutable events record both the releasing Logistics authorizer and performing Courier. New nullable migration fields preserve historical evidence. Planned schedules never trigger status changes or restrict early/late departure; arrival reports do not receive cargo or free trucks.
+- Added confirmed Depart/Arrived at hub controls, lost-response replay, conflict recovery and submission/job-switch locks to the mockup while preserving route maps. Logistics dispatch now exposes Release to driver (including visiting-truck returns), retains departure fallback, and shows driver reports on inbound trips. Updated canonical and portable contracts; external Flutter adoption remains open.
+- Verification: 26 isolated SQLite API/action/receiving/route tests/658 assertions, scoped Pint, Courier mockup and Logistics builds/typechecks/lints, and whitespace checks pass. Synthetic Chromium checks cover action/replay/conflict/release gates, route regressions, session-versus-bearer transport and four Logistics viewport/theme layouts; reviewed screenshots in `node_modules/.cache/linehaul-browser/`. Existing bundle warnings remain. Ordinary databases were not migrated; live PostgreSQL/concurrency/provider and physical-device/Flutter acceptance were not run.
+
+## 2026-10-22 — Registration email and private-upload contract notes
+
+- Recorded the existing company-created Courier account-email verification contract separately from public registration, preserving pending focused-test and Flutter-adoption status. Documented the multi-hub private-write guard's configuration checks and its remote-container ACL verification boundary.
+- Verification: Git whitespace checks pass. This documentation commit changes no application behavior; backend tests, cloud ACL checks and Flutter verification were not rerun.

@@ -26,6 +26,18 @@ Missing, invalid, consumed, expired, or wrong-email/wrong-role proofs return `42
 
 There is no durable registration replay key or applicant polling API. After an uncertain response or upload cancellation, show that registration may already have committed and suggest explicit sign-in before deliberately resubmitting. Duplicate-email handling remains authoritative; never automatically replay registration, log proofs/codes, or claim that cancellation reversed a committed account.
 
+## Authenticated company-created Courier account email changes
+
+This is a separate post-login use of the same role-and-email-bound verification records. It does not alter public registration behavior or make email editable for legacy public-registration Couriers. Only an active Courier created by an authorized Logistics company can use the API; profile updates continue to reject email.
+
+- `POST /api/v1/courier/account/email/verification-code` accepts the proposed `email` and `current_password`.
+- `POST /api/v1/courier/account/email/verify` accepts `email`, `current_password`, `challenge_id`, and `verification_code`; success returns an `email_verification_token` valid for one hour. This step does not update the account.
+- `PUT /api/v1/courier/account/email` accepts `email`, `current_password`, and `email_verification_token`. It updates only the authenticated Courier, records the proof's actual verification time in `email_verified_at`, consumes the proof atomically, and revokes all Courier tokens. A fresh login is required.
+- The same code/proof properties above apply: hashed six-digit code, ten-minute code lifetime, five wrong attempts, 60-second resend interval, five requests per role/email per hour, and single-use proof. Current-password checks are repeated at each step. Duplicate Courier email, inactive or ineligible Courier, wrong password, and invalid, expired, mismatched, or consumed proof fail closed.
+- The outbox uses the existing `registration_code` kind with optional `account_email: true` only for this path. Its account-email wording is separate; public registration message payloads/default wording do not change.
+
+This backend contract does not indicate that the external Courier Flutter app implements or adopts account email changes. Focused feature and shared mail-regression tests remain pending until recorded in the implementation checkpoint.
+
 ## Client flow
 
 Email entry → code entry/resend → registration details → existing approval destination. Keep proofs/codes in memory only. Changing email invalidates local verification and requires another code; expiry returns to verification while preserving draft details and selected evidence. Protect existing unsaved work; preserve each client's password-clearing and upload-cancellation behavior. Ignore late responses after reset, route exit, disposal, or a newer attempt.

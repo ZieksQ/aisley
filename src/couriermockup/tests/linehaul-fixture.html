@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+  <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Linehaul browser fixture</title></head>
+  <body>
+    <div id="root"></div>
+    <script type="module">
+      import React from 'react'
+      import { createRoot } from 'react-dom/client'
+      import { LinehaulTransferJobs } from '/src/linehaul/LinehaulTransferJobs.tsx'
+      import '/src/index.css'
+
+      const origin = { kind: 'origin', name: 'Manila Logistics Hub', address: 'Manila, Metro Manila', latitude: 14.5995, longitude: 120.9842 }
+      const destination = { kind: 'destination', name: 'Calamba Logistics Hub', address: 'Calamba, Laguna', latitude: 14.2117, longitude: 121.1653 }
+      const base = {
+        revision: 3, released_for_departure_at: '2026-10-22T08:30:00+08:00', courier_arrived_at: null,
+        courier_can_depart: false, courier_can_report_arrival: false,
+        truck: { plate_number: 'TEST-123', make: 'Isuzu', model: 'N-Series' },
+        scheduled_for: '2026-10-22T09:00:00+08:00', parcel_count: 2,
+        references: ['TEST-PARCEL-001', 'TEST-PARCEL-002'], empty_return: false, lane_blocked: false,
+        rejection_reason: null, departed_at: null, arrived_at: null,
+        unloading_closed_at: null, unloading_outcome: null,
+      }
+      const trips = [
+        { ...base, id: 'outbound', direction: 'outbound', status: 'scheduled', from_hub: origin, to_hub: destination, courier_can_depart: true },
+        { ...base, id: 'return', direction: 'return', status: 'in_transfer', from_hub: destination, to_hub: origin, parcel_count: 0, empty_return: true, references: [], courier_can_report_arrival: true },
+      ]
+      window.linehaulFixture = { mode: 'ready', requests: [], trips, actionMode: 'ready' }
+      const state = window.linehaulFixture
+      const original = window.fetch.bind(window)
+      const tileCanvas = document.createElement('canvas')
+      tileCanvas.width = tileCanvas.height = 256
+      const context = tileCanvas.getContext('2d')
+      context.fillStyle = '#f2f0ed'
+      context.fillRect(0, 0, 256, 256)
+      context.strokeStyle = '#ddd8d2'
+      for (let offset = 0; offset < 256; offset += 64) {
+        context.beginPath()
+        context.moveTo(offset, 0)
+        context.lineTo(offset, 256)
+        context.moveTo(0, offset)
+        context.lineTo(256, offset)
+        context.stroke()
+      }
+      const tileImage = await new Promise((resolve) => tileCanvas.toBlob(resolve, 'image/png'))
+      window.fetch = async (input, options = {}) => {
+        const url = new URL(typeof input === 'string' ? input : input.url, location.origin)
+        if (!url.pathname.startsWith('/api/')) return original(input, options)
+        state.requests.push({ path: url.pathname, method: options.method ?? 'GET', credentials: options.credentials, authorization: new Headers(options.headers).get('Authorization'), body: options.body ? JSON.parse(options.body) : null })
+        if (url.pathname.includes('/map-tiles/')) {
+          if (state.mode === 'tile-error') return new Response('', { status: 503 })
+          return new Response(tileImage, { headers: { 'Content-Type': 'image/png' } })
+        }
+        const json = (body, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
+        if (options.method === 'POST') {
+          const id = url.pathname.split('/').at(-2)
+          const action = url.pathname.split('/').at(-1)
+          const trip = trips.find((item) => item.id === id)
+          if (state.actionMode === 'conflict') return json({ message: 'The trip changed. Refresh before confirming this action.', code: 'LINEHAUL_TRIP_CHANGED' }, 409)
+          if (state.actionMode === 'slow') await new Promise((resolve) => setTimeout(resolve, 500))
+          if (action === 'depart' && trip.status === 'scheduled') {
+            trip.status = 'in_transfer'; trip.courier_can_depart = false; trip.courier_can_report_arrival = true
+            trip.departed_at = new Date().toISOString(); trip.revision++
+          } else if (action === 'arrival' && !trip.courier_arrived_at) {
+            trip.courier_arrived_at = new Date().toISOString(); trip.courier_can_report_arrival = false; trip.revision++
+          }
+          if (state.actionMode === 'lost-response') { state.actionMode = 'ready'; throw new TypeError('Synthetic lost response after commit') }
+          return json({ data: trip })
+        }
+        if (url.pathname.endsWith('/linehaul-trips')) {
+          if (state.mode === 'empty') return json({ data: [] })
+          if (state.mode === 'list-error') return json({ message: 'Transfers temporarily unavailable.' }, 503)
+          return json({ data: trips })
+        }
+        if (url.pathname.endsWith('/route')) {
+          if (state.mode === 'auth-error') return json({ message: 'Unauthenticated.' }, 401)
+          const hubs = url.pathname.includes('/return/')
+            ? [{ ...destination, kind: 'origin' }, { ...origin, kind: 'destination' }]
+            : [{ ...origin }, { ...destination }]
+          if (state.mode === 'missing') { hubs[1].latitude = null; hubs[1].longitude = null }
+          const ready = !['missing', 'quota'].includes(state.mode)
+          return json({ data: {
+            status: ready ? 'ready' : 'unavailable', reason: ready ? null : state.mode === 'missing' ? 'missing_hub_coordinates' : 'provider_quota', hubs,
+            summary: ready ? { distance_metres: 65000, duration_seconds: 4500 } : null,
+            geometry: ready ? { type: 'LineString', coordinates: [[hubs[0].longitude, hubs[0].latitude], [121.05, 14.4], [hubs[1].longitude, hubs[1].latitude]] } : null,
+          } })
+        }
+        throw new Error(`Unexpected fixture API request: ${url.pathname}`)
+      }
+      createRoot(document.getElementById('root')).render(
+        React.createElement('main', { className: 'app-main' }, React.createElement(LinehaulTransferJobs, { token: 'synthetic-browser-token' })),
+      )
+    </script>
+  </body>
+</html>

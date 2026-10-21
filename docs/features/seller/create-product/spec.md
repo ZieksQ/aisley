@@ -131,6 +131,7 @@
 - Sellers may record a PHP unit cost on the Product or Variant. The effective cost is snapshotted on the Order item and remains unknown when omitted; reporting must never coerce a missing cost to zero.
 - The Seller form presents one required packed-package section for Product defaults. Each Variant has an explicit `Use different package` control; enabling it requires all four positive override fields, while disabling it clears the complete override and restores inheritance.
 - Development catalog seeds include positive Product measurements, representative Variant combinations, and several complete Variant measurement overrides so checkout and Seller UI states are testable without hand-editing records.
+- `ProductSeeder` is blocked in production unless `ALLOW_DEMO_SEEDERS_IN_PRODUCTION=true`. With this explicit opt-in, it seeds the demo catalog and fills missing Product/Variant shipping measurements on reruns while preserving existing measurements, Seller edits, Shop ownership and inventory ledgers.
 
 ### Seller catalog and editor presentation (2026-10-14)
 
