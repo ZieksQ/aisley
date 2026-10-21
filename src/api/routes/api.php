@@ -715,6 +715,7 @@ Route::prefix('v1/courier')->name('courier.')->middleware(['auth:sanctum', 'cour
         Route::post('/{conversation}/read', [OperationalConversationController::class, 'read'])->whereUuid('conversation')->name('read');
     });
     Route::get('/linehaul-trips', [CourierLinehaulTripController::class, 'index'])->name('linehaul-trips.index');
+    Route::get('/linehaul-trips/{trip}/route', [CourierLinehaulTripController::class, 'route'])->whereUuid('trip')->middleware('throttle:30,1')->name('linehaul-trips.route');
     Route::get('/account', [CourierAccountController::class, 'show'])->name('account.show');
     Route::patch('/account/profile', [CourierAccountController::class, 'updateProfile'])->name('account.profile.update');
     Route::post('/account/password/verification-code', PasswordChangeCodeController::class)->middleware('throttle:password-change-code')->name('account.password.code');

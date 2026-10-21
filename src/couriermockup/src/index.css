@@ -530,7 +530,13 @@ input {
 }
 
 .linehaul-jobs .task-row {
+  display: grid;
+  gap: 8px;
   overflow-wrap: anywhere;
+}
+
+.linehaul-jobs .task-row > span:last-child {
+  text-align: left;
 }
 
 .linehaul-route h3 {
@@ -538,6 +544,18 @@ input {
   font-size: 1.15rem;
   line-height: 1.4;
   overflow-wrap: anywhere;
+}
+
+.linehaul-map-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.linehaul-map-toolbar h3 {
+  margin: 0;
 }
 
 .linehaul-route p {

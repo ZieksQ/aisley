@@ -1,25 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Button } from '@aisley/ui'
-import { ApiError, request } from './lib/api'
-
-type LinehaulTrip = {
-  id: string
-  direction: 'outbound' | 'return'
-  status: 'pending_acceptance' | 'scheduled' | 'rejected' | 'cancelled' | 'in_transfer' | 'receiving' | 'received'
-  from_hub: { name: string | null }
-  to_hub: { name: string | null }
-  truck: { plate_number: string | null; make: string | null; model: string | null }
-  scheduled_for: string | null
-  parcel_count: number
-  references: string[]
-  empty_return: boolean
-  lane_blocked: boolean
-  rejection_reason: string | null
-  departed_at: string | null
-  arrived_at: string | null
-  unloading_closed_at: string | null
-  unloading_outcome: string | null
-}
+import { ApiError } from '../lib/api'
+import { getLinehaulTrips } from './api'
+import { LinehaulRouteMap } from './LinehaulRouteMap'
+import type { LinehaulTrip } from './types'
 
 function dateLabel(value: string | null) {
   return value ? new Date(value).toLocaleString('en-PH') : '—'
@@ -46,8 +30,8 @@ export function LinehaulTransferJobs({ token }: { token: string }) {
     const controller = new AbortController()
     setLoading(true)
     setError(null)
-    request<{ data: LinehaulTrip[] }>('/api/v1/courier/linehaul-trips', { signal: controller.signal }, token)
-      .then(({ data }) => {
+    getLinehaulTrips(token, controller.signal)
+      .then((data) => {
         if (controller.signal.aborted) return
         setTrips(data)
         setSelectedId((current) => data.some((trip) => trip.id === current) ? current : data[0]?.id ?? null)
@@ -114,6 +98,7 @@ export function LinehaulTransferJobs({ token }: { token: string }) {
               </dl>
               {selected.lane_blocked ? <p className="confirmation-note">Departure is blocked by the sorting lane. Contact Logistics.</p> : null}
               {selected.rejection_reason ? <p>Rejection reason: {selected.rejection_reason}</p> : null}
+              <LinehaulRouteMap key={`${selected.id}:${refresh}`} tripId={selected.id} token={token} />
               <div>
                 <h3>Parcel references</h3>
                 {selected.references.length ? <ul className="linehaul-references">{selected.references.map((reference) => <li key={reference}>{reference}</li>)}</ul> : <p>{selected.empty_return ? 'No cargo on this return trip.' : 'No parcel references available.'}</p>}

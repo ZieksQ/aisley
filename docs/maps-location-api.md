@@ -60,6 +60,10 @@ Final-mile dispatch route geometry uses the same server-only Geoapify key and a 
 - Send coordinates only—never addresses, names, phone numbers, parcel contents, or account identifiers—and keep `GEOAPIFY_SERVER_API_KEY` server-side.
 - Persist the sanitized road `LineString` with the manifest. If routing fails or its quota guard is reached, keep the manifest ready and return a labelled straight stop-sequence fallback instead of blocking pickup work.
 
+## Courier linehaul hub route
+
+`GET /api/v1/courier/linehaul-trips/{trip}/route` reauthorizes the assigned Courier before reading cached geometry or calling Geoapify Routing. It uses exactly the saved origin and destination hub pins in that order, including reversed return trips; no device GPS, Matrix reordering, or custody transition. Only coordinates reach the provider. Shared daily Routing waypoint credits, bounded geometry, short timeouts and coordinate-fingerprinted caches apply. Missing pins/provider/key/quota failures preserve known hub names/addresses with unavailable metrics; the mockup labels its dashed straight-line fallback. MapLibre raster tiles use the existing private Courier proxy through per-map authenticated fetches with browser credentials omitted. Explicit external directions links contain only the destination coordinates. See [the route contract](features/logistics/company-truck-linehaul-dispatch/spec.md#courier-hub-route--contract-v1). Flutter linehaul route adoption remains open.
+
 ## Coordinate and privacy rules
 
 - Latitude and longitude are optional unless a feature explicitly requires them, but they must be submitted as a complete pair and remain within `-90..90` and `-180..180`.

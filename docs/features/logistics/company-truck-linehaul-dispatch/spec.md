@@ -3,7 +3,7 @@ role: Logistics and Courier
 feature: Company Truck Linehaul Dispatch
 system: AISLEY
 type: Feature Specification
-version: 1.2
+version: 1.3
 status: Implemented
 canonical: true
 source_issue: https://github.com/ZieksQ/aisley/issues/97
@@ -15,6 +15,15 @@ related_issue: https://github.com/ZieksQ/aisley/issues/98
 ## Courier development mockup — 2026-10-21
 
 The development-only `src/couriermockup` displays assigned linehaul transfer jobs using `GET /api/v1/courier/linehaul-trips` with the current bearer token. The server resolves the driver and returns up to 50 newest trips in `{data: [...]}`. Show outbound and return jobs, including pending, scheduled, in-transfer, receiving, received, rejected and cancelled states; allow manual refresh and selection to review route, truck, scheduled departure, parcel count, waybill references and available event timestamps. Preserve selection when refreshing if the trip remains present. Loading, empty and failed reads must be explicit; failed refreshes clear stale trip details. Departure and receiving remain Logistics-owned actions; this screen does not accept, depart or receive cargo. Production Flutter implementation status and API contracts are unchanged.
+
+### Courier hub route — contract v1
+
+- `GET /api/v1/courier/linehaul-trips/{trip}/route` is an advisory read under Sanctum, active Courier/approved affiliation/active organization and policy-consent middleware. Resolve the assigned driver from authentication before cache/provider access; foreign and unknown UUIDs return `404 LINEHAUL_TRIP_NOT_FOUND`. No body, client hub/driver selection, status mutation or idempotency header. Reads are rate-limited to 30/minute and return `{data: route}`, `Cache-Control: private, no-store`.
+- `route` contains `status: ready|unavailable`, nullable safe `reason`, `hubs` in fixed origin/destination order, nullable `summary: {distance_metres, duration_seconds}`, and nullable `geometry: {type: LineString, coordinates: [[longitude, latitude], ...]}`. Each hub has `kind: origin|destination`, `name`, an address string (no contact/name fields), and nullable numeric `latitude`/`longitude`. Missing or invalid pairs become null; never fabricate a pin. Geometry exists only for a validated road route, and summary is null when unavailable.
+- Routing uses only the two persisted hub pins, never a Courier GPS location, and sends coordinates only to Geoapify using the server key. Reuse shared daily Routing credit limits (two waypoint credits/request), short timeouts and private tile proxy. Cache by trip and ordered coordinate fingerprint: successful routes for 24 hours, failed provider reads for one minute. Reauthorize every read and recalculate after pin changes. No cache of bearer tokens or provider URLs.
+- Missing pins (`missing_hub_coordinates`), missing key (`provider_unconfigured`), quota guards (`quota_guard`), upstream 429 (`provider_quota`), invalid/unreachable responses (`route_unavailable`) and exceptions (`provider_failure`) return honest unavailable data with known hubs preserved. Existing `401`, `403`, `429`, and recoverable network/server failures retain normal auth/error behavior. Map failures cannot change trip/custody state.
+- The mockup displays labelled origin/destination markers and a road line, or a clearly labelled straight-line fallback between known hubs. Show distance/estimated driving time only from validated provider metrics; fit the viewport to the full geometry. Keep hub addresses usable if tiles/WebGL fail. Explicit **Open directions** passes only the destination coordinates to an external navigation app; never send tokens or personal data. This is advisory navigation, not proof of arrival or delivery. Refresh also retries the route read.
+- No Courier acceptance, departure, inbound or delivered mutations are introduced. Destination approval, physical departure and receipt remain Logistics-owned. Production Flutter linehaul UI remains unadopted.
 
 ## Sorting provenance and lane blocks — 2026-10-06
 
