@@ -22,7 +22,13 @@ Run from the repository root after existing migrations and initial fixture setup
 (cd src/api && php artisan db:seed --class=InitialSellerLogisticsSeeder)
 ```
 
-For a production demo environment, set `ALLOW_DEMO_SEEDERS_IN_PRODUCTION=true` in `src/api/.env` and refresh Laravel's cached configuration before running the desired seeder. The same opt-in permits `PhilippinesLogisticsSeeder` (regional Logistics/Courier accounts, network and sort plans, and initial-Shop provider setup), its nested `InitialSellerLogisticsSeeder`, and `VoucherSeeder`. Other demo seeders retain their own production gates. Turn this setting off after demo provisioning.
+For a production demo environment, set `ALLOW_DEMO_SEEDERS_IN_PRODUCTION=true` in the API environment (`docker/.env.production` for the production Compose stack) and refresh Laravel's cached configuration before running the desired seeder. The same opt-in permits `ProductSeeder` (demo products, variants, media, inventory and missing packed weight/dimension defaults), `PhilippinesLogisticsSeeder` (regional Logistics/Courier accounts, network and sort plans, and initial-Shop provider setup), its nested `InitialSellerLogisticsSeeder`, and `VoucherSeeder`. Product reruns preserve existing measurements and Seller edits. Other demo seeders, including `DemoCheckoutSeeder`, retain their own production gates. Turn this setting off after demo provisioning.
+
+To seed or repair demo product measurements in the production Compose stack, after deploying the updated API image and applying the environment setting (the one-off container reads the environment afresh):
+
+```sh
+docker compose --env-file docker/.env.production -f docker/docker-compose.prod.yml run --rm --no-deps api php artisan db:seed --class=ProductSeeder --force
+```
 
 Stable codes make voucher reruns additive. Existing offers—including paused, ended, expired, edited or redeemed offers—and immutable history remain unchanged. A conflicting existing code is preserved. Use normal Admin/Seller duplication for a new offer after expiry; reseeding does not renew it.
 
