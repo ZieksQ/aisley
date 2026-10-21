@@ -4,6 +4,7 @@ import { Button, TextField } from '@aisley/ui'
 import { ApiError, apiOriginLabel, request } from './lib/api'
 import { PickupOrders } from './PickupOrders'
 import { FinalMileTasks } from './FinalMileTasks'
+import { LinehaulTransferJobs } from './LinehaulTransferJobs'
 import { AccountExtras } from './AccountExtras'
 import { CourierRegistration } from './CourierRegistration'
 import { PolicyConsentView, PolicyDocumentPanel } from './Policies'
@@ -665,6 +666,7 @@ function App() {
         <AccountExtras account={account} onAccountChange={setAccount} token={token} />
 
         <PickupOrders token={token} />
+        <LinehaulTransferJobs key={token} token={token} />
         <FinalMileTasks token={token} />
 
         <section className="panel" aria-labelledby="contract-heading">
@@ -682,6 +684,7 @@ function App() {
             <li><span className="request-method">GET</span><span className="request-path">/api/v1/courier/account</span></li>
             <li><span className="request-method">GET</span><span className="request-path">/api/v1/courier/dashboard</span></li>
             <li><span className="request-method">GET</span><span className="request-path">/api/v1/courier/first-mile-tasks</span></li>
+            <li><span className="request-method">GET</span><span className="request-path">/api/v1/courier/linehaul-trips</span></li>
             <li><span className="request-method">POST</span><span className="request-path">/api/v1/courier/first-mile-tasks/:task/accept</span></li>
             <li><span className="request-method">POST</span><span className="request-path">/api/v1/courier/first-mile-tasks/:task/pickup</span></li>
             <li><span className="request-method">GET</span><span className="request-path">/api/v1/courier/final-mile-tasks</span></li>

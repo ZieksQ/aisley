@@ -525,6 +525,42 @@ input {
   min-height: 460px;
 }
 
+.linehaul-jobs .pickup-layout {
+  min-height: 0;
+}
+
+.linehaul-jobs .task-row {
+  overflow-wrap: anywhere;
+}
+
+.linehaul-route h3 {
+  margin: 0;
+  font-size: 1.15rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.linehaul-route p {
+  margin: 8px 0 0;
+  line-height: 1.5;
+}
+
+.linehaul-references {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+  gap: 0 16px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.linehaul-references li {
+  padding: 8px 0;
+  border-bottom: 1px solid #ddd6df;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
 .task-list {
   margin: 0;
   padding: 0;

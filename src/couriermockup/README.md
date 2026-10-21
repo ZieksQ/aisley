@@ -15,6 +15,8 @@ The Vite proxy forwards `/api` requests to `http://127.0.0.1:8000`. Set `VITE_AP
 
 ## Authentication boundary
 
+Assigned linehaul transfer jobs are shown through `GET /api/v1/courier/linehaul-trips`. Refresh to see Logistics updates, then select an outbound or return job to review its route, truck, departure schedule, parcel references and receiving status. Departure and cargo receiving remain Logistics actions.
+
 Login receives the Sanctum token once, then protected requests send it in an `Authorization: Bearer <token>` header. Requests explicitly use `credentials: omit`; this mockup does not initialize Sanctum cookies or send CSRF cookies. The token is kept in browser `sessionStorage` only for this local test harness. Flutter must use OS secure storage.
 
 The mockup checks public registration and the recovery entry point, login, session restoration, policy consent, account read, profile update, profile photo upload/private preview/removal, vehicle edit and private OR/CR replacement, password change, logout, dashboard, both delivery legs, and delivered-task history. Registration uses the current API's combined `vehicle_registration` evidence field and waits for Logistics approval; recovery currently records a request but sends no reset email. After bearer login it checks policy status, shows only unaccepted current Terms/Privacy versions, fetches their public text, submits explicit version acceptance, and preserves the token until consent is complete. The authenticated page keeps Terms of Service and Privacy Policy links available for later viewing.

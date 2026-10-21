@@ -12,6 +12,10 @@ related_issue: https://github.com/ZieksQ/aisley/issues/98
 
 # Company Truck Linehaul Dispatch
 
+## Courier development mockup — 2026-10-21
+
+The development-only `src/couriermockup` displays assigned linehaul transfer jobs using `GET /api/v1/courier/linehaul-trips` with the current bearer token. The server resolves the driver and returns up to 50 newest trips in `{data: [...]}`. Show outbound and return jobs, including pending, scheduled, in-transfer, receiving, received, rejected and cancelled states; allow manual refresh and selection to review route, truck, scheduled departure, parcel count, waybill references and available event timestamps. Preserve selection when refreshing if the trip remains present. Loading, empty and failed reads must be explicit; failed refreshes clear stale trip details. Departure and receiving remain Logistics-owned actions; this screen does not accept, depart or receive cargo. Production Flutter implementation status and API contracts are unchanged.
+
 ## Sorting provenance and lane blocks — 2026-10-06
 
 Company-truck membership freezes each parcel’s `sorting_assignment` at reservation. Ready groups and trip/manifest reads display stored labels/version/destination. Recheck physical lane state under network/hub locks for reservation and departure, including previously scheduled trips. Pause/Hold preserves reservations and blocks departure until Resume; renamed lanes and new active versions never relocate reserved/sorted parcels or alter their committed next hub.

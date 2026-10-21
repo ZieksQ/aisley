@@ -43,3 +43,9 @@ Short, dated log of what's been implemented. Update after each completed feature
 
 - Resolved the platform, Buyer and Courier progress-log conflicts by retaining every dated entry from both branches, preserving both platform archives and keeping the existing Flutter adoption and acceptance records.
 - Verification: checked entry preservation, duplicate headings, relative links, log lengths, conflict markers and Git whitespace.
+
+## 2026-10-21 — Courier mockup linehaul transfer jobs
+
+- Added a compact assigned-transfer list and detail view to the development Courier harness using the existing bearer-authenticated, driver-scoped linehaul endpoint. Shows outbound/return routes, status guidance, company truck, schedule, parcel references, arrival/unloading evidence and lane blocks. Includes manual refresh, preserved selection, loading/empty/error states and responsive reference layout; failed refreshes remove stale details.
+- Updated the canonical linehaul specification and harness README. Logistics retains departure/receiving authority; no backend, dependency or production Flutter changes.
+- Verification: Courier mockup TypeScript/production build, lint and Git whitespace checks pass. Existing large-bundle warnings remain. Browser/device and live API verification were not run.
