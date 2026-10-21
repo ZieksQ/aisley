@@ -32,6 +32,7 @@ class RegionalPostalLaneSeeder
 
                 $mappings = collect($plan->activeVersion->mappings);
                 $uses = $mappings->countBy('sorting_lane_id');
+                $sharedLaneIds = $uses->filter(fn ($count) => $count > 1)->keys()->all();
                 $postal = $mappings->where('destination_type', 'postal_code')->keyBy('postal_code');
                 $codes = HubServiceArea::where('logistics_hub_id', $hub->id)->where('is_active', true)
                     ->orderBy('postal_code')->pluck('postal_code');
@@ -50,14 +51,7 @@ class RegionalPostalLaneSeeder
                 $position = max((int) SortingLane::where('logistics_hub_id', $hub->id)->max('position'), (int) $mappings->max('position'));
                 $lanes = [];
                 foreach ($missing as $code) {
-                    $lane = SortingLane::firstOrCreate([
-                        'logistics_organization_id' => $hub->logistics_organization_id,
-                        'logistics_hub_id' => $hub->id, 'code' => 'POSTAL-'.$code,
-                    ], [
-                        'created_by_logistics_id' => $hub->organization->user_id,
-                        'name' => 'Local delivery '.$code, 'type' => SortingLaneType::Standard,
-                        'is_active' => true, 'position' => ++$position, 'revision' => 1,
-                    ]);
+                    $lane = $this->laneFor($hub, (string) $code, ++$position, $sharedLaneIds);
                     if (! $lane->is_active || $lane->type !== SortingLaneType::Standard
                         || $lane->operational_state !== SortingLaneState::Open
                         || $mappings->contains(fn ($mapping) => $mapping['sorting_lane_id'] === $lane->id
@@ -110,6 +104,41 @@ class RegionalPostalLaneSeeder
             // Roll back the whole successor, including newly created lanes.
             $warn("Preserved active sort plan at {$hub->name}; postal-lane repair needs review: {$exception->getMessage()}");
         }
+    }
+
+    public function laneFor(LogisticsHub $hub, string $postal, int $position, array $sharedLaneIds = []): SortingLane
+    {
+        $definition = collect(RegionalHubCatalog::hubs())->firstWhere('region', $hub->address?->region);
+        $entry = $definition === null ? null : (RegionalPostalCatalog::forRegion($definition['slug'])[$postal] ?? null);
+        $code = $entry['code'] ?? 'POSTAL-'.$postal;
+        // Preserve old fixture lanes and operator edits instead of duplicating physical positions.
+        $legacyCodes = ['POSTAL-'.$postal];
+        if ($definition !== null && $postal === $definition['postal_code']) {
+            $legacyCodes[] = 'LOCAL';
+        }
+        $existing = SortingLane::where('logistics_hub_id', $hub->id)->whereIn('code', $legacyCodes)
+            ->whereNotIn('id', $sharedLaneIds)->first();
+        if ($existing !== null) {
+            return $existing;
+        }
+
+        // A shared physical lane cannot remain dedicated to either destination.
+        // Allocate a stable alternative without renaming the original lane or its history.
+        $suffix = 0;
+        while ($sharedLaneIds !== [] && SortingLane::where('logistics_hub_id', $hub->id)->where('code', $code)
+            ->whereIn('id', $sharedLaneIds)->exists()) {
+            $code = 'POSTAL-'.$postal.($suffix === 0 ? '' : '-'.$suffix);
+            $suffix++;
+        }
+
+        return SortingLane::firstOrCreate([
+            'logistics_organization_id' => $hub->logistics_organization_id,
+            'logistics_hub_id' => $hub->id, 'code' => $code,
+        ], [
+            'created_by_logistics_id' => $hub->organization->user_id,
+            'name' => $entry['name'] ?? 'Local delivery '.$postal, 'type' => SortingLaneType::Standard,
+            'is_active' => true, 'position' => $position, 'revision' => 1,
+        ]);
     }
 
     private function destination(array $mapping): string

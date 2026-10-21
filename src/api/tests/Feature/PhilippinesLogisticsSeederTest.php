@@ -26,6 +26,7 @@ use Database\Seeders\LuzonLogisticsSeeder;
 use Database\Seeders\PhilippinesLogistics\RegionalAccountSeeder;
 use Database\Seeders\PhilippinesLogistics\RegionalHubCatalog;
 use Database\Seeders\PhilippinesLogistics\RegionalNetworkSeeder;
+use Database\Seeders\PhilippinesLogistics\RegionalPostalCatalog;
 use Database\Seeders\PhilippinesLogistics\RegionalPostalLaneSeeder;
 use Database\Seeders\PhilippinesLogisticsSeeder;
 use Database\Seeders\ProductSeeder;
@@ -45,13 +46,13 @@ class PhilippinesLogisticsSeederTest extends TestCase
 
         $this->assertDatabaseCount('logistics_hubs', 18);
         $this->assertDatabaseCount('hub_connections', 42);
-        $this->assertDatabaseCount('hub_service_areas', 18);
+        $this->assertDatabaseCount('hub_service_areas', 1992);
         $this->assertDatabaseCount('company_trucks', 36);
         $this->assertDatabaseCount('sorting_plans', 18);
         $this->assertDatabaseCount('sorting_plan_versions', 18);
         $this->assertDatabaseCount('sorting_plan_activations', 18);
-        $this->assertDatabaseCount('sorting_lanes', 78);
-        $this->assertDatabaseCount('sorting_plan_lanes', 60);
+        $this->assertDatabaseCount('sorting_lanes', 2052);
+        $this->assertDatabaseCount('sorting_plan_lanes', 2034);
         $this->assertDatabaseCount('logistics_rate_cards', 18);
         $this->assertDatabaseCount('logistics_service_rates', 54);
         $this->assertDatabaseCount('logistics_rate_rules', 756);
@@ -66,11 +67,17 @@ class PhilippinesLogisticsSeederTest extends TestCase
             $this->assertEquals($definition['latitude'], $hub->address->latitude);
             $this->assertEquals($definition['longitude'], $hub->address->longitude);
             $this->assertDatabaseHas('hub_service_areas', ['logistics_hub_id' => $hub->id, 'postal_code' => $definition['postal_code'], 'is_active' => true]);
+            $expected = collect(RegionalPostalCatalog::forRegion($definition['slug']))->pluck('postal_code')->sort()->values();
+            $this->assertSame($expected->all(), HubServiceArea::where('logistics_hub_id', $hub->id)
+                ->orderBy('postal_code')->pluck('postal_code')->all());
             $plan = app(SortingPlanService::class)->plansForHub($hub->logistics_organization_id, $hub->id);
             $this->assertSame(1, $plan->activeVersion->number);
             $this->assertFalse($plan->draft_dirty);
             $this->assertTrue($plan->lanes->every(fn ($mapping) => $mapping->lane->logistics_hub_id === $hub->id
                 && $mapping->lane->type === SortingLaneType::Standard && $mapping->lane->is_active));
+            $postal = collect($plan->activeVersion->mappings)->where('destination_type', 'postal_code');
+            $this->assertSame($expected->all(), $postal->pluck('postal_code')->sort()->values()->all());
+            $this->assertCount($expected->count(), $postal->pluck('sorting_lane_id')->unique());
             $this->assertCount(2, CourierLogisticsAffiliation::where('logistics_hub_id', $hub->id)
                 ->where('status', CourierAffiliationStatus::Approved)->where('can_drive_company_truck', true)->get());
             foreach (range(1, 5) as $number) {
@@ -212,6 +219,7 @@ class PhilippinesLogisticsSeederTest extends TestCase
 
     public function test_development_network_is_blocked_in_production(): void
     {
+        config()->set('demo.allow_seeders_in_production', false);
         $original = app()->environment();
         app()->detectEnvironment(fn () => 'production');
         try {
@@ -255,7 +263,7 @@ class PhilippinesLogisticsSeederTest extends TestCase
     {
         $definition = RegionalHubCatalog::hubs()[0];
         $hub = app(RegionalAccountSeeder::class)->seed($definition, 1);
-        foreach (['1200' => true, '1201' => true, '1202' => false] as $code => $active) {
+        foreach (['0091' => true, '0092' => true, '0093' => false] as $code => $active) {
             HubServiceArea::create(['logistics_hub_id' => $hub->id, 'postal_code' => (string) $code,
                 'is_active' => $active, 'revision' => 1, 'created_by' => $hub->organization->user_id]);
         }
@@ -264,12 +272,12 @@ class PhilippinesLogisticsSeederTest extends TestCase
 
         $plan = SortingPlan::where('logistics_hub_id', $hub->id)->where('is_active', true)->firstOrFail();
         $postal = collect($plan->activeVersion->mappings)->where('destination_type', 'postal_code');
-        $this->assertSame(['1018', '1200', '1201'], $postal->pluck('postal_code')->sort()->values()->all());
-        $this->assertCount(3, $postal->pluck('sorting_lane_id')->unique());
+        $this->assertSame($this->ncrPostalCodes(['0091', '0092']), $postal->pluck('postal_code')->sort()->values()->all());
+        $this->assertCount(count($this->ncrPostalCodes(['0091', '0092'])), $postal->pluck('sorting_lane_id')->unique());
         $this->assertTrue(SortingLane::whereIn('id', $postal->pluck('sorting_lane_id'))->get()
             ->every(fn ($lane) => $lane->logistics_hub_id === $hub->id && $lane->is_active
                 && $lane->type === SortingLaneType::Standard));
-        $this->assertDatabaseMissing('sorting_plan_lanes', ['sorting_plan_id' => $plan->id, 'postal_code' => '1202']);
+        $this->assertDatabaseMissing('sorting_plan_lanes', ['sorting_plan_id' => $plan->id, 'postal_code' => '0093']);
     }
 
     public function test_rerun_repairs_missing_and_shared_postal_lanes_with_an_idempotent_successor(): void
@@ -280,14 +288,14 @@ class PhilippinesLogisticsSeederTest extends TestCase
         $plan = SortingPlan::where('logistics_hub_id', $hub->id)->where('is_active', true)->firstOrFail();
         // The selected plan may be an operator's plan rather than the named fixture.
         $plan->update(['name' => 'Operator selected plan']);
-        foreach (['1200', '1201', '1202'] as $code) {
+        foreach (['0091', '0092', '0093'] as $code) {
             HubServiceArea::create(['logistics_hub_id' => $hub->id, 'postal_code' => $code,
-                'is_active' => $code !== '1202', 'revision' => 1, 'created_by' => $actor->id]);
+                'is_active' => $code !== '0093', 'revision' => 1, 'created_by' => $actor->id]);
         }
         $versions = app(SortingVersionService::class);
         $versions->action($actor, $plan, 'draft', ['expected_revision' => $plan->revision], (string) Str::uuid());
         $local = $plan->lanes()->where('postal_code', '1018')->firstOrFail();
-        $plan->lanes()->create(['destination_type' => 'postal_code', 'postal_code' => '1200',
+        $plan->lanes()->create(['destination_type' => 'postal_code', 'postal_code' => '0091',
             'sorting_lane_id' => $local->sorting_lane_id, 'position' => 5]);
         $versions->action($actor, $plan, 'publish', ['expected_revision' => $plan->fresh()->revision,
             'activate' => true], (string) Str::uuid());
@@ -303,11 +311,11 @@ class PhilippinesLogisticsSeederTest extends TestCase
         $this->assertTrue($repaired->is_active);
         $this->assertSame(3, $repaired->activeVersion->number);
         $postal = collect($repaired->activeVersion->mappings)->where('destination_type', 'postal_code');
-        $this->assertSame(['1018', '1200', '1201'], $postal->pluck('postal_code')->sort()->values()->all());
-        $this->assertCount(3, $postal->pluck('sorting_lane_id')->unique());
+        $this->assertSame($this->ncrPostalCodes(['0091', '0092']), $postal->pluck('postal_code')->sort()->values()->all());
+        $this->assertCount(count($this->ncrPostalCodes(['0091', '0092'])), $postal->pluck('sorting_lane_id')->unique());
         $this->assertSame($snapshot, $before->fresh()->toArray());
         $this->assertSame($transfers, $transferFacts($repaired->activeVersion->mappings));
-        $this->assertSame('local', app(CheckoutRoutePlanner::class)->plan($hub, '1201')['status']);
+        $this->assertSame('local', app(CheckoutRoutePlanner::class)->plan($hub, '0092')['status']);
         $selection = $repaired->active_version_id;
         $laneCount = SortingLane::count();
         $this->seed(PhilippinesLogisticsSeeder::class);
@@ -322,7 +330,7 @@ class PhilippinesLogisticsSeederTest extends TestCase
         $actor = User::where('email', 'logistics.luzon01@example.com')->firstOrFail();
         $hub = $actor->logisticsOrganization->hub;
         $plan = SortingPlan::where('logistics_hub_id', $hub->id)->where('is_active', true)->firstOrFail();
-        HubServiceArea::create(['logistics_hub_id' => $hub->id, 'postal_code' => '1200',
+        HubServiceArea::create(['logistics_hub_id' => $hub->id, 'postal_code' => '0091',
             'is_active' => true, 'revision' => 1, 'created_by' => $actor->id]);
         app(SortingVersionService::class)->action($actor, $plan, 'draft', [
             'expected_revision' => $plan->revision,
@@ -342,9 +350,9 @@ class PhilippinesLogisticsSeederTest extends TestCase
         $this->assertSame(2, $plan->versions()->count());
         $this->assertSame($published, $plan->versions()->whereKey($before['active_version_id'])->firstOrFail()->toArray());
         $postal = collect($repaired->activeVersion->mappings)->where('destination_type', 'postal_code');
-        $this->assertSame(['1018', '1200'], $postal->pluck('postal_code')->sort()->values()->all());
-        $this->assertCount(2, $postal->pluck('sorting_lane_id')->unique());
-        $this->assertSame('local', app(CheckoutRoutePlanner::class)->plan($hub, '1200')['status']);
+        $this->assertSame($this->ncrPostalCodes(['0091']), $postal->pluck('postal_code')->sort()->values()->all());
+        $this->assertCount(count($this->ncrPostalCodes(['0091'])), $postal->pluck('sorting_lane_id')->unique());
+        $this->assertSame('local', app(CheckoutRoutePlanner::class)->plan($hub, '0091')['status']);
         $this->seed(PhilippinesLogisticsSeeder::class);
         $this->assertSame($repaired->active_version_id, $plan->fresh()->active_version_id);
         $this->assertSame($draft, $plan->lanes()->get()->toArray());
@@ -356,7 +364,7 @@ class PhilippinesLogisticsSeederTest extends TestCase
         $actor = User::where('email', 'logistics.luzon01@example.com')->firstOrFail();
         $hub = $actor->logisticsOrganization->hub;
         $plan = SortingPlan::where('logistics_hub_id', $hub->id)->where('is_active', true)->firstOrFail();
-        HubServiceArea::create(['logistics_hub_id' => $hub->id, 'postal_code' => '1200',
+        HubServiceArea::create(['logistics_hub_id' => $hub->id, 'postal_code' => '0091',
             'is_active' => true, 'revision' => 1, 'created_by' => $actor->id]);
         $versions = app(SortingVersionService::class);
         $schedule = $versions->action($actor, $plan, 'schedule', [
@@ -372,7 +380,7 @@ class PhilippinesLogisticsSeederTest extends TestCase
         $repair->repair($hub, $warn);
         $this->assertSame($before, $plan->fresh()->toArray());
         $this->assertCount(1, $warnings);
-        $this->assertDatabaseMissing('sorting_lanes', ['logistics_hub_id' => $hub->id, 'code' => 'POSTAL-1200']);
+        $this->assertDatabaseMissing('sorting_lanes', ['logistics_hub_id' => $hub->id, 'code' => 'POSTAL-0091']);
         $versions->action($actor, $plan, 'cancel', [
             'expected_revision' => $plan->fresh()->revision, 'activation_id' => $schedule['activation']['id'],
         ], (string) Str::uuid());
@@ -386,7 +394,13 @@ class PhilippinesLogisticsSeederTest extends TestCase
         $this->assertSame($before, $plan->fresh()->toArray());
         $this->assertSame($mappings, $plan->lanes()->get()->toArray());
         $this->assertSame(1, $plan->versions()->count());
-        $this->assertDatabaseMissing('sorting_lanes', ['logistics_hub_id' => $hub->id, 'code' => 'POSTAL-1200']);
+        $this->assertDatabaseMissing('sorting_lanes', ['logistics_hub_id' => $hub->id, 'code' => 'POSTAL-0091']);
+    }
+
+    private function ncrPostalCodes(array $extra): array
+    {
+        return collect(RegionalPostalCatalog::forRegion('ncr'))->pluck('postal_code')
+            ->merge($extra)->sort()->values()->all();
     }
 
     private function seedNetwork(): void

@@ -90,9 +90,13 @@ class RegionalNetworkSeeder
             ]);
         }
 
-        $coverage = HubServiceArea::firstOrCreate([
-            'logistics_hub_id' => $hub->id, 'postal_code' => $definition['postal_code'],
-        ], ['is_active' => true, 'revision' => 1, 'created_by' => $actor->id]);
+        foreach (RegionalPostalCatalog::forRegion($definition['slug']) as $postal) {
+            HubServiceArea::firstOrCreate([
+                'logistics_hub_id' => $hub->id, 'postal_code' => $postal['postal_code'],
+            ], ['is_active' => true, 'revision' => 1, 'created_by' => $actor->id]);
+        }
+        $coverage = HubServiceArea::where('logistics_hub_id', $hub->id)
+            ->where('postal_code', $definition['postal_code'])->firstOrFail();
 
         app(RegionalPostalLaneSeeder::class)->repair($hub, $warn);
 
@@ -109,10 +113,9 @@ class RegionalNetworkSeeder
         }
 
         $local = HubServiceArea::where('logistics_hub_id', $hub->id)->where('is_active', true)
-            ->orderBy('postal_code')->get()->map(fn ($area, $index) => [$area, $this->lane(
-                $hub, $area->postal_code === $definition['postal_code'] ? 'LOCAL' : 'POSTAL-'.$area->postal_code,
-                'Local delivery '.$area->postal_code, SortingLaneType::Standard, $index + 1,
-            )]);
+            ->orderBy('postal_code')->get()->map(fn ($area, $index) => [$area,
+                app(RegionalPostalLaneSeeder::class)->laneFor($hub, $area->postal_code, $index + 1),
+            ]);
         $exception = $this->lane($hub, 'EXCEPTION', 'Exception review', SortingLaneType::Exception, $local->count() + 1);
         $outgoing = HubConnection::where('from_hub_id', $hub->id)->where('is_active', true)
             ->where('receiver_accepted', true)->whereHas('toHub.organization.user', fn ($q) => $q->where('status', 'active'))
