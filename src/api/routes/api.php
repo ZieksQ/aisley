@@ -579,6 +579,7 @@ Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', '
     Route::post('/linehaul/trips/{trip}/decision', [LinehaulTripController::class, 'decide'])->whereUuid('trip')->name('linehaul.trips.decision');
     Route::post('/linehaul/trips/{trip}/cancel', [LinehaulTripController::class, 'cancel'])->whereUuid('trip')->name('linehaul.trips.cancel');
     Route::post('/linehaul/trips/{trip}/depart', [LinehaulTripController::class, 'depart'])->whereUuid('trip')->name('linehaul.trips.depart');
+    Route::post('/linehaul/trips/{trip}/release', [LinehaulTripController::class, 'release'])->whereUuid('trip')->middleware('throttle:30,1')->name('linehaul.trips.release');
     Route::get('/linehaul/trips/{trip}/receiving', [LinehaulReceivingController::class, 'show'])->whereUuid('trip');
     Route::post('/linehaul/trips/{trip}/receiving/start', [LinehaulReceivingController::class, 'start'])->whereUuid('trip');
     Route::post('/linehaul/trips/{trip}/receiving/batches', [LinehaulReceivingController::class, 'batch'])->whereUuid('trip');
@@ -715,6 +716,8 @@ Route::prefix('v1/courier')->name('courier.')->middleware(['auth:sanctum', 'cour
         Route::post('/{conversation}/read', [OperationalConversationController::class, 'read'])->whereUuid('conversation')->name('read');
     });
     Route::get('/linehaul-trips', [CourierLinehaulTripController::class, 'index'])->name('linehaul-trips.index');
+    Route::post('/linehaul-trips/{trip}/depart', [CourierLinehaulTripController::class, 'depart'])->whereUuid('trip')->middleware('throttle:30,1')->name('linehaul-trips.depart');
+    Route::post('/linehaul-trips/{trip}/arrival', [CourierLinehaulTripController::class, 'arrival'])->whereUuid('trip')->middleware('throttle:30,1')->name('linehaul-trips.arrival');
     Route::get('/linehaul-trips/{trip}/route', [CourierLinehaulTripController::class, 'route'])->whereUuid('trip')->middleware('throttle:30,1')->name('linehaul-trips.route');
     Route::get('/account', [CourierAccountController::class, 'show'])->name('account.show');
     Route::patch('/account/profile', [CourierAccountController::class, 'updateProfile'])->name('account.profile.update');

@@ -205,7 +205,7 @@ class LinehaulService
                 'hop_id' => $item->shipment_route_hop_id,
                 'expected_revision' => $item->shipment_revision_reserved,
                 'expected_hop_revision' => $item->hop_revision_reserved,
-            ], (string) Str::uuid(), false, $id);
+            ], (string) Str::uuid(), false, $id, $trip->departed_by === $trip->driver_id ? $trip->driver_id : null);
         }
 
         return $this->projection(DB::table('linehaul_manifests')->where('id', $id)->first());

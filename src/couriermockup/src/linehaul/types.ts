@@ -2,6 +2,11 @@ export type LinehaulTrip = {
   id: string
   direction: 'outbound' | 'return'
   status: 'pending_acceptance' | 'scheduled' | 'rejected' | 'cancelled' | 'in_transfer' | 'receiving' | 'received'
+  revision: number
+  courier_can_depart: boolean
+  courier_can_report_arrival: boolean
+  released_for_departure_at: string | null
+  courier_arrived_at: string | null
   from_hub: { name: string | null }
   to_hub: { name: string | null }
   truck: { plate_number: string | null; make: string | null; model: string | null }

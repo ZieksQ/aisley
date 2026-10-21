@@ -3,6 +3,7 @@ import { Button } from '@aisley/ui'
 import { ApiError } from '../lib/api'
 import { getLinehaulTrips } from './api'
 import { LinehaulRouteMap } from './LinehaulRouteMap'
+import { LinehaulTripActions } from './LinehaulTripActions'
 import type { LinehaulTrip } from './types'
 
 function dateLabel(value: string | null) {
@@ -12,7 +13,7 @@ function dateLabel(value: string | null) {
 const statusGuidance: Record<LinehaulTrip['status'], string> = {
   pending_acceptance: 'Waiting for the destination hub to approve this transfer.',
   scheduled: 'Scheduled by Logistics. Check the departure time and assigned truck.',
-  in_transfer: 'Transfer in progress. The destination hub will confirm arrival and receive the load.',
+  in_transfer: 'Transfer in progress. Report your arrival at the destination hub; Logistics confirms receipt separately.',
   receiving: 'The destination hub is unloading and checking parcels.',
   received: 'Unloading closed. See the recorded outcome below.',
   rejected: 'The destination hub rejected this transfer.',
@@ -25,6 +26,7 @@ export function LinehaulTransferJobs({ token }: { token: string }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [refresh, setRefresh] = useState(0)
+  const [actionsBusy, setActionsBusy] = useState(false)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -55,9 +57,9 @@ export function LinehaulTransferJobs({ token }: { token: string }) {
       <div className="pickup-toolbar">
         <div>
           <h2 id="linehaul-heading">Linehaul transfer jobs</h2>
-          <p className="panel-description">Transfers assigned to you by Logistics. Logistics confirms departure and hub receiving.</p>
+          <p className="panel-description">Confirm departure and report arrival for your assigned transfers. Logistics releases the load and confirms receiving.</p>
         </div>
-        <Button className="min-h-10 rounded-md px-4 shadow-none" disabled={loading} isLoading={loading} onClick={() => setRefresh((value) => value + 1)} variant="outline">Refresh transfers</Button>
+        <Button className="min-h-10 rounded-md px-4 shadow-none" disabled={loading || actionsBusy} isLoading={loading} onClick={() => setRefresh((value) => value + 1)} variant="outline">Refresh transfers</Button>
       </div>
       {loading ? <p className="empty-state" role="status">Loading transfer jobs…</p> : null}
       {error ? <p className="error-message" role="alert">{error}</p> : null}
@@ -67,13 +69,13 @@ export function LinehaulTransferJobs({ token }: { token: string }) {
           <ul className="task-list" aria-label="Assigned linehaul transfers">
             {trips.map((trip) => (
               <li key={trip.id}>
-                <button className="task-row" type="button" aria-current={trip.id === selectedId ? 'true' : undefined} onClick={() => setSelectedId(trip.id)}>
+                <button className="task-row" type="button" disabled={actionsBusy} aria-current={trip.id === selectedId ? 'true' : undefined} onClick={() => setSelectedId(trip.id)}>
                   <span>
                     <strong>{trip.from_hub.name ?? 'Unknown hub'} → {trip.to_hub.name ?? 'Unknown hub'}</strong>
                     <span>{trip.direction === 'return' ? 'Return' : 'Outbound'} · {trip.parcel_count} parcels</span>
                     <span>{dateLabel(trip.scheduled_for)}</span>
                   </span>
-                  <span>{trip.status.replaceAll('_', ' ')}</span>
+                  <span>{trip.status === 'in_transfer' && trip.courier_arrived_at ? 'arrival reported' : trip.status.replaceAll('_', ' ')}</span>
                 </button>
               </li>
             ))}
@@ -82,8 +84,9 @@ export function LinehaulTransferJobs({ token }: { token: string }) {
             <div className="task-detail">
               <div className="linehaul-route">
                 <h3>{selected.from_hub.name ?? 'Unknown hub'} → {selected.to_hub.name ?? 'Unknown hub'}</h3>
-                <p>{statusGuidance[selected.status]}</p>
+                <p>{selected.status === 'in_transfer' && selected.courier_arrived_at ? 'Arrival reported. Wait for receiving Logistics to confirm the load.' : statusGuidance[selected.status]}</p>
               </div>
+              <LinehaulTripActions key={`actions:${selected.id}:${refresh}`} trip={selected} token={token} onBusyChange={setActionsBusy} onUpdated={(updated) => setTrips((current) => current.map((trip) => trip.id === updated.id ? updated : trip))} />
               <dl className="task-facts">
                 <div><dt>From</dt><dd>{selected.from_hub.name ?? 'Unknown hub'}</dd></div>
                 <div><dt>To</dt><dd>{selected.to_hub.name ?? 'Unknown hub'}</dd></div>

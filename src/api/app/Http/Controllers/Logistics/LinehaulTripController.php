@@ -3,14 +3,21 @@
 namespace App\Http\Controllers\Logistics;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\LinehaulTripConfirmationRequest;
 use App\Http\Requests\Logistics\ScheduleLinehaulReturnRequest;
 use App\Http\Requests\Logistics\ScheduleLinehaulTripRequest;
+use App\Services\Logistics\LinehaulReleaseService;
 use App\Services\Logistics\LinehaulTripService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class LinehaulTripController extends Controller
 {
+    public function release(LinehaulTripConfirmationRequest $request, string $trip, LinehaulReleaseService $service): JsonResponse
+    {
+        return response()->json(['data' => $service->release($request->user(), $trip, $request->validated('expected_revision'))])->header('Cache-Control', 'private, no-store');
+    }
+
     public function index(Request $request, LinehaulTripService $service): JsonResponse
     {
         return response()->json(['data' => $service->overview($request->user())])->header('Cache-Control', 'private, no-store');

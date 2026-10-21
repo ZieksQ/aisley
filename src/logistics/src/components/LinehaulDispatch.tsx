@@ -1,3 +1,4 @@
+import { LinehaulTripList } from './LinehaulTripList'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { FaArrowsRotate, FaTruckFast } from 'react-icons/fa6'
 import { FlatpickrInput } from './FlatpickrInput'
@@ -132,15 +133,18 @@ export function LinehaulDispatch() {
     }
   }
 
-  async function act(trip: LinehaulTrip, action: 'depart' | 'cancel') {
-    if (!window.confirm(action === 'depart' ? `Confirm the physical departure of ${trip.parcel_count} parcels?` : 'Cancel this pre-departure trip and release its reservations?')) return
+  async function act(trip: LinehaulTrip, action: 'depart' | 'cancel' | 'release') {
+    const confirmation = action === 'release'
+      ? `Confirm this truck and its ${trip.parcel_count} parcels are ready and released to the assigned driver? The driver will confirm actual departure.`
+      : action === 'depart' ? `Confirm the physical departure of ${trip.parcel_count} parcels?` : 'Cancel this pre-departure trip and release its reservations?'
+    if (!window.confirm(confirmation)) return
     setBusy(true)
     setError('')
     setNotice('')
     try {
       await csrf()
-      await requestWithTimeout(`/api/v1/logistics/linehaul/trips/${trip.id}/${action}`, { method: 'POST', body: JSON.stringify({ expected_revision: trip.revision }) })
-      setNotice(action === 'depart' ? 'Physical linehaul departure confirmed.' : 'Trip cancelled and reservations released.')
+      await requestWithTimeout(`/api/v1/logistics/linehaul/trips/${trip.id}/${action}`, { method: 'POST', body: JSON.stringify({ expected_revision: trip.revision, ...(action === 'release' ? { confirmation: true } : {}) }) })
+      setNotice(action === 'release' ? 'Truck released to the driver. Waiting for actual departure.' : action === 'depart' ? 'Physical linehaul departure confirmed.' : 'Trip cancelled and reservations released.')
       await load()
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'The linehaul trip could not be updated.')
@@ -188,6 +192,6 @@ export function LinehaulDispatch() {
       </aside>
     </div>
 
-    <section className={`${panel} mt-3 overflow-hidden`}><div className="border-b border-zinc-200 px-4 py-3 dark:border-white/10"><h3 className="font-semibold">Active outbound trips</h3></div>{active.length ? <ul className="divide-y divide-zinc-200 dark:divide-white/10">{active.map((trip) => <li className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm" key={trip.id}><div><p className="font-medium">{trip.to_hub.name}</p><p className="mt-1 text-xs text-zinc-500">{trip.truck.plate_number} · {trip.driver.name} · {trip.parcel_count}/{trip.capacity_snapshot} parcels</p><p className="mt-1 text-xs text-zinc-500">{manilaDate(trip.scheduled_for)} · {trip.status.replaceAll('_', ' ')}</p><p className="mt-1 text-xs">Stored lanes: {[...new Set(trip.parcels?.map((item) => item.sorting_assignment?.lane.code ?? 'Unknown legacy label'))].join(', ')}</p>{trip.lane_blocked ? <p role="status" className="mt-1 text-sm">Departure blocked: {trip.parcels?.filter((item) => item.lane?.operational_state !== 'open').map((item) => item.lane?.blocking_reason ?? 'Source lane unavailable').join('; ')}</p> : null}</div><div className="flex gap-2">{trip.can_depart ? <PrimaryButton disabled={busy} onClick={() => void act(trip, 'depart')}>Confirm departure</PrimaryButton> : null}{['pending_acceptance', 'scheduled'].includes(trip.status) ? <ActionButton disabled={busy} onClick={() => void act(trip, 'cancel')}>Cancel</ActionButton> : null}</div></li>)}</ul> : <p className="p-4 text-sm text-zinc-500">No active outbound company-truck trips.</p>}</section>
+    <LinehaulTripList trips={active} busy={busy} onAction={(trip, action) => void act(trip, action)} />
   </div>
 }

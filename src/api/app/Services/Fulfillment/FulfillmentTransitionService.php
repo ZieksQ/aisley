@@ -689,11 +689,11 @@ class FulfillmentTransitionService
     }
 
     /** Route-aware custody extension; transfer writes never project Order status or create tasks. */
-    public function transferAtHub(User $logistics, array $input, string $idempotencyKey, bool $arrival, ?string $manifestId = null): array
+    public function transferAtHub(User $logistics, array $input, string $idempotencyKey, bool $arrival, ?string $manifestId = null, ?string $linehaulCourierId = null): array
     {
         $requestHash = $this->hash(['operation' => $arrival ? 'arrival' : 'departure', ...$input]);
 
-        return DB::transaction(function () use ($logistics, $input, $idempotencyKey, $arrival, $requestHash, $manifestId): array {
+        return DB::transaction(function () use ($logistics, $input, $idempotencyKey, $arrival, $requestHash, $manifestId, $linehaulCourierId): array {
             $org = $this->logisticsOrganization($logistics);
             SortingLocks::hub($org->hub->id);
             // Hub lock serializes retries, including different parcels with the same actor/key.
@@ -778,6 +778,7 @@ class FulfillmentTransitionService
             $event = new ShipmentEvent([
                 'shipment_id' => $shipment->id,
                 'event_type' => $arrival ? 'hub_transfer_received' : 'hub_transfer_dispatched',
+                'performing_courier_id' => $linehaulCourierId,
                 'from_state' => $from, 'to_state' => $shipment->status->value,
                 'recorded_by_logistics_id' => $logistics->id, 'occurred_at' => now(), 'idempotency_key' => $idempotencyKey,
                 'correlation_id' => (string) Str::uuid(),

@@ -22,11 +22,14 @@ class LinehaulTrip extends Model
         'capacity_snapshot', 'parcel_count', 'rejection_reason', 'decided_at',
         'arrived_at', 'arrived_by', 'unloading_closed_at', 'unloading_closed_by', 'unloading_outcome',
         'departed_at', 'received_at', 'revision', 'idempotency_key', 'request_hash',
+        'released_for_departure_at', 'released_for_departure_by', 'departed_by', 'courier_arrived_at', 'courier_arrived_by',
     ];
 
     protected function casts(): array
     {
         return [
+            'released_for_departure_at' => 'immutable_datetime',
+            'courier_arrived_at' => 'immutable_datetime',
             'arrived_at' => 'immutable_datetime',
             'unloading_closed_at' => 'immutable_datetime',
             'unloading_outcome' => UnloadingOutcome::class,
