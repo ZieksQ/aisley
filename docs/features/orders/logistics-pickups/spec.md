@@ -170,3 +170,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - Snapshot-backed Orders must match the checkout-selected provider. CHECKOUT_LOGISTICS_MISMATCH rejects substitution; unavailable provider or frozen route holds pickup and preserves Customer COD.
 - If no organization can honor the snapshot, fulfillment enters a financial hold for resolution. The Customer shipping fee and COD remain unchanged.
 - The selected partner fulfills against the immutable quote; pickup selection does not recalculate Customer pricing.
+
+### Logistics presentation revision — 2026-10-23
+
+- Pickup schedules, schedule creation and detail use the shared Logistics blue/slate controls and surfaces, persistent filter labels, responsive rows and keyboard focus styles from `docs/design.md`. Existing filters, pagination, parcel limits, Courier availability, pickup windows, schedule lifecycle, document actions and request identity remain unchanged.

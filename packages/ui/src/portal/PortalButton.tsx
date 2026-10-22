@@ -1,6 +1,6 @@
-import type { ButtonHTMLAttributes } from 'react'
+import type { ComponentProps } from 'react'
 
-export type PortalButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+export type PortalButtonProps = ComponentProps<'button'> & {
   variant?: 'default' | 'primary' | 'ghost' | 'danger'
   isLoading?: boolean
   loadingLabel?: string

@@ -20,15 +20,15 @@ export function VersionMappings({ version, lanes, hubs }: {
   ]
   return <div className="space-y-4 text-sm">
 
-    <div role="region" aria-label="Preserved destinations table" tabIndex={0} className="max-h-64 overflow-auto border border-zinc-200 focus-visible:outline-2 dark:border-white/10">
+    <div role="region" aria-label="Preserved destinations table" tabIndex={0} className="max-h-64 overflow-auto border border-slate-200 focus-visible:outline-2 dark:border-slate-700">
 
       <table className="w-full text-left">
 
-        <caption className="border-b border-zinc-200 px-3 py-2 text-left font-medium dark:border-white/10">
+        <caption className="border-b border-slate-200 px-3 py-2 text-left font-medium dark:border-slate-700">
           Preserved destinations
         </caption>
 
-        <thead className="bg-zinc-50 dark:bg-white/5">
+        <thead className="bg-slate-50 dark:bg-white/5">
           <tr>
             <th scope="col" className="px-3 py-2">
               Destination
@@ -39,7 +39,7 @@ export function VersionMappings({ version, lanes, hubs }: {
           </tr>
         </thead>
 
-        <tbody className="divide-y divide-zinc-200 dark:divide-white/10">
+        <tbody className="divide-y divide-slate-200 dark:divide-white/10">
           {version.mappings.map((mapping) => <tr key={mapping.id}>
             <td className="break-words px-3 py-2">
               {destination(mapping)}
@@ -66,10 +66,10 @@ export function VersionMappings({ version, lanes, hubs }: {
         Mapping differences
       </h5>
 
-      <p className="text-zinc-600 dark:text-zinc-400">
+      <p className="text-slate-600 dark:text-slate-400">
         {differences.legacy_import ? 'Imported initial configuration.' : `${differences.added?.length ?? 0} added · ${differences.removed?.length ?? 0} removed · ${differences.changed?.length ?? 0} changed`}
       </p>
-      {changes.length ? <div role="region" aria-label="Mapping differences table" tabIndex={0} className="max-h-64 overflow-auto border border-zinc-200 focus-visible:outline-2 dark:border-white/10">
+      {changes.length ? <div role="region" aria-label="Mapping differences table" tabIndex={0} className="max-h-64 overflow-auto border border-slate-200 focus-visible:outline-2 dark:border-slate-700">
 
         <table className="w-full min-w-96 text-left">
 
@@ -77,7 +77,7 @@ export function VersionMappings({ version, lanes, hubs }: {
             Changes from the previous published version
           </caption>
 
-          <thead className="bg-zinc-50 dark:bg-white/5">
+          <thead className="bg-slate-50 dark:bg-white/5">
             <tr>
               {['Destination', 'Before', 'After', 'Change'].map((label) => <th key={label} scope="col" className="px-3 py-2">
                 {label}
@@ -85,7 +85,7 @@ export function VersionMappings({ version, lanes, hubs }: {
             </tr>
           </thead>
 
-          <tbody className="divide-y divide-zinc-200 dark:divide-white/10">
+          <tbody className="divide-y divide-slate-200 dark:divide-white/10">
             {changes.map((change) => <tr key={change.id}>
               <td className="px-3 py-2">
                 {change.destination}
@@ -104,7 +104,7 @@ export function VersionMappings({ version, lanes, hubs }: {
 
         </table>
 
-      </div> : <p className="text-zinc-600 dark:text-zinc-400">
+      </div> : <p className="text-slate-600 dark:text-slate-400">
         No mapping changes recorded.
       </p>}
 

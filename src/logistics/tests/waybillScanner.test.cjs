@@ -74,6 +74,19 @@ test('ignores QR codes that are not Aisley waybills', () => {
   assert.throws(() => decodeWaybillCanvas(createWaybillReader(), pixelCanvas(pixels, 240, 240)))
 })
 
+test('reads tracking-only 2D QRs and sorting-lane QRs through the same frame decoder', () => {
+  for (const payload of ['AWB-ABC123DEF456GH78', 'AISLEY:SORT-LANE:1:12345678-1234-4234-8234-123456789012']) {
+    const qr = new QRCodeWriter().encode(payload, BarcodeFormat.QR_CODE, 320, 320, new Map())
+    const pixels = new Uint8ClampedArray(320 * 320).fill(255)
+    for (let y = 0; y < 320; y++) for (let x = 0; x < 320; x++) if (qr.get(x, y)) pixels[y * 320 + x] = 0
+    const canvas = pixelCanvas(pixels, 320, 320)
+    assert.throws(() => decodeWaybillCanvas(createWaybillReader(), canvas, false))
+    const result = decodeWaybillCanvas(createWaybillReader(), canvas)
+    assert.equal(result.getText(), payload)
+    assert.equal(result.getBarcodeFormat(), BarcodeFormat.QR_CODE)
+  }
+})
+
 const { cameraErrorMessage, startWaybillCamera } = compiled.exports
 const { BrowserCodeReader, BrowserMultiFormatOneDReader } = require('@zxing/browser')
 

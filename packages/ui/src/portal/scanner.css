@@ -1,0 +1,92 @@
+.portal-scanner {
+  min-width: 0;
+  background: var(--portal-surface);
+  color: var(--portal-text);
+}
+.portal-scanner-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--portal-border);
+  padding: 1rem;
+}
+.portal-scanner-header h3 {
+  font-size: 1rem;
+  font-weight: 600;
+}
+.portal-scanner-header p {
+  margin-top: .25rem;
+  font-size: .75rem;
+}
+.portal-scanner-content {
+  min-height: 0;
+}
+.portal-scanner-expanded {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  height: 100dvh;
+  flex-direction: column;
+  overflow: auto;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.portal-scanner-expanded .portal-scanner-content {
+  flex: 1;
+  overflow: auto;
+}
+.portal-scanner-expanded video {
+  width: 100%;
+  height: min(62dvh, 40rem);
+  max-height: none;
+  aspect-ratio: auto;
+  object-fit: contain;
+}
+.portal-scanner-expanded .portal-scanner-placeholder {
+  min-height: clamp(6rem, 20dvh, 14rem);
+}
+.portal-scanner-footer {
+  flex-shrink: 0;
+  border-top: 1px solid var(--portal-border);
+}
+.portal-scanner-feedback {
+  flex-shrink: 0;
+  border-top: 1px solid var(--portal-border);
+  padding: 1rem 1.5rem;
+  background: var(--brand-tint);
+  color: var(--portal-accent);
+  font-size: .875rem;
+  font-weight: 500;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.portal-scanner-error {
+  color: #b91c1c;
+}
+.dark .portal-scanner-error {
+  color: #fca5a5;
+}
+
+.portal-scanner-placeholder {
+  display: grid;
+  min-height: 13rem;
+  place-items: center;
+  border: 1px dashed var(--portal-border);
+  border-radius: .5rem;
+  padding: 1.5rem;
+  background: var(--portal-page);
+  color: var(--portal-muted);
+  text-align: center;
+  font-size: .875rem;
+  line-height: 1.6;
+}
+.portal-scanner-placeholder svg {
+  color: var(--portal-accent);
+}
+.portal-scanner-placeholder p:first-of-type {
+  color: var(--portal-text);
+  font-weight: 500;
+}

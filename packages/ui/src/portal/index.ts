@@ -12,6 +12,7 @@ export {
 } from './DashboardMetricCard'
 export { IconButton, PortalField, PortalSection } from './PortalControls'
 export { PortalButton, type PortalButtonProps } from './PortalButton'
+export { PortalScanner } from './PortalScanner'
 export { ConfirmationDialog } from './ConfirmationDialog'
 export {
   PortalModal,

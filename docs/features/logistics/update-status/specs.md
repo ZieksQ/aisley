@@ -166,3 +166,9 @@ The API extension in `docs/features/logistics/hub-to-hub-routing/specs.md` imple
 ### References
 
 - Canonical: `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, `docs/domains/Logistics.md`, `docs/domains/Courier.md`, and `docs/features/shared/shipment-fulfillment/spec.md`.
+
+### Receive at hub scanner presentation — 2026-10-23
+
+- Receive at hub uses the shared Logistics blue/slate portal surfaces and controls, responsive scanner/manual-entry composition and explicit local-queue state, following `docs/design.md`.
+- Origin and trip receiving retain barcode/manual entry and add the shared full-screen scanner presentation with visible capture/verification/error feedback, Exit/Escape, keyboard focus containment and return to the toggle. Camera mounting, queued captures, partial synchronization, trip conditions and custody authority remain intact.
+- Code 128 and 2D QR decoding work through the same camera. AISLEY v1 waybill QRs and tracking-only `AWB-…` QRs resolve to the same tracking ID; unrelated QR content is ignored. Sorting additionally understands lane-label QRs. These are client capture changes; API bodies, authorization, idempotency and server verification remain unchanged.

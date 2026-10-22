@@ -42,7 +42,9 @@ export function decodeWaybillCanvas(reader: BrowserMultiFormatOneDReader, canvas
   } catch (error) {
     if (!allowQr || !(error instanceof NotFoundException || error instanceof ChecksumException || error instanceof FormatException)) throw error
     const qr = new QRCodeReader().decode(bitmap)
-    if (!/^AISLEY:WB:1:AWB-[A-Z0-9]+$/i.test(qr.getText())) throw new NotFoundException()
+    // Printed waybill QRs, tracking-only QRs and physical lane QRs are valid.
+    // Never forward arbitrary QR URLs or instructions into the receiving queue.
+    if (!/^(?:(?:AISLEY:WB:1:)?AWB-[A-Z0-9]+|AISLEY:SORT-LANE:1:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i.test(qr.getText())) throw new NotFoundException()
     return qr
   }
 }

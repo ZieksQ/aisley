@@ -62,6 +62,7 @@ function fixtures() {
   window.fetch = async (url, options = {}) => {
     const parsed = new URL(url, location.origin); const path = parsed.pathname
     const f = window.sortFixture
+    if (path.endsWith('/chat-notifications')) return json({ data: [], meta: { unread_count: 0 } })
     if (path.endsWith('/logistics/linehaul')) return json({ data: { service_areas: [], connections: [] } })
     if (!path.includes('/sorting') && !path.includes('/dispatch/') && !path.includes('/dashboard/queue') && !path.includes('/linehaul/trips')) return original(url, options)
     if (options.method && options.method !== 'GET') {
