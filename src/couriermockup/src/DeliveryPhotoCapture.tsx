@@ -1,11 +1,10 @@
 import { Button } from '@aisley/ui'
 import { useEffect, useRef, useState } from 'react'
 
-export function DeliveryPhotoCapture({ photo, onPhoto, busy, onSubmit, retrying }: {
+export function DeliveryPhotoCapture({ photo, onPhoto, busy, retrying }: {
   photo: File | null
   onPhoto: (photo: File | null) => void
   busy: boolean
-  onSubmit: () => void
   retrying: boolean
 }) {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
@@ -100,6 +99,5 @@ export function DeliveryPhotoCapture({ photo, onPhoto, busy, onSubmit, retrying 
       <Button className="min-h-10 rounded-md px-4 shadow-none" disabled={busy} onClick={() => { onPhoto(null); void openCamera() }} variant="outline">Retake photo</Button>
     </div> : null}
     {photo && photo.size >= 10 * 1024 * 1024 ? <p className="error-message" role="alert">Choose a photo under 10 MB.</p> : null}
-    <Button className="min-h-11 rounded-md px-4 shadow-none" disabled={busy || !photo || photo.size >= 10 * 1024 * 1024} onClick={onSubmit} variant="secondary">{busy ? 'Please wait…' : 'Send photo POD to Logistics'}</Button>
   </div>
 }

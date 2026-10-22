@@ -229,6 +229,6 @@ Idempotency-Key: <UUID header>
 - Logistics Pending/History/Approval settings views retain private photos, timestamps, correction reasons and reviewer/system attribution.
 - Flutter implementation and device acceptance statuses are unchanged; this revision documents API behavior, not external-client adoption.
 
-## Development mockup capture (2026-10-22)
+## Development mockup submission (2026-10-22)
 
-The development harness exposes **Take parcel photo**, rear-camera capture, preview/retake, and **Choose photo** fallback for eligible `out_for_delivery` tasks. Upload uses the existing private multipart POD contract; capture alone does not upload or complete delivery. The subsequent button is labelled **Delivered** and retains the same completion intent and Logistics review. External Flutter adoption/status is unchanged.
+The development harness exposes **Take parcel photo**, rear-camera capture, preview/retake and **Choose photo** fallback for eligible `out_for_delivery` tasks. Its single **Delivery** button requires a selected photo or current reusable uploaded proof and, for COD, known payable amount/currency plus explicit cash acknowledgment. One click uploads private multipart POD and submits the matching completion intent with a separate idempotency key. Capture alone does not upload or complete delivery. A saved photo is retained across completion failure; retry reuses the same completion key and does not upload it again. An uncertain completion response is reconciled through GET. Only the complete proof/intent pair enters Logistics delivery confirmations. The API and external Flutter two-step wire contract/adoption are unchanged.

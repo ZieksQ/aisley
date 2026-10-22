@@ -27,9 +27,9 @@ export function useDeliveryReview(view: 'pending' | 'history', query: string, pa
     pending.current = null
   }, [])
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (background = false) => {
     const current = ++generation.current
-    setLoading(true)
+    if (!background) setLoading(true)
     setError('')
     try {
       const response = await loadReviews(view, query, page)
@@ -63,6 +63,21 @@ export function useDeliveryReview(view: 'pending' | 'history', query: string, pa
       generation.current++
     }
   }, [load])
+  useEffect(() => {
+    if (view !== 'pending' || busy || attempt) return
+    const refresh = () => {
+      if (document.visibilityState === 'visible') void load(true)
+    }
+    window.addEventListener('focus', refresh)
+    document.addEventListener('visibilitychange', refresh)
+    const timer = window.setInterval(refresh, 30_000)
+    return () => {
+      window.removeEventListener('focus', refresh)
+      document.removeEventListener('visibilitychange', refresh)
+      window.clearInterval(timer)
+    }
+  }, [view, busy, attempt, load])
+
   useEffect(() => {
     let active = true
     let url: string | null = null
