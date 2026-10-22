@@ -15,21 +15,25 @@ export function useWaybillCamera(
     const abort = new AbortController()
     let stop: (() => void) | undefined
     let lastScan = ''
-    let lastScanAt = 0
+    let missedReads = 0
     void import('./waybillScanner').then(async ({ startWaybillCamera, cameraErrorMessage }) => {
       if (abort.signal.aborted) return
       try {
         const controls = await startWaybillCamera(video, (raw) => {
-          const now = Date.now()
-          if (raw === lastScan && now - lastScanAt < 1200) return
-          lastScan = raw
-          lastScanAt = now
+          const identity = raw.trim().replace(/^AISLEY:WB:\d+:/i, '').toUpperCase()
+          const repeated = identity === lastScan
+          // Decode speed varies by device. Reset only after complete barcode/QR misses.
+          lastScan = identity
+          missedReads = 0
+          if (repeated) return
           scan(raw)
         }, abort.signal, (error) => {
           if (!abort.signal.aborted) {
             console.error('Waybill frame decoding failed:', error)
             fail(cameraErrorMessage(error))
           }
+        }, () => {
+          if (++missedReads >= 2) lastScan = ''
         })
         stop = controls.stop
         if (abort.signal.aborted) stop()

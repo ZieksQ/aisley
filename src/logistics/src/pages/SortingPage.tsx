@@ -1,5 +1,5 @@
 import '../features/hubOperations/workspaces.css'
-import { PortalButton, PortalScanner, PortalSkeleton } from '@aisley/ui/portal'
+import { PortalButton, PortalScanner, PortalSkeleton, type ScannerFeedback } from '@aisley/ui/portal'
 import { ParcelLaneMove } from '../components/ParcelLaneMove'
 import { useWaybillCamera } from '../lib/useWaybillCamera'
 import Dexie from 'dexie'
@@ -50,6 +50,7 @@ export function SortingPage() {
   const sessionAttempt = useRef<{ path: string; body: string; key: string } | null>(null)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
+  const [scanFeedback, setScanFeedback] = useState<ScannerFeedback>()
   const [itemSearch, setItemSearch] = useState('')
   const [itemStatus, setItemStatus] = useState('')
   const helpDialog = useRef<HTMLDialogElement>(null)
@@ -110,6 +111,7 @@ export function SortingPage() {
       setManualReference('')
       setError('')
       setNotice(item.reference + ' · Pending verification. Retain the parcel in the pending area until the API confirms its lane.')
+      setScanFeedback({ id: crypto.randomUUID(), message: `${item.reference} scanned · Pending verification` })
       await loadCaptures(context, session?.id)
     } catch (caught) {
       setError(caught instanceof Dexie.ConstraintError ? item.reference + ' is already waiting to sync.' : 'The sorting capture could not be saved on this device.')
@@ -267,8 +269,16 @@ export function SortingPage() {
       <div className="space-y-5">
         <PortalScanner
           title="Barcode & QR scanner"
-          feedback={notice}
+          scanFeedback={scanFeedback}
+          onExpand={() => setScannerOpen(true)}
           error={error}
+          fullscreenControls={sessionUncertain ? (
+            <PortalButton isLoading={busy} disabled={!online} onClick={() => void submitSessionAction()}>Verify session action</PortalButton>
+          ) : session ? (
+            <PortalButton disabled={!online || busy || captures.length > 0 || session.counts.pending > 0} onClick={() => void closeSession()}>End session</PortalButton>
+          ) : (
+            <PortalButton variant="primary" isLoading={busy} disabled={!online || !overview?.lanes.some((lane) => lane.is_active && lane.type === 'standard') || !overview?.waiting_received} onClick={() => void startSession()}>Start session</PortalButton>
+          )}
           controls={
             <PortalButton onClick={() => setScannerOpen((value) => !value)}>
               {scannerOpen ? <FaStop aria-hidden="true" /> : <FaCamera aria-hidden="true" />}
@@ -290,10 +300,10 @@ export function SortingPage() {
             </form>
           }
         >
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3 dark:border-slate-700"><p className="portal-secondary text-sm">{scannerMode}</p><PortalButton onClick={() => setAutoRoute((value) => !value)}>{autoRoute ? 'Use manual lane' : 'Use plan routing'}</PortalButton></div>
-          {scannerOpen ? <div><video ref={videoRef} className="max-h-64 w-full bg-black object-contain" autoPlay muted playsInline /><p className="px-3 py-2 text-xs text-slate-600 dark:text-slate-400">Move close enough for the bars to fill most of the preview while keeping both ends and white margins visible. The waybill QR also works.</p></div> : <div className="portal-scanner-placeholder"><div><FaBarcode className="mx-auto mb-2 text-2xl" aria-hidden="true" /><p>{autoRoute ? 'Scan the tracking barcode or waybill QR for automatic lane routing.' : 'Scan a Code 128 lane label, then a tracking barcode or waybill QR.'}</p></div></div>}
+          <div className="portal-scanner-context flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3 dark:border-slate-700"><p className="portal-secondary text-sm">{scannerMode}</p><PortalButton onClick={() => setAutoRoute((value) => !value)}>{autoRoute ? 'Use manual lane' : 'Use plan routing'}</PortalButton></div>
+          <div className="portal-scanner-camera">{scannerOpen ? <div><video ref={videoRef} className="max-h-64 w-full bg-black object-contain" autoPlay muted playsInline /><p className="portal-scanner-hint px-3 py-2 text-xs text-slate-600 dark:text-slate-400">Move close enough for the bars to fill most of the preview while keeping both ends and white margins visible. The waybill QR also works.</p></div> : <div className="portal-scanner-placeholder"><div><FaBarcode className="mx-auto mb-2 text-2xl" aria-hidden="true" /><p>{autoRoute ? 'Scan the tracking barcode or waybill QR for automatic lane routing.' : 'Scan a Code 128 lane label, then a tracking barcode or waybill QR.'}</p></div></div>}</div>
 
-          {!autoRoute && selectedLane?.type === 'exception' ? <div className="grid gap-2 border-t border-slate-200 px-4 py-4 dark:border-slate-700 sm:grid-cols-2"><label className="text-xs font-medium">Exception<select className={'portal-input  mt-1'} onChange={(event) => setExceptionCode(event.target.value as PendingSortCapture['exceptionCode'])} value={exceptionCode}><option value="damaged">Damaged</option><option value="unreadable_label">Unreadable label</option><option value="destination_unclear">Destination unclear</option><option value="other">Other</option></select></label><label className="text-xs font-medium">Reason{exceptionCode === 'other' ? ' *' : ''}<input className={'portal-input  mt-1'} maxLength={500} onChange={(event) => setExceptionReason(event.target.value)} placeholder="Optional context" value={exceptionReason} /></label></div> : null}
+          {!autoRoute && selectedLane?.type === 'exception' ? <div className="portal-scanner-context grid gap-2 border-t border-slate-200 px-4 py-4 dark:border-slate-700 sm:grid-cols-2"><label className="text-xs font-medium">Exception<select className={'portal-input  mt-1'} onChange={(event) => setExceptionCode(event.target.value as PendingSortCapture['exceptionCode'])} value={exceptionCode}><option value="damaged">Damaged</option><option value="unreadable_label">Unreadable label</option><option value="destination_unclear">Destination unclear</option><option value="other">Other</option></select></label><label className="text-xs font-medium">Reason{exceptionCode === 'other' ? ' *' : ''}<input className={'portal-input  mt-1'} maxLength={500} onChange={(event) => setExceptionReason(event.target.value)} placeholder="Optional context" value={exceptionReason} /></label></div> : null}
         </PortalScanner>
 
         <section className={`portal-section overflow-hidden`}>

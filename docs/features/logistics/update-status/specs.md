@@ -172,3 +172,10 @@ The API extension in `docs/features/logistics/hub-to-hub-routing/specs.md` imple
 - Receive at hub uses the shared Logistics blue/slate portal surfaces and controls, responsive scanner/manual-entry composition and explicit local-queue state, following `docs/design.md`.
 - Origin and trip receiving retain barcode/manual entry and add the shared full-screen scanner presentation with visible capture/verification/error feedback, Exit/Escape, keyboard focus containment and return to the toggle. Camera mounting, queued captures, partial synchronization, trip conditions and custody authority remain intact.
 - Code 128 and 2D QR decoding work through the same camera. AISLEY v1 waybill QRs and tracking-only `AWB-…` QRs resolve to the same tracking ID; unrelated QR content is ignored. Sorting additionally understands lane-label QRs. These are client capture changes; API bodies, authorization, idempotency and server verification remain unchanged.
+
+### Camera-first receiving full screen — 2026-10-23
+
+- Origin and trip receiving use an edge-to-edge camera preview, central barcode/QR guide and overlay Exit/camera controls. Entering starts the camera and attempts browser full screen; a viewport fallback remains available. Exiting keeps the camera/capture state. Trip condition/manual-entry controls remain in the ordinary scanner view.
+- A newly accepted local capture shows plain green bottom-left text with “Pending verification” and a short chime, expiring after five seconds. Errors stay distinguishable and never play success sounds. Re-entry, duplicate rejection and generic synchronization messages do not replay the chime; sound restrictions never block the queue. All server verification, trip conditions, custody and retry contracts remain unchanged.
+
+- Continuous readings of the same held parcel (including equivalent waybill QR/barcode values) do not replace accepted capture feedback with duplicate errors or replay sounds. A different code, confirmed label removal or restarting the camera allows a deliberate retry. Manual entry and server duplicate/replay rules remain unchanged.

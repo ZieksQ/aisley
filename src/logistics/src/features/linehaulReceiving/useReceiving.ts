@@ -10,6 +10,7 @@ export function useReceiving(trip: string, scope: string) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
+  const [scanFeedback, setScanFeedback] = useState<{ id: string; message: string }>()
   const locked = useRef(false)
   const active = useRef(true)
 
@@ -101,6 +102,7 @@ export function useReceiving(trip: string, scope: string) {
       })
       setError('')
       setNotice(`${reference} captured locally; awaiting server verification.`)
+      setScanFeedback({ id: crypto.randomUUID(), message: `${reference} scanned · Pending verification` })
       await reloadQueue()
       void sync()
     } catch {
@@ -151,5 +153,5 @@ export function useReceiving(trip: string, scope: string) {
     }
   }, [scope, refresh, sync])
 
-  return { detail, pending, busy, online, error, notice, capture, sync, action, refresh }
+  return { detail, pending, busy, online, error, notice, scanFeedback, capture, sync, action, refresh }
 }

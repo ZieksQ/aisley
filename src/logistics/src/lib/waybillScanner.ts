@@ -82,6 +82,7 @@ export function scanWaybillVideo(
   video: HTMLVideoElement,
   onScan: (raw: string) => void,
   onError: (error: unknown) => void,
+  onMiss: () => void = () => {},
 ): IScannerControls {
   const reader = createWaybillReader()
   let stopped = false
@@ -91,6 +92,7 @@ export function scanWaybillVideo(
   const stop = () => { stopped = true; clearTimeout(timer); canvas = undefined }
   const loop = () => {
     if (stopped) return
+    let checkedAllFormats = false
     try {
       if (video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) {
         if (!canvas || canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
@@ -100,10 +102,12 @@ export function scanWaybillVideo(
         if (!context) throw new Error('Camera frame canvas unavailable')
         BrowserCodeReader.drawImageOnCanvas(context, video)
         // A QR attempt every third frame keeps the full-size Code 128 scan responsive.
-        const result = decodeWaybillCanvas(reader, canvas, ++frames % 3 === 0)
+        checkedAllFormats = ++frames % 3 === 0
+        const result = decodeWaybillCanvas(reader, canvas, checkedAllFormats)
         onScan(result.getText())
       }
     } catch (error) {
+      if (checkedAllFormats && (error instanceof NotFoundException || error instanceof ChecksumException || error instanceof FormatException)) onMiss()
       if (!(error instanceof NotFoundException || error instanceof ChecksumException || error instanceof FormatException)
         && errorName(error) !== 'InvalidStateError') {
         stop()
@@ -124,6 +128,7 @@ export async function startWaybillCamera(
   onScan: (raw: string) => void,
   signal: AbortSignal,
   onError: (error: unknown) => void = () => {},
+  onMiss: () => void = () => {},
 ): Promise<IScannerControls> {
   signal.throwIfAborted()
   if (!window.isSecureContext) throw new DOMException('HTTPS required', 'InsecureContextError')
@@ -190,7 +195,7 @@ export async function startWaybillCamera(
     }, (error) => {
       stop()
       if (!signal.aborted) onError(error)
-    })
+    }, onMiss)
     return { stop }
   } catch (error) {
     stop()

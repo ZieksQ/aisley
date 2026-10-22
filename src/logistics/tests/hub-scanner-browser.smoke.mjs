@@ -7,11 +7,11 @@ import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 const root = process.cwd()
-const out = resolve(root, 'node_modules/.cache/logistics-redesign/screenshots')
+const out = resolve(root, 'node_modules/.cache/logistics-fullscreen/screenshots')
 mkdirSync(out, { recursive: true })
 const temp = resolve(root, '.tmp')
 mkdirSync(temp, { recursive: true })
-const profile = resolve(root, 'node_modules/.cache/logistics-redesign/camera-profile')
+const profile = resolve(root, 'node_modules/.cache/logistics-fullscreen/camera-profile')
 rmSync(profile, { recursive: true, force: true })
 const browser = spawn(process.env.CHROMIUM_BINARY ?? '/opt/brave.com/brave/brave', [
   '--headless=new', '--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage', '--disable-breakpad',
@@ -65,14 +65,23 @@ function installFixtures() {
       automatic_routing: { lane, reason: 'matched', postal_code: '6000' },
     })),
   }
-  const json = (data) => new Response(JSON.stringify(data), { headers: { 'Content-Type': 'application/json' } })
-  window.reviewFixture = { writes: [] }
+  const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } })
+  const mode = sessionStorage.getItem('camera-session-mode')
+  window.reviewFixture = { writes: [], session: mode === 'ready' || mode === 'uncertain' ? null : session, mode, confirmations: 0 }
+  if (mode === 'complete') {
+    window.reviewFixture.session = { ...session, counts: { pending: 0, sorted: 3, exception: 0 }, items: [] }
+  }
+  window.confirm = () => { window.reviewFixture.confirmations++; return true }
   window.fetch = async (url, options = {}) => {
     const path = new URL(url, location.origin).pathname
     if (!path.startsWith('/api/') && !path.startsWith('/sanctum/')) return original(url, options)
     if (path.endsWith('/csrf-cookie')) return new Response(null, { status: 204 })
     if (options.method && options.method !== 'GET') {
-      window.reviewFixture.writes.push({ path, method: options.method })
+      const f = window.reviewFixture
+      f.writes.push({ path, method: options.method, body: options.body, key: new Headers(options.headers).get('Idempotency-Key') })
+      if (f.mode === 'uncertain' && f.writes.length === 1) return json({ message: 'Session outcome unavailable.' }, 503)
+      if (path.endsWith('/sessions')) f.session = session
+      if (path.endsWith('/close')) f.session = null
       return json({ data: {} })
     }
     if (path.endsWith('/auth/me')) return json({ logistics: user })
@@ -81,7 +90,7 @@ function installFixtures() {
     if (path.endsWith('/notifications/unread-count')) return json({ data: { unread_count: 0 } })
     if (path.endsWith('/sorting/exceptions')) return json({ data: [], total: 0, current_page: 1, last_page: 1 })
     if (path.endsWith('/sorting')) return json({ data: {
-      context, session, lanes: [lane], waiting_received: 0, session_limit: 100,
+      context, session: window.reviewFixture.session, lanes: [lane], waiting_received: 3, session_limit: 100,
       automatic_sorting: { enabled: true, active_plan: plan, exception_lane: null },
     } })
     return json({ data: [], meta: { unread_count: 0 } })
@@ -98,8 +107,18 @@ function qrSvg(payload) {
 }
 const php = String.raw`require 'src/api/vendor/autoload.php'; echo (new Picqer\Barcode\BarcodeGeneratorSVG)->getBarcode($argv[1], Picqer\Barcode\BarcodeGeneratorSVG::TYPE_CODE_128, 2, 96);`
 const barSvg = execFileSync('php', ['-r', php, 'AWB-BAR123456'], { encoding: 'utf8' })
-const frames = { qr: qrSvg('AISLEY:WB:1:AWB-QR123456'), raw: qrSvg('AWB-RAW123456'), barcode: barSvg }
+const frames = { alias: qrSvg('AWB-QR123456'), blank: '<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480"><rect width="640" height="480" fill="#64748b"/></svg>', qr: qrSvg('AISLEY:WB:1:AWB-QR123456'), raw: qrSvg('AWB-RAW123456'), barcode: barSvg }
 function installCamera(frames) {
+  window.scanSounds = []
+  const Audio = window.AudioContext
+  window.AudioContext = class extends Audio {
+    createOscillator() {
+      const oscillator = super.createOscillator()
+      const start = oscillator.start.bind(oscillator)
+      oscillator.start = (...args) => { window.scanSounds.push(oscillator.frequency.value); return start(...args) }
+      return oscillator
+    }
+  }
   let image = new Image()
   window.showScanFrame = async (name) => { image = new Image(); image.src = 'data:image/svg+xml;base64,' + btoa(frames[name]); await image.decode() }
   navigator.mediaDevices.getUserMedia = async () => {
@@ -120,7 +139,7 @@ try {
   const { sessionId } = await send('Target.attachToTarget', { targetId, flatten: true })
   const cdp = (method, params = {}) => send(method, params, sessionId)
   async function evaluate(expression) {
-    const result = await cdp('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true })
+    const result = await cdp('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true, userGesture: true })
     if (result.exceptionDetails) throw Error(JSON.stringify(result.exceptionDetails))
     return result.result.value
   }
@@ -140,17 +159,47 @@ try {
     await evaluate(`Object.defineProperty(navigator,'onLine',{value:false,configurable:true}); window.dispatchEvent(new Event('offline')); document.querySelector('button[aria-label="Full screen scanner"]').click()`)
     await until('document.querySelector(".portal-scanner-expanded")')
     assert.equal(await evaluate('document.activeElement.getAttribute("aria-label")'),'Exit full screen scanner')
+    await until('window.testScanStream?.active')
     const refs={qr:'AWB-QR123456',barcode:'AWB-BAR123456',raw:'AWB-RAW123456'}
-    await evaluate(`window.showScanFrame('qr'); Array.from(document.querySelectorAll('.portal-scanner-expanded button')).find(b=>b.textContent.trim()==='Start camera').click()`)
+    await evaluate(`void (window.initialVideo = document.querySelector('.portal-scanner-expanded video'))`)
+    const bounds = await evaluate(`(() => { const r = window.initialVideo.getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height, viewportWidth: innerWidth, viewportHeight: innerHeight, fit: getComputedStyle(window.initialVideo).objectFit } })()`)
+    assert.equal(bounds.x, 0); assert.equal(bounds.y, 0)
+    assert.equal(bounds.width, bounds.viewportWidth); assert.equal(bounds.height, bounds.viewportHeight)
+    assert.equal(bounds.fit, 'cover')
+    assert.equal(await evaluate(`getComputedStyle(document.querySelector('.portal-scanner-footer') ?? document.querySelector('.portal-scanner-title')).display`), 'none')
     for(const [name,reference] of Object.entries(refs)) {
+      if (name === 'barcode') {
+        await cdp('Emulation.setDeviceMetricsOverride', { width: 844, height: 390, deviceScaleFactor: 1, mobile: true })
+        assert.equal(await evaluate(`(() => { const r = window.initialVideo.getBoundingClientRect(); return r.x === 0 && r.y === 0 && r.width === innerWidth && r.height === innerHeight })()`), true, 'camera continues covering the viewport after landscape rotation')
+      }
       await evaluate(`window.showScanFrame(${JSON.stringify(name)})`)
       await until(`document.querySelector('.portal-scanner-feedback')?.innerText.includes(${JSON.stringify(reference)}) && document.querySelector('.portal-scanner-feedback')?.innerText.includes('Pending verification') && !document.querySelector('.portal-scanner-error')`)
+      const notice = await evaluate(`(() => { const p = document.querySelector('.portal-scanner-success'); const r = p.getBoundingClientRect(); const s = getComputedStyle(p); const container = document.querySelector('.portal-scanner-feedback'); return { left: r.left, bottom: r.bottom, viewportHeight: innerHeight, color: s.color, background: getComputedStyle(container).backgroundColor } })()`)
+      assert.ok(notice.left <= 24 && notice.viewportHeight - notice.bottom <= 70, 'notification stays bottom left')
+      assert.equal(notice.color, 'rgb(134, 239, 172)')
+      assert.equal(notice.background, 'rgba(0, 0, 0, 0)')
+      await until(`window.scanSounds.length === ${(Object.keys(refs).indexOf(name) + 1) * 2}`)
       assert.equal(await evaluate('window.testScanStream.active'),true,'camera stays mounted and active in fullscreen')
+      if (name === 'qr') {
+        await evaluate(`window.showScanFrame('alias')`)
+        const held = await evaluate(`new Promise(resolve => setTimeout(() => resolve({ error: Boolean(document.querySelector('.portal-scanner-error')), sounds: window.scanSounds.length }), 1800))`)
+        assert.deepEqual(held, { error: false, sounds: 2 }, 'holding one label does not replace success with a duplicate error or repeat the chime')
+      }
+      await evaluate(`window.showScanFrame('blank')`)
       const screenshot = await cdp('Page.captureScreenshot', { format: 'png' })
       writeFileSync(resolve(out, `camera-${path.slice(1)}-${name}.png`), Buffer.from(screenshot.data, 'base64'))
       console.log(path,name,'captured with fullscreen notification')
     }
     assert.equal(await evaluate('window.reviewFixture.writes.length'),0,'offline scan cannot commit custody')
+    assert.deepEqual(await evaluate('window.scanSounds'), [880, 1174, 880, 1174, 880, 1174], 'one chime per accepted capture')
+    await evaluate(`document.querySelector('button[aria-label="Exit full screen scanner"]').click()`)
+    await until('!document.querySelector(".portal-scanner-expanded")')
+    assert.equal(await evaluate('document.querySelector(".portal-scanner-camera video") === window.initialVideo && window.testScanStream.active'), true, 'exit preserves live camera')
+    await evaluate(`document.querySelector('button[aria-label="Full screen scanner"]').click()`)
+    await until('document.querySelector(".portal-scanner-expanded")')
+    assert.equal(await evaluate('document.querySelector(".portal-scanner-expanded video") === window.initialVideo'), true, 're-entry preserves camera node')
+    assert.equal(await evaluate('document.querySelector(".portal-scanner-success") === null'), true, 'old success is not replayed on re-entry')
+    assert.equal(await evaluate('window.scanSounds.length'), 6, 're-entry does not replay sound')
     await evaluate(`Array.from(document.querySelectorAll('.portal-scanner-expanded button')).find(b=>b.textContent.trim()==='Stop camera').click()`)
     await until('window.testScanStream.getVideoTracks().every(t=>t.readyState === "ended")')
     await key('Escape','Escape',27)
@@ -158,6 +207,33 @@ try {
     assert.equal(await evaluate('document.activeElement.getAttribute("aria-label")'),'Full screen scanner')
     assert.equal(await evaluate('document.body.style.overflow'),'')
     console.log(path,'Escape, focus restore and stopped media tracks passed')
+  }
+  // Remove only synthetic sorting captures before exercising online session controls.
+  await evaluate(`new Promise((resolve, reject) => { const request = indexedDB.open('aisley-logistics-sorting'); request.onsuccess = () => { const db = request.result; const tx = db.transaction('captures', 'readwrite'); tx.objectStore('captures').clear(); tx.oncomplete = () => { db.close(); resolve(true) }; tx.onerror = reject }; request.onerror = reject })`)
+  const button = (text) => `Array.from(document.querySelectorAll('.portal-scanner-expanded button')).find(b => b.textContent.trim() === ${JSON.stringify(text)})`
+  for (const mode of ['ready', 'complete', 'uncertain']) {
+    await evaluate(`sessionStorage.setItem('camera-session-mode', ${JSON.stringify(mode)})`)
+    await cdp('Page.navigate', { url: (process.env.HUB_ORIGIN ?? 'http://127.0.0.1:15176') + '/sorting' })
+    await until(`document.querySelector('button[aria-label="Full screen scanner"]')`)
+    await evaluate(`document.querySelector('button[aria-label="Full screen scanner"]').click()`)
+    const action = mode === 'complete' ? 'End session' : 'Start session'
+    await until(`${button(action)} && !${button(action)}.disabled`)
+    await evaluate(`${button(action)}.click()`)
+    if (mode === 'uncertain') {
+      await until(button('Verify session action'))
+      await evaluate(`${button('Verify session action')}.click()`)
+      await until('window.reviewFixture.writes.length === 2')
+      assert.deepEqual(await evaluate('window.reviewFixture.writes[0]'), await evaluate('window.reviewFixture.writes[1]'), 'uncertain session retry keeps identity')
+    }
+    await until(button(mode === 'complete' ? 'Start session' : 'End session'))
+    assert.ok(await evaluate('Boolean(window.reviewFixture.writes[0].key)'), 'session action has idempotency key')
+    if (mode === 'complete') {
+      assert.equal(await evaluate('window.reviewFixture.confirmations'), 1)
+      assert.deepEqual(await evaluate('JSON.parse(window.reviewFixture.writes[0].body)'), { expected_revision: 1, carry_over_exceptions: true })
+    }
+    assert.equal(await evaluate('document.querySelector(".portal-scanner-expanded") !== null'), true, 'session change preserves full screen')
+    assert.equal(await evaluate('window.scanSounds.length'), 0, 'session actions never play parcel sounds')
+    console.log('Fullscreen session action and guards passed:', mode)
   }
   assert.deepEqual(browserErrors, [], 'No runtime errors')
   console.log('Real browser camera frames: Code 128, waybill QR and tracking-only QR pass on both full-screen scanners.')

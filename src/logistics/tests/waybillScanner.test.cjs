@@ -324,3 +324,35 @@ test('camera captures a waybill QR after Code 128 attempts miss', async (t) => {
   assert.deepEqual(errors, [])
   assert.equal(fixture.stopped(), 0)
 })
+
+test('only complete barcode and QR misses signal label removal', async (t) => {
+  const payload = 'AISLEY:WB:1:AWB-ABC123DEF456GH78'
+  const qr = new QRCodeWriter().encode(payload, BarcodeFormat.QR_CODE, 240, 240, new Map())
+  const pixels = new Uint8ClampedArray(240 * 240).fill(255)
+  for (let y = 0; y < 240; y++) for (let x = 0; x < 240; x++) if (qr.get(x, y)) pixels[y * 240 + x] = 0
+  const fixture = cameraFixture(t, async () => fixture.stream)
+  fixture.video.videoWidth = 240
+  fixture.video.videoHeight = 240
+  let frame = pixelCanvas(pixels, 240, 240)
+  const originalCanvas = BrowserCodeReader.createCaptureCanvas
+  BrowserCodeReader.createCaptureCanvas = () => ({ width: 240, height: 240, getContext: (...args) => frame.getContext(...args) })
+  t.after(() => { BrowserCodeReader.createCaptureCanvas = originalCanvas })
+  let scanned, removed
+  const firstScan = new Promise((resolve) => { scanned = resolve })
+  const labelRemoved = new Promise((resolve) => { removed = resolve })
+  let misses = 0
+  const controls = await startWaybillCamera(fixture.video, () => scanned(), new AbortController().signal,
+    (error) => assert.fail(error), () => { if (++misses === 2) removed() })
+  t.after(() => controls.stop())
+  function timeout() {
+    return new Promise((_, reject) => {
+      const timer = setTimeout(() => reject(new Error('Camera did not report scan/removal')), 20000)
+      t.after(() => clearTimeout(timer))
+    })
+  }
+  await Promise.race([firstScan, timeout()])
+  assert.equal(misses, 0, 'Code 128-only misses must not hide a visible QR')
+  frame = pixelCanvas(new Uint8ClampedArray(240 * 240).fill(255), 240, 240)
+  await Promise.race([labelRemoved, timeout()])
+  assert.equal(misses, 2, 'Two complete empty-frame checks permit a deliberate rescan')
+})

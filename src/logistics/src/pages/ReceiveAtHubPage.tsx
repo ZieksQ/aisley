@@ -1,5 +1,5 @@
 import '../features/hubOperations/workspaces.css'
-import { PortalButton, PortalScanner } from '@aisley/ui/portal'
+import { PortalButton, PortalScanner, type ScannerFeedback } from '@aisley/ui/portal'
 import { Link, useSearchParams } from 'react-router-dom'
 import { ReceivingWorkspace } from '../features/linehaulReceiving/ReceivingWorkspace'
 import { useWaybillCamera } from '../lib/useWaybillCamera'
@@ -43,6 +43,7 @@ function OriginReceiving() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
+  const [scanFeedback, setScanFeedback] = useState<ScannerFeedback>()
   const [online, setOnline] = useState(navigator.onLine)
   const videoRef = useRef<HTMLVideoElement>(null)
   const lastAutoSyncBatch = useRef('')
@@ -60,6 +61,7 @@ function OriginReceiving() {
     try {
       await receivingDb.receipts.add({ id: crypto.randomUUID(), reference, scannedAt: new Date().toISOString(), source })
       setNotice(`${reference} scanned · Pending verification. Saved on this device until synced.`)
+      setScanFeedback({ id: crypto.randomUUID(), message: `${reference} scanned · Pending verification` })
       setError('')
       setManualReference('')
       await loadReceipts()
@@ -126,9 +128,9 @@ function OriginReceiving() {
     {notice ? <p className="mt-4 border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-200" role="status">{notice}</p> : null}
 
     <div className="hub-receiving-grid">
-      <PortalScanner title="Barcode & QR scanner" feedback={notice} error={error} controls={<PortalButton onClick={() => setScannerOpen((value) => !value)}>{scannerOpen ? 'Stop camera' : 'Start camera'}</PortalButton>}>
-        <div className="p-4">
-          {scannerOpen ? <><video ref={videoRef} className="aspect-video max-h-64 w-full bg-black object-contain" autoPlay muted playsInline /><p className="portal-secondary mt-2 text-xs">Keep the full barcode or QR code in view. Both formats use the same scanner.</p></> : <div className="portal-scanner-placeholder"><div><FaBarcode className="mx-auto mb-3 text-3xl" aria-hidden="true" /><p>Ready to receive parcels</p><p className="mt-1 text-xs">Start the camera to scan a barcode or 2D QR code.</p></div></div>}
+      <PortalScanner title="Barcode & QR scanner" scanFeedback={scanFeedback} error={error} onExpand={() => setScannerOpen(true)} controls={<PortalButton onClick={() => setScannerOpen((value) => !value)}>{scannerOpen ? 'Stop camera' : 'Start camera'}</PortalButton>}>
+        <div className="portal-scanner-camera p-4">
+          {scannerOpen ? <><video ref={videoRef} className="aspect-video max-h-64 w-full bg-black object-contain" autoPlay muted playsInline /><p className="portal-scanner-hint portal-secondary mt-2 text-xs">Keep the full barcode or QR code in view. Both formats use the same scanner.</p></> : <div className="portal-scanner-placeholder"><div><FaBarcode className="mx-auto mb-3 text-3xl" aria-hidden="true" /><p>Ready to receive parcels</p><p className="mt-1 text-xs">Start the camera to scan a barcode or 2D QR code.</p></div></div>}
         </div>
       </PortalScanner>
 

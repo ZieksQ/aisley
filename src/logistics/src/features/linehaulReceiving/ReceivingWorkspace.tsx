@@ -16,7 +16,7 @@ export function ReceivingWorkspace({ trip, scanning = false }: { trip: string; s
 
 function Workspace({ trip, scope, scanning }: { trip: string; scope: string; scanning: boolean }) {
   const receiving = useReceiving(trip, scope)
-  const { detail, pending, busy, online, error, notice, capture, sync, action, refresh } = receiving
+  const { detail, pending, busy, online, error, notice, scanFeedback, capture, sync, action, refresh } = receiving
   const canScan = !!detail?.arrived_at && !detail.historical_receipt
 
   return <section className={`portal-section mt-4 p-4`} aria-label="Trip receiving">
@@ -50,7 +50,7 @@ function Workspace({ trip, scope, scanning }: { trip: string; scope: string; sca
       {canScan && !scanning ? <Link className="mt-3 inline-block text-sm underline" to={`/receive-at-hub?trip=${trip}`}>
         Open receiving scanner
       </Link> : null}
-      {scanning && canScan ? <ReceiptCapture capture={capture} feedback={notice} error={error} /> : null}
+      {scanning && canScan ? <ReceiptCapture capture={capture} scanFeedback={scanFeedback} error={error} /> : null}
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <PortalButton variant="primary" disabled={!online || busy || !pending.length} onClick={() => void sync()}>
           Sync scans ({pending.length})
