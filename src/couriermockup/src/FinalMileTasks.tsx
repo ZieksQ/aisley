@@ -2,6 +2,7 @@ import { Button, TextField } from '@aisley/ui'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ApiError, request } from './lib/api'
 import { DeliveryHistory } from './DeliveryHistory'
+import { DeliveryPhotoCapture } from './DeliveryPhotoCapture'
 import { FinalMileBatches } from './FinalMileBatches'
 import type { Address, Area, Completion, DeliveryContext, EvidenceReceipt, FinalMileTask } from './finalMileTypes'
 
@@ -39,6 +40,7 @@ function message(error: unknown): string {
 }
 
 export function FinalMileTasks({ token }: { token: string }) {
+  const [dispatchRevision, setDispatchRevision] = useState(0)
   const [tasks, setTasks] = useState<FinalMileTask[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [detail, setDetail] = useState<FinalMileTask | null>(null)
@@ -51,19 +53,12 @@ export function FinalMileTasks({ token }: { token: string }) {
   const [notice, setNotice] = useState<string | null>(null)
   const [pendingHubPickup, setPendingHubPickup] = useState<string[]>([])
   const [photo, setPhoto] = useState<File | null>(null)
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
-  const [cameraOpen, setCameraOpen] = useState(false)
-  const [cameraError, setCameraError] = useState<string | null>(null)
-  const [cameraReady, setCameraReady] = useState(false)
   const [codCollected, setCodCollected] = useState(false)
   const [failedReason, setFailedReason] = useState('recipient_unavailable')
   const [failedNote, setFailedNote] = useState('')
   const retry = useRef<PendingRequest | null>(null)
   const detailRequest = useRef(0)
-  const photoInput = useRef<HTMLInputElement>(null)
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const cameraStream = useRef<MediaStream | null>(null)
-  const cameraRequest = useRef(0)
+
 
   const loadTasks = useCallback(async () => {
     setLoading(true)
@@ -105,11 +100,13 @@ export function FinalMileTasks({ token }: { token: string }) {
   useEffect(() => {
     if (selectedId) void loadDetail(selectedId)
     else { setDetail(null); setDelivery(null); setCompletion(null) }
+    setPhoto(null)
+    setCodCollected(false)
+    setReason('')
+    retry.current = null
   }, [selectedId, loadDetail])
 
   function select(id: string) {
-    stopCamera()
-    setCameraOpen(false)
     detailRequest.current++
     setSelectedId(id)
     setDetail(null)
@@ -123,68 +120,6 @@ export function FinalMileTasks({ token }: { token: string }) {
     retry.current = null
   }
 
-  function stopCamera() {
-    cameraRequest.current++
-    cameraStream.current?.getTracks().forEach((track) => track.stop())
-    cameraStream.current = null
-    setCameraReady(false)
-    if (videoRef.current) videoRef.current.srcObject = null
-  }
-
-  async function openCamera() {
-    stopCamera()
-    const requestId = ++cameraRequest.current
-    setCameraOpen(true)
-    setCameraError(null)
-    if (!navigator.mediaDevices?.getUserMedia) {
-      setCameraError('Live camera is unavailable in this browser. Choose a photo from this device instead.')
-      return
-    }
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false })
-      if (requestId !== cameraRequest.current) {
-        stream.getTracks().forEach((track) => track.stop())
-        return
-      }
-      cameraStream.current = stream
-      setCameraReady(true)
-      if (videoRef.current) videoRef.current.srcObject = stream
-    } catch {
-      if (requestId === cameraRequest.current) setCameraError('Camera access was denied or unavailable. Check permission, or choose a photo from this device.')
-    }
-  }
-
-  function closeCamera() {
-    stopCamera()
-    setCameraOpen(false)
-  }
-
-  function capturePhoto() {
-    const video = videoRef.current
-    if (!video || !video.videoWidth || !video.videoHeight) return
-    const canvas = document.createElement('canvas')
-    canvas.width = video.videoWidth
-    canvas.height = video.videoHeight
-    canvas.getContext('2d')?.drawImage(video, 0, 0)
-    canvas.toBlob((blob) => {
-      if (blob) {
-        setPhoto(new File([blob], `delivery-${Date.now()}.jpg`, { type: 'image/jpeg' }))
-        retry.current = null
-        closeCamera()
-      }
-    }, 'image/jpeg', 0.9)
-  }
-
-  useEffect(() => () => { cameraRequest.current++; cameraStream.current?.getTracks().forEach((track) => track.stop()) }, [])
-  useEffect(() => {
-    if (cameraOpen && videoRef.current && cameraStream.current) videoRef.current.srcObject = cameraStream.current
-  }, [cameraOpen, cameraError, cameraReady])
-  useEffect(() => {
-    if (!photo) { setPhotoPreview(null); return }
-    const url = URL.createObjectURL(photo)
-    setPhotoPreview(url)
-    return () => URL.revokeObjectURL(url)
-  }, [photo])
 
   async function act(name: string, path: string, body?: object, idempotent = false) {
     if (!detail) return
@@ -208,12 +143,15 @@ export function FinalMileTasks({ token }: { token: string }) {
       setNotice(name === 'pickup' ? 'Hub pickup evidence submitted. Awaiting Logistics validation.'
         : name === 'complete' ? 'Delivered request submitted. Awaiting Logistics photo review.'
           : name === 'failed' ? 'Attempt recorded. This delivery remains assigned for a later retry.'
-            : name === 'reject' ? 'Offer rejected. Logistics may offer the task again.'
+            : name === 'reject' ? 'Parcel rejected. It is available for Logistics to schedule again.'
               : 'Action recorded by the API.')
       retry.current = null
       if (name === 'pickup') setPendingHubPickup((current) => [...new Set([...current, detail.task_id])])
       if (name !== 'reject') await loadDetail(detail.task_id)
-      if (name === 'complete') await loadTasks()
+      if (name === 'accept' || name === 'reject' || name === 'complete') {
+        setDispatchRevision((current) => current + 1)
+        await loadTasks()
+      }
     } catch (caught) {
       setError(message(caught))
     } finally { setBusy(null) }
@@ -254,14 +192,14 @@ export function FinalMileTasks({ token }: { token: string }) {
       </div>
       {error ? <p className="error-message" role="alert">{error}</p> : null}
       {notice ? <p className="notice" role="status">{notice}</p> : null}
-      <FinalMileBatches token={token} onAccepted={() => void loadTasks()} />
+      <FinalMileBatches disabled={!!busy} onSelect={select} revision={dispatchRevision} token={token} />
       {loading && tasks.length === 0 ? <p className="empty-state">Loading final-mile tasks…</p> : null}
       {!loading && tasks.length === 0 ? <p className="empty-state">No active final-mile tasks are assigned.</p> : null}
       {tasks.length > 0 ? <div className="pickup-layout">
         <ul className="task-list" aria-label="Final-mile tasks">
           {tasks.map((item) => <li key={item.task_id}>
-            <button aria-current={selectedId === item.task_id ? 'true' : undefined} className="task-row" onClick={() => select(item.task_id)} type="button">
-              <span><strong>{address(item.destination_area)}</strong><span>{item.parcel?.item_count ?? 0} items · {parcelPrice(item)}</span></span>
+            <button aria-current={selectedId === item.task_id ? 'true' : undefined} className="task-row" disabled={!!busy} onClick={() => select(item.task_id)} type="button">
+              <span><strong>{item.parcel?.reference ?? item.order?.reference ?? 'Parcel'}</strong><span>{address(item.destination_area)}</span><span>{item.parcel?.item_count ?? 0} items · {parcelPrice(item)}</span></span>
               <span>{item.status.replaceAll('_', ' ')}</span>
             </button>
           </li>)}
@@ -270,7 +208,7 @@ export function FinalMileTasks({ token }: { token: string }) {
           {busy === 'detail' && !task ? <p>Loading task…</p> : null}
           {task ? <>
             <dl className="task-facts">
-              <div><dt>Parcel</dt><dd>{task.parcel?.item_count ?? 0} items</dd></div>
+              <div><dt>Parcel</dt><dd>{task.parcel?.reference ?? task.order?.reference ?? 'Parcel'} · {task.parcel?.item_count ?? 0} items</dd></div>
               <div><dt>Parcel price</dt><dd>{parcelPrice(task)}</dd></div>
               <div><dt>Pickup area</dt><dd>{address(task.pickup_area)}</dd></div>
               <div><dt>Destination area</dt><dd>{address(task.destination_area)}</dd></div>
@@ -279,9 +217,10 @@ export function FinalMileTasks({ token }: { token: string }) {
               {task.offer?.rejection_reason ? <div><dt>Rejection reason</dt><dd>{task.offer.rejection_reason}</dd></div> : null}
             </dl>
             {task.status === 'delivery_assigned' ? <div className="verification-panel">
-              <p>Accept all parcels through the assigned delivery batch above.</p>
+              <p>Accept or reject this parcel only.</p>
+              <Button className="min-h-11 rounded-md px-4 shadow-none" disabled={!active} onClick={() => { if (window.confirm('Accept this parcel for delivery?')) void act('accept', `/api/v1/courier/final-mile-tasks/${task.task_id}/accept`) }} variant="secondary">Accept parcel</Button>
               <TextField id="final-rejection" label="Reason for rejection" onChange={(event) => setReason(event.target.value)} value={reason} />
-              <Button className="min-h-11 rounded-md px-4 shadow-none" disabled={!active || reason.trim().length < 3} onClick={() => void act('reject', `/api/v1/courier/final-mile-tasks/${task.task_id}/reject`, { reason: reason.trim() }, true)} variant="outline">Reject offer</Button>
+              <Button className="min-h-11 rounded-md px-4 shadow-none" disabled={!active || reason.trim().length < 3} onClick={() => void act('reject', `/api/v1/courier/final-mile-tasks/${task.task_id}/reject`, { reason: reason.trim() }, true)} variant="outline">Reject parcel</Button>
             </div> : null}
             {delivery ? <dl className="task-facts">
               <div><dt>Pickup hub</dt><dd>{delivery.pickup_hub?.name ?? 'Unavailable'} · {address(delivery.pickup_hub?.address ?? null)}</dd></div>
@@ -297,12 +236,7 @@ export function FinalMileTasks({ token }: { token: string }) {
             {task.status === 'delivery_accepted' ? <p className="confirmation-note">Hub custody changes only after Logistics validates pickup evidence. Refresh to check its status.</p> : null}
             {task.status === 'picked_up_from_hub' || task.status === 'in_transit' ? <Button className="min-h-11 rounded-md px-4 shadow-none" disabled={!active} onClick={() => void act('move', `/api/v1/courier/final-mile-tasks/${task.task_id}/status`, { target_state: task.status === 'picked_up_from_hub' ? 'in_transit' : 'out_for_delivery', expected_revision: task.revision }, true)} variant="secondary">{task.status === 'picked_up_from_hub' ? 'Start transit' : 'Out for delivery'}</Button> : null}
             {task.status === 'out_for_delivery' && completion?.completion_status !== 'awaiting_validation' ? <div className="verification-panel">
-              <input accept="image/jpeg,image/png,image/webp" capture="environment" hidden id="delivery-photo" onChange={(event) => { setPhoto(event.target.files?.[0] ?? null); retry.current = null; closeCamera() }} ref={photoInput} type="file" />
-              <Button className="min-h-11 rounded-md px-4 shadow-none" disabled={!active} onClick={() => void openCamera()} variant="outline">{task.failed_attempt_count > 0 ? 'Retry delivery · open POD camera' : 'Open camera for POD'}</Button>
-              <p className="status-line">{photo ? `${photo.name} selected` : 'Take a delivery photo (JPEG, PNG, or WebP; under 10 MB).'}</p>
-              {cameraOpen ? <div aria-label="Delivery camera" className="space-y-2 border border-zinc-300 p-3 dark:border-white/15" role="group"><video autoPlay className="max-h-80 w-full bg-black object-contain" playsInline ref={videoRef} /><p className="status-line">{cameraError ?? 'Frame the delivered parcel and proof clearly.'}</p><div className="flex flex-wrap gap-2"><Button className="min-h-10 rounded-md px-4 shadow-none" disabled={!cameraReady} onClick={capturePhoto} variant="secondary">Capture photo</Button><Button className="min-h-10 rounded-md px-4 shadow-none" onClick={() => photoInput.current?.click()} variant="outline">Choose photo</Button><Button className="min-h-10 rounded-md px-4 shadow-none" onClick={closeCamera} variant="outline">Close camera</Button></div></div> : null}
-              {photo && photoPreview ? <div className="space-y-2"><img alt="Selected delivery proof preview" className="max-h-64 max-w-full border border-zinc-300 object-contain dark:border-white/15" src={photoPreview} /><Button className="min-h-10 rounded-md px-4 shadow-none" disabled={!active} onClick={() => setPhoto(null)} variant="outline">Retake photo</Button></div> : null}
-              <Button className="min-h-11 rounded-md px-4 shadow-none" disabled={!active || !photo || photo.size >= 10 * 1024 * 1024} onClick={() => void submitPhoto()} variant="secondary">Send photo POD to Logistics</Button>
+              <DeliveryPhotoCapture busy={!!busy} key={task.task_id} onPhoto={(value) => { setPhoto(value); retry.current = null }} onSubmit={() => void submitPhoto()} photo={photo} retrying={task.failed_attempt_count > 0} />
               {task.order?.payment_method === 'cod' ? <label className="flex items-start gap-2 text-sm"><input checked={codCollected} className="mt-1 accent-[#E6007A]" onChange={(event) => setCodCollected(event.target.checked)} type="checkbox" /><span>Confirm I collected the full COD amount {task.order.payable_total ? `${task.order.currency === 'PHP' ? '₱' : `${task.order.currency ?? ''} `}${Number(task.order.payable_total).toLocaleString('en-PH', { minimumFractionDigits: 2 })}` : ''} in cash.</span></label> : null}
               <label htmlFor="failed-delivery-reason">If delivery could not be completed</label>
               <select id="failed-delivery-reason" onChange={(event) => setFailedReason(event.target.value)} value={failedReason}><option value="recipient_unavailable">Customer not home</option><option value="address_unreachable">Address unreachable</option><option value="recipient_refused">Customer refused</option><option value="other">Other</option></select>
@@ -311,7 +245,7 @@ export function FinalMileTasks({ token }: { token: string }) {
             </div> : null}
             {task.failed_attempts?.length ? <p className="status-line">Delivery attempt unsuccessful: {task.failed_attempts[0].reason.replaceAll('_', ' ')} · {new Date(task.failed_attempts[0].attempted_at).toLocaleString('en-PH')}. Retry delivery remains available on this task; submit fresh POD after another attempt.</p> : null}
             {completion ? <p className="status-line">Completion: {completion.completion_status?.replaceAll('_', ' ') ?? 'No intent'} · Proof: {completion.evidence_status.replaceAll('_', ' ')}{completion.delivered_at ? ` · Delivered ${new Date(completion.delivered_at).toLocaleString('en-PH')}` : ''}</p> : null}
-            {canComplete ? <Button className="min-h-11 rounded-md px-4 shadow-none" disabled={!active || task.order?.payment_method === 'cod' && !codCollected} onClick={() => void act('complete', `/api/v1/courier/tasks/${task.task_id}/completion`, { evidence_id: proofId, expected_revision: task.revision, confirmed: true, ...(task.order?.payment_method === 'cod' ? { cod_collected: codCollected } : {}) }, true)} variant="secondary">Request Delivered confirmation</Button> : null}
+            {canComplete ? <Button className="min-h-11 rounded-md px-4 shadow-none" disabled={!active || task.order?.payment_method === 'cod' && !codCollected} onClick={() => void act('complete', `/api/v1/courier/tasks/${task.task_id}/completion`, { evidence_id: proofId, expected_revision: task.revision, confirmed: true, ...(task.order?.payment_method === 'cod' ? { cod_collected: codCollected } : {}) }, true)} variant="secondary">Delivered</Button> : null}
             <Button className="min-h-10 rounded-md px-4 shadow-none" disabled={!!busy} onClick={() => void loadDetail(task.task_id)} variant="outline">Refresh task state</Button>
           </> : null}
         </div>

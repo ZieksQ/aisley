@@ -54,3 +54,8 @@ Short, dated implementation log. Append entries; archive complete logs after 150
 
 - Added the assigned-driver departure and arrival-report request/response, release prerequisite, revision/confirmation/replay handling and custody boundaries in [linehaul-trips.md](linehaul-trips.md). Updated affected route/index/domain/requirements guidance without changing historical adoption baselines.
 - Laravel and its development React mockup implement these actions; source Logistics authorizes cargo release and receiving Logistics independently confirms arrival/receipt/unloading. Flutter linehaul UI remains unadopted. No Flutter tests/builds or live/deployed/device acceptance ran here; platform checks are recorded in the main progress log.
+
+## 2026-10-22 — Per-parcel last-mile contract revision
+
+- Synced `courier-final-mile-parcel-decisions-v2`: individual accept/reject, rejected-parcel scheduling, current-member batch reads and accepted-subset routes. The same task, rejection history and staging assignment survive new dispatch schedules; the old bulk route remains compatibility-only. Updated affected schema, fulfillment, dispatch, dashboard and map guidance.
+- Laravel and the development mockup implement this revision, including the existing private photo POD and **Delivered** intent. External Flutter's recorded batch implementation/adoption and live/device gates remain unchanged; per-parcel adoption is open. Platform regression/browser evidence belongs to the main progress log; no Flutter tests, build or device acceptance ran here.

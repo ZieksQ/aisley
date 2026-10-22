@@ -6,7 +6,7 @@ system: AISLEY
 type: Feature Specification
 version: 1.9
 status: Implemented final-mile task, batch route, movement, and delivery-context API
-implementation_status: Final-mile tasks, batch acceptance, hub pickup evidence, movement, delivery context, and advisory Geoapify route are implemented
+implementation_status: Final-mile tasks, per-parcel decisions, hub pickup evidence, movement, delivery context, and advisory Geoapify route are implemented
 flutter_status: Delivery context/movement and accepted-batch MapLibre routes implemented locally; live API and installed-device/browser map acceptance remain unverified
 canonical: true
 copied_backend_checkout: 4c3f504
@@ -128,7 +128,7 @@ accepted final-mile task
 
 ### Implemented batch route and map reads — baseline `51d9694`
 
-- `GET /api/v1/courier/final-mile-batches/{schedule}/route` is implemented, bearer/`courier.active`/policy-gated, and scoped to the Courier's accepted final-mile members and destination sole hub. An unaccepted member returns `409 BATCH_NOT_ACCEPTED`; changed membership/custody scope returns `409 BATCH_STATE_CONFLICT`.
+- `GET /api/v1/courier/final-mile-batches/{schedule}/route` is implemented, bearer/`courier.active`/policy-gated, and scoped to the Courier's accepted final-mile members and destination sole hub. Only accepted current members enter the route; a dispatch without accepted members returns `409 BATCH_NOT_ACCEPTED`; changed membership/custody scope returns `409 BATCH_STATE_CONFLICT`.
 - Request: no body/query, owner/status fields, or idempotency key; safe explicit read retries; no pagination. Preserve `stops[]` response order without optimizing or appending a hub return.
 - DTO: `{data:{status,reason,summary,stops,geojson,map}}`; `reason`, `summary`, `geojson`, and `map` are nullable. No route revision/calculation timestamp exists. Status is `ready` or `unavailable`; unknown states remain text-only, and future `pending` is shown without polling.
 - Summary is `{stop_count:integer,distance_metres:number,duration_seconds:integer}`. Stops are `{sequence,kind,task_id,label,longitude,latitude}`; hub `task_id` is null. Missing metrics stay unavailable; only valid complete coordinate pairs create markers.
@@ -165,8 +165,8 @@ accepted final-mile task
 
 ### Flutter handoff and navigation
 
-- Notification entry first reauthorizes its ID through the scoped final-mile task-detail read, including offers absent from loaded lists. Current offers use batch review, accepted tasks use hub handoff, and picked-up/transit tasks use delivery context; terminal/unknown states are read-only. Refresh repeats the scoped read before rendering actions and never falls back to a withdrawn snapshot. The active delivery screen shows authorized destination, current state, advisory freshness, and one next action; Back returns to notification details without marking read or mutating work.
-- Accepted/in-progress batch detail offers secondary **View delivery route**, opening a read-only screen with hub start, numbered stops, road/fallback labels, attribution, zoom controls, and **Fit route**. Offered batches have no route action.
+- Notification entry first reauthorizes its ID through the scoped final-mile task-detail read, including offers absent from loaded lists. Current offers use per-parcel review, accepted tasks use hub handoff, and picked-up/transit tasks use delivery context; terminal/unknown states are read-only. Refresh repeats the scoped read before rendering actions and never falls back to a withdrawn snapshot. The active delivery screen shows authorized destination, current state, advisory freshness, and one next action; Back returns to notification details without marking read or mutating work.
+- Accepted/in-progress batch detail offers secondary **View delivery route**, opening a read-only screen with hub start, numbered stops, road/fallback labels, attribution, zoom controls, and **Fit route**. Partially accepted dispatches may show a route for accepted members only.
 - Returning from external navigation triggers a fresh task/route read rather than trusting a background callback.
 - Permission denial, GPS disabled, route unavailable, stale metrics, reassignment, and destination reached are distinct accessible states.
 - The app never displays a local arrival calculation as a server transition and never enables Complete Delivery solely because a route ended.

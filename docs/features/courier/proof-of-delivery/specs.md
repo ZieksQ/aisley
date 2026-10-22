@@ -228,3 +228,7 @@ Idempotency-Key: <UUID header>
 - COD approval creates a future-only Courier cash obligation. Receiving cash from that Courier is a separate Logistics receipt and does not clear the platform COD invoice.
 - Logistics Pending/History/Approval settings views retain private photos, timestamps, correction reasons and reviewer/system attribution.
 - Flutter implementation and device acceptance statuses are unchanged; this revision documents API behavior, not external-client adoption.
+
+## Development mockup capture (2026-10-22)
+
+The development harness exposes **Take parcel photo**, rear-camera capture, preview/retake, and **Choose photo** fallback for eligible `out_for_delivery` tasks. Upload uses the existing private multipart POD contract; capture alone does not upload or complete delivery. The subsequent button is labelled **Delivered** and retains the same completion intent and Logistics review. External Flutter adoption/status is unchanged.

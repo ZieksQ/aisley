@@ -222,7 +222,7 @@ class FinalMileFulfillmentTest extends TestCase
         $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/courier/final-mile-tasks/'.$batch['tasks'][0]['task_id'].'/reject', [
             'reason' => 'Unavailable for this route',
         ])->assertOk();
-        $this->postJson('/api/v1/courier/final-mile-batches/'.$schedule['id'].'/accept', [])->assertNotFound();
+        $this->getJson('/api/v1/courier/final-mile-batches/'.$schedule['id'])->assertOk()->assertJsonCount(1, 'data.tasks');
         $this->assertDatabaseCount('delivery_task_offers', 2);
         $this->assertDatabaseHas('delivery_tasks', ['id' => $batch['tasks'][1]['task_id'], 'status' => 'delivery_assigned']);
         $rejected = DeliveryTask::findOrFail($batch['tasks'][0]['task_id']);

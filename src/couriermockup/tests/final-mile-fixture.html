@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Parcel delivery fixture</title></head>
+<body><div id="root"></div><script type="module">
+import React from 'react'
+import { createRoot } from 'react-dom/client'
+import { FinalMileTasks } from '/src/FinalMileTasks.tsx'
+import '/src/index.css'
+const task = (id) => ({
+  task_id: id, leg: 'final_mile', status: 'delivery_assigned', revision: 1,
+  accepted_at: null, picked_up_at: null, delivered_at: null,
+  offer: { status: 'offered', responded_at: null, rejection_reason: null },
+  order: { reference: 'ORDER-'+id, status: 'assigned', payment_method: 'cod', payable_total: '120.00', currency: 'PHP' },
+  parcel: { reference: 'PARCEL-'+id, item_count: 2, price: '100.00', currency: 'PHP' },
+  waybill: null, pickup_area: { city_municipality: 'Manila' }, destination_area: { city_municipality: id === 'one' ? 'Calamba' : 'Santa Cruz', province: 'Laguna' },
+  evidence_id: null, evidence_status: 'missing', completion_status: null, failed_attempt_count: 0, failed_attempts: [],
+})
+const state = window.parcelFixture = { tasks: [task('one'), task('two')], requests: [], failReject: false, uploaded: false }
+window.confirm = () => true
+const original = window.fetch.bind(window)
+window.fetch = async (input, options = {}) => {
+ const url = new URL(input, location.origin)
+ if (!url.pathname.startsWith('/api/')) return original(input, options)
+ const path = url.pathname.replace('/api/v1/courier', '')
+ const method = options.method ?? 'GET'
+ const headers = new Headers(options.headers)
+ state.requests.push({ path, method, credentials: options.credentials, authorization: headers.get('Authorization'), key: headers.get('Idempotency-Key'), multipart: options.body instanceof FormData })
+ const response = (data, status = 200) => new Response(JSON.stringify({ data }), { status, headers: { 'Content-Type': 'application/json' } })
+ if (path === '/delivery-history') return new Response(JSON.stringify({ data: [], meta: { has_more: false, next_cursor: null } }), { headers: { 'Content-Type': 'application/json' } })
+ if (path === '/final-mile-batches') return response([{ id: 'dispatch', reference: 'DSP-TEST', scheduled_for: '2026-10-22T10:00:00Z', parcel_count: state.tasks.length, status: 'offered', tasks: state.tasks }])
+ if (path.endsWith('/route')) return response({ status: 'unavailable', reason: 'missing_hub_coordinates', summary: null, stops: [], geojson: null, map: null })
+ if (path === '/final-mile-tasks') return response(state.tasks)
+ const id = path.split('/')[2]
+ const current = state.tasks.find((item) => item.task_id === id)
+ if (!current) return response([], 404)
+ const completion = () => ({ task_id: id, intent_id: current.completion_status ? 'intent' : null, intent_evidence_id: current.evidence_id, task_status: current.status, order_status: 'out_for_delivery', evidence_id: current.evidence_id, evidence_status: current.evidence_status, proof_failed_attempt_count: current.evidence_id ? 0 : null, completion_status: current.completion_status, delivered_at: null, revision: current.revision })
+ if (method === 'GET' && path.endsWith('/completion')) return response(completion())
+ if (method === 'GET' && path.endsWith('/delivery')) return response({ ...current, pickup_hub: { name: 'Manila hub', address: null }, destination: { city_municipality: 'Calamba', province: 'Laguna' } })
+ if (method === 'GET') return response(current)
+ if (path.endsWith('/accept')) { current.status = 'delivery_accepted'; current.accepted_at = new Date().toISOString(); current.revision++; return response(current) }
+ if (path.endsWith('/reject')) {
+  if (state.failReject) { state.failReject = false; throw new TypeError('Synthetic connection lost') }
+  current.status = 'rejected'; state.tasks = state.tasks.filter((item) => item !== current); return response(current)
+ }
+ if (path.endsWith('/proof-of-delivery')) {
+  const photo = options.body.get('photo')
+  if (!(photo instanceof File) || !photo.size || options.body.get('expected_revision') !== String(current.revision)) return response({}, 422)
+  state.uploaded = true; current.evidence_id = 'proof'; current.evidence_status = 'awaiting_validation'; return response({ proof_id: 'proof' }, 202)
+ }
+ if (path.endsWith('/completion')) {
+  state.completionBody = JSON.parse(options.body)
+  current.completion_status = 'awaiting_validation'; return response(completion(), 202)
+ }
+ return response({}, 404)
+}
+createRoot(document.getElementById('root')).render(React.createElement(FinalMileTasks, { token: 'synthetic-test-token' }))
+</script></body></html>
