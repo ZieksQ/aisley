@@ -181,7 +181,7 @@ export function FinalMileTasks({ token }: { token: string }) {
       setDispatchRevision((current) => current + 1)
     } catch (caught) {
       setError(message(caught))
-      if (deliverySubmission.current?.proofId) setNotice('Photo saved. Tap Delivery again to finish submitting to Logistics.')
+      if (deliverySubmission.current?.proofId) setNotice('Photo saved. Tap Delivered again to finish submitting to Logistics.')
     } finally { setBusy(null); setDeliveryStage('') }
   }
 
@@ -255,7 +255,7 @@ export function FinalMileTasks({ token }: { token: string }) {
             {task.status === 'out_for_delivery' && completion?.completion_status !== 'awaiting_validation' ? <div className="verification-panel">
               <DeliveryPhotoCapture busy={!!busy} key={task.task_id} onPhoto={(value) => { setPhoto(value); deliverySubmission.current = null }} photo={photo} retrying={task.failed_attempt_count > 0} />
               {isCod ? <label className="flex items-start gap-2 text-sm"><input checked={codCollected} disabled={!!busy} className="mt-1 accent-[#E6007A]" onChange={(event) => setCodCollected(event.target.checked)} type="checkbox" /><span>Confirm I collected the full COD amount {payment?.payable_total ? `${payment?.currency === 'PHP' ? '₱' : `${payment?.currency ?? ''} `}${Number(payment?.payable_total).toLocaleString('en-PH', { minimumFractionDigits: 2 })}` : ''} in cash.</span></label> : null}
-              {!paymentKnown ? <p className="error-message" role="alert">Payment details are unavailable. Refresh the task before submitting Delivery.</p> : null}
+              {!paymentKnown ? <p className="error-message" role="alert">Payment details are unavailable. Refresh the task before submitting Delivered.</p> : null}
               <label htmlFor="failed-delivery-reason">If delivery could not be completed</label>
               <select id="failed-delivery-reason" onChange={(event) => setFailedReason(event.target.value)} value={failedReason}><option value="recipient_unavailable">Customer not home</option><option value="address_unreachable">Address unreachable</option><option value="recipient_refused">Customer refused</option><option value="other">Other</option></select>
               {failedReason === 'other' ? <TextField id="failed-delivery-note" label="Reason" onChange={(event) => setFailedNote(event.target.value)} value={failedNote} /> : null}
@@ -264,7 +264,7 @@ export function FinalMileTasks({ token }: { token: string }) {
             {task.failed_attempts?.length ? <p className="status-line">Delivery attempt unsuccessful: {task.failed_attempts[0].reason.replaceAll('_', ' ')} · {new Date(task.failed_attempts[0].attempted_at).toLocaleString('en-PH')}. Retry delivery remains available on this task; submit fresh POD after another attempt.</p> : null}
             {completion ? <p className="status-line">Completion: {completion.completion_status?.replaceAll('_', ' ') ?? 'No intent'} · Proof: {completion.evidence_status.replaceAll('_', ' ')}{completion.delivered_at ? ` · Delivered ${new Date(completion.delivered_at).toLocaleString('en-PH')}` : ''}</p> : null}
             {task.status === 'out_for_delivery' && completion?.completion_status !== 'awaiting_validation' ? <div className="space-y-2">
-              <Button className="min-h-11 rounded-md px-4 shadow-none" disabled={!active || !canSubmitDelivery} onClick={() => void deliver()} variant="secondary">{busy === 'delivery' ? 'Submitting delivery…' : 'Delivery'}</Button>
+              <Button className="min-h-11 rounded-md px-4 shadow-none" disabled={!active || !canSubmitDelivery} onClick={() => void deliver()} variant="secondary">{busy === 'delivery' ? 'Submitting delivery…' : 'Delivered'}</Button>
               {deliveryStage ? <p className="status-line" role="status">{deliveryStage}</p> : <p className="status-line">Submit the parcel photo and delivery together to Logistics delivery confirmations.</p>}
             </div> : null}
             {completion?.completion_status === 'awaiting_validation' ? <p className="notice" role="status">Delivery submitted · awaiting Logistics confirmation.</p> : null}

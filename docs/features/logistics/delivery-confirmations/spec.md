@@ -76,4 +76,4 @@ COD completion intent accepts only `cod_collected: true`; the declaration amount
 
 ## Courier mockup submission clarification (2026-10-22)
 
-The harness uses one **Delivery** action to upload the selected private photo then submit its matching intent. Photo upload alone does not create a pending confirmation entry. The queue continues to require both records and current hub/task scope; it must never fabricate an intent for an uploaded photo. The harness preserves upload/intent retry identities and reconciles uncertain results before reporting success.
+The harness uses one **Delivered** action to upload the selected private photo then submit its matching intent. Photo upload alone does not create a pending confirmation entry. The queue continues to require both records and current hub/task scope; it must never fabricate an intent for an uploaded photo. The harness preserves upload/intent retry identities and reconciles uncertain results before reporting success.

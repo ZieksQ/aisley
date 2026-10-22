@@ -86,13 +86,13 @@ try {
  await until(`document.querySelector('video')?.videoWidth > 0`)
  await click('Capture photo')
  await until(`document.querySelector('img[alt="Selected delivery proof preview"]')`)
- assert.equal(await evaluate(`Array.from(document.querySelectorAll('#root button')).find(b => b.textContent.trim() === 'Delivery').disabled`), true)
+ assert.equal(await evaluate(`Array.from(document.querySelectorAll('#root button')).find(b => b.textContent.trim() === 'Delivered').disabled`), true)
  assert.equal(await evaluate(`window.parcelFixture.uploaded`), false)
  await evaluate(`document.querySelector('#root input[type="checkbox"]').click(); window.parcelFixture.failCompletion = true`)
- await click('Delivery')
- await until(`document.body.textContent.includes('Photo saved. Tap Delivery again')`)
+ await click('Delivered')
+ await until(`document.body.textContent.includes('Photo saved. Tap Delivered again')`)
  assert.equal(await evaluate(`window.parcelFixture.tasks[0].completion_status`), null)
- await click('Delivery')
+ await click('Delivered')
  await until(`document.body.textContent.includes('Delivery submitted · awaiting Logistics confirmation.')`)
  assert.equal(await evaluate(`window.parcelFixture.tasks[0].status`), 'out_for_delivery')
  assert.deepEqual(await evaluate(`window.parcelFixture.completionBody`), { evidence_id: 'proof', expected_revision: 2, confirmed: true, cod_collected: true })
@@ -140,8 +140,8 @@ try {
    const input = document.querySelector('#delivery-photo'); input.files = transfer.files; input.dispatchEvent(new Event('change', { bubbles: true }));
    document.querySelector('#root input[type="checkbox"]').click();
  })()`)
- await until(`!Array.from(document.querySelectorAll('#root button')).find(b => b.textContent.trim() === 'Delivery').disabled`)
- await click('Delivery')
+ await until(`!Array.from(document.querySelectorAll('#root button')).find(b => b.textContent.trim() === 'Delivered').disabled`)
+ await click('Delivered')
  await until(`document.body.textContent.includes('Delivery submitted · awaiting Logistics confirmation.')`)
  assert.equal(await evaluate(`window.parcelFixture.requests.filter(r => r.method === 'POST' && r.path.endsWith('/completion')).length`), 1)
 
@@ -149,10 +149,10 @@ try {
  await command('Page.navigate', { url: `${origin}/tests/final-mile-fixture.html?delivery&proof` })
  await until(`document.body?.textContent.includes('Take parcel photo')`)
  await evaluate(`document.querySelector('#root input[type="checkbox"]').click()`)
- await click('Delivery')
+ await click('Delivered')
  await until(`document.body.textContent.includes('Delivery submitted · awaiting Logistics confirmation.')`)
  assert.equal(await evaluate(`window.parcelFixture.requests.some(r => r.path.endsWith('/proof-of-delivery'))`), false)
- console.log('Passed per-parcel decisions, single Delivery submission, COD gate, photo capture/retake, partial failure retry, lost-response reconciliation, saved-photo recovery, Logistics queue/photo visibility, focus/poll refresh and role transport checks.')
+ console.log('Passed per-parcel decisions, single Delivered submission, COD gate, photo capture/retake, partial failure retry, lost-response reconciliation, saved-photo recovery, Logistics queue/photo visibility, focus/poll refresh and role transport checks.')
 
 } finally {
  await command('Page.close').catch(() => {})

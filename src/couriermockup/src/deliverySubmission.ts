@@ -27,10 +27,10 @@ export async function submitDelivery(attempt: DeliverySubmission, token: string,
     const receipt = await request<{ data: EvidenceReceipt }>(`/api/v1/courier/tasks/${attempt.taskId}/proof-of-delivery`, {
       method: 'POST', headers: { 'Idempotency-Key': attempt.uploadKey }, body: form,
     }, token)
-    if (!receipt.data.proof_id) throw new Error('The photo upload did not return a proof. Retry Delivery.')
+    if (!receipt.data.proof_id) throw new Error('The photo upload did not return a proof. Retry Delivered.')
     attempt.proofId = receipt.data.proof_id
   }
-  if (!attempt.proofId) throw new Error('Take a parcel photo before submitting Delivery.')
+  if (!attempt.proofId) throw new Error('Take a parcel photo before submitting Delivered.')
   stage('Submitting delivery…')
   try {
     return (await request<{ data: Pick<Completion, 'intent_id' | 'task_status' | 'completion_status'> }>(`/api/v1/courier/tasks/${attempt.taskId}/completion`, {
