@@ -2,6 +2,8 @@
 
 Contract checked against Laravel `4d8bfefa2a95007256e6616df415fa186d1b18eb` on 2026-10-11. The existing API, schema and dependencies are unchanged. Flutter submission, recovery and proof freshness are implemented locally; deployed API and installed-device acceptance remain separate gates.
 
+**Direct final-mile delivery revision — 2026-10-23 (`courier-direct-delivery-v2`):** Courier accepts a parcel, then submits private photo POD and the linked **Delivered** intent directly to Logistics Delivery confirmations. Hub pickup validation and transit actions are optional compatibility steps, not prerequisites. Existing `delivery_accepted`, `picked_up_from_hub`, `in_transit`, and `out_for_delivery` tasks are eligible. Submission preserves task/Shipment/Order/payment state; only the existing Logistics approval policy commits delivered. Skipped pickup/transit timestamps and evidence are not fabricated. External Flutter adoption of this revision remains open.
+
 ## Request and authority
 
 `POST /api/v1/courier/final-mile-tasks/{task}/failed-attempts` accepts JSON with a UUID `Idempotency-Key` header and `Authorization: Bearer <token>`. Sanctum, active Courier/approved affiliation and policy consent gates apply. Ownership, final-mile leg, organization and hub are server-derived.
@@ -14,7 +16,7 @@ Contract checked against Laravel `4d8bfefa2a95007256e6616df415fa186d1b18eb` on 2
 - `note` is nullable, at most 500 characters; Other requires a nonblank description. The API trims stored notes and represents an empty note as null.
 - `expected_revision` is an integer at least 1 from the current authorized task.
 - All other body fields are rejected; do not send actor, status, amount, location, or timestamp fields.
-- New attempts require `out_for_delivery` and no awaiting-validation completion intent. They do not change custody, revision, Order/payment state or assignment.
+- New attempts require an accepted final-mile state (`delivery_accepted`, `picked_up_from_hub`, `in_transit`, or `out_for_delivery`) and no awaiting-validation completion intent. They do not change custody, revision, Order/payment state or assignment.
 - The route has no dedicated numeric throttle override in inspected source. Honor any returned `429`/`Retry-After` rather than assuming a client quota.
 
 ## Acknowledgment and private reads

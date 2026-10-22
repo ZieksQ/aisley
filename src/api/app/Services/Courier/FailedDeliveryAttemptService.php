@@ -2,7 +2,6 @@
 
 namespace App\Services\Courier;
 
-use App\Enums\FulfillmentTaskStatus;
 use App\Enums\ShipmentEvidenceStatus;
 use App\Exceptions\Fulfillment\FulfillmentException;
 use App\Models\FinalMileFailedAttempt;
@@ -32,7 +31,7 @@ class FailedDeliveryAttemptService
                 if ($prior !== null) {
                     return $prior;
                 }
-                if ($task->revision !== (int) $input['expected_revision'] || $task->status !== FulfillmentTaskStatus::OutForDelivery) {
+                if ($task->revision !== (int) $input['expected_revision'] || ! $task->status->canSubmitDelivery()) {
                     throw FulfillmentException::conflict('TASK_STATE_CONFLICT', 'Refresh this delivery before reporting an attempt.');
                 }
                 if ($task->completionIntents()->where('status', ShipmentEvidenceStatus::AwaitingValidation->value)->exists()) {

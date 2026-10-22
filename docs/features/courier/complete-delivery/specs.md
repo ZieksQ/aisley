@@ -3,7 +3,7 @@ feature: courier-complete-delivery
 title: Complete Delivery
 system: AISLEY
 type: Feature Specification
-version: 1.9
+version: 1.10
 status: Implemented photo POD completion intent and Logistics confirmation
 implementation_status: Completion intent, Logistics proof validation, atomic delivered transition, and history records are implemented; Flutter UI is external
 flutter_status: Photo-linked COD completion intent is implemented locally in Flutter; authenticated Logistics validation, rejected-photo retry, and installed-device acceptance remain unverified
@@ -12,16 +12,16 @@ role: Courier
 scope: Laravel API and external Flutter application
 backend_contract_commit: d1abeee73d0141e1fd7dda4bea0ee3fead370378
 failed_attempt_contract_commit: 4d8bfefa2a95007256e6616df415fa186d1b18eb
-backend_contract_version: courier-completion-v1-qr
-backend_contract_version_status: Historical QR baseline; the photo-POD revision below is authoritative
+backend_contract_version: courier-direct-delivery-v2
+backend_contract_version_status: Direct accepted-task submission supersedes the historical out-for-delivery prerequisite; prior commit fields identify historical baselines
 backend_contract_reviewed_commit: a94669248c63525e44243327f4c25feca46c9c50
 backend_contract_funding_revision: order-funding-hold-v1 (2026-10-11)
-documentation_synced_on: 2026-10-12
+documentation_synced_on: 2026-10-23
 ---
 
 # Complete Delivery
 ## Final-mile photo and retry revision (2026-09-20)
-The Courier's **Delivered** action sends an intent linked to the current photo POD. HTTP 202 is pending Logistics review. Manual Logistics review, or the organization’s configured automatic policy for paid prepaid Orders, validates the linked image and atomically marks the task, Shipment, and Order delivered. COD remains manually reviewed. A failed doorstep attempt leaves `out_for_delivery` and the assignment intact for a later retry; it does not create a completion intent or a terminal delivery state. The existing reference-based proof contract described below is historical and superseded for final-mile delivery submissions.
+**Direct final-mile delivery revision — 2026-10-23 (`courier-direct-delivery-v2`):** Courier accepts a parcel, then submits private photo POD and the linked **Delivered** intent directly to Logistics Delivery confirmations. Hub pickup validation and transit actions are optional compatibility steps, not prerequisites. Existing `delivery_accepted`, `picked_up_from_hub`, `in_transit`, and `out_for_delivery` tasks are eligible. Submission preserves task/Shipment/Order/payment state; only the existing Logistics approval policy commits delivered. Skipped pickup/transit timestamps and evidence are not fabricated. External Flutter adoption of this revision remains open. The Courier's **Delivered** action sends an intent linked to the current photo POD. HTTP 202 is pending Logistics review. Manual Logistics review, or the organization’s configured automatic policy for paid prepaid Orders, validates the linked image and atomically marks the task, Shipment, and Order delivered. COD remains manually reviewed. A failed doorstep attempt leaves the current accepted delivery state and assignment intact for a later retry; it does not create a completion intent or a terminal delivery state. The existing reference-based proof contract described below is historical and superseded for final-mile delivery submissions.
 ## COD confirmation revision (2026-09-23)
 
 For COD Orders, refetch the accepted-task `GET /api/v1/courier/tasks/{task}/delivery` projection and show `data.order.payable_total` with `data.order.currency` when `data.order.payment_method` is `cod`; `data.parcel.price` is merchandise subtotal, not cash due. Require an explicit confirmation that this exact amount was collected before sending `cod_collected: true`. If payment fields are absent or the cash was not collected, do not submit a successful completion intent; refetch the task. Flutter adopts [failed-attempt reporting](../delivery-order/failed-attempts.md) and blocks Delivered intent for stale/unknown matching-photo attempt counts; source baseline `4d8bfefa2a95007256e6616df415fa186d1b18eb`, live/device acceptance remains open. The API derives declaration amount, currency, and time from the current Order and accepts no Courier-supplied amount. Logistics confirms the declaration and proof before atomically marking delivery and COD `payment_status` as `paid`. Paid prepaid fulfillment follows the approval-policy revision below; prepaid checkout remains unavailable.
@@ -40,7 +40,7 @@ For COD Orders, refetch the accepted-task `GET /api/v1/courier/tasks/{task}/deli
 - Exclude automatic completion from GPS, map arrival, QR resolution, or notification delivery.
 
 ```text
-out_for_delivery
+delivery_accepted (or a later accepted delivery state)
 → Courier submits completion intent and proof reference
 → Logistics validates proof and current assignment
 → shared service commits delivered
@@ -62,7 +62,7 @@ out_for_delivery
 - No first-mile Courier gains final-mile completion authority merely by collecting the parcel.
 ### State and proof
 
-- Final-mile task and Shipment must be out_for_delivery before a new completion intent is accepted.
+- Final-mile task and Shipment must be in an accepted delivery state before a new completion intent is accepted; `out_for_delivery` is no longer required.
 - Proof must belong to the same task, Parcel, Order, and assigned Courier.
 - Required proof must be durably stored and validated by Logistics before finalization.
 - Missing, rejected, or inaccessible evidence blocks finalization. Pending evidence may be validated inside Logistics finalization; pending proof does not block Courier intent submission.
@@ -231,4 +231,4 @@ out_for_delivery
 
 ## Development mockup Delivery action (2026-10-22)
 
-The mockup labels its final action **Delivered** and submits photo POD plus the linked completion intent from one explicit click. COD requires known payment fields and cash acknowledgment before either request. Previously uploaded current proof can be submitted without another upload. Upload and intent retain separate keys; retries preserve the successful photo and reuse the intent key. A matching pending/completed GET reconciles a lost receipt. Only a completed intent submission is reported as sent to Logistics; authoritative delivery still requires the existing Logistics review/automatic prepaid policy. This is harness behavior, with no API or external Flutter contract/adoption change.
+The mockup labels its final action **Delivered** and submits photo POD plus the linked completion intent from one explicit click immediately after parcel acceptance. COD requires known payment fields and cash acknowledgment before either request. Previously uploaded current proof can be submitted without another upload. Upload and intent retain separate keys; retries preserve the successful photo and reuse the intent key. A matching pending/completed GET reconciles a lost receipt. Only a completed intent submission is reported as sent to Logistics; authoritative delivery still requires the existing Logistics review/automatic prepaid policy. This is harness behavior, with no API or external Flutter contract/adoption change.

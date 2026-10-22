@@ -4,7 +4,7 @@ feature: courier-delivery-order
 title: Deliver Order
 system: AISLEY
 type: Feature Specification
-version: 1.9
+version: 1.10
 status: Implemented final-mile task, batch route, movement, and delivery-context API
 implementation_status: Final-mile tasks, per-parcel decisions, hub pickup evidence, movement, delivery context, and advisory Geoapify route are implemented
 flutter_status: Delivery context/movement and accepted-batch MapLibre routes implemented locally; live API and installed-device/browser map acceptance remain unverified
@@ -13,10 +13,10 @@ copied_backend_checkout: 4c3f504
 scope: External Flutter mobile client and Laravel Courier API
 backend_contract_commit: d1abeee73d0141e1fd7dda4bea0ee3fead370378
 failed_attempt_contract_commit: 4d8bfefa2a95007256e6616df415fa186d1b18eb
-backend_contract_version: courier-delivery-v1-final-mile-task
+backend_contract_version: courier-direct-delivery-v2
 map_contract_commit: 51d96947569d1603fdfb6d264ebd2a04bf866280
 source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/domains/Courier.md, docs/domains/Logistics.md, docs/features/shared/shipment-fulfillment/spec.md
-documentation_synced_on: 2026-10-12
+documentation_synced_on: 2026-10-23
 ---
 
 # Deliver Order
@@ -43,7 +43,7 @@ An accepted Courier dispatch schedule offers `GET /api/v1/courier/final-mile-bat
 - **Purpose:** Help an accepted final-mile Courier task travel from the sole Logistics hub to the authoritative Customer destination.
 - **Actor boundary:** Courier views task and route context in Flutter. Aisley validates task ownership and state; Logistics remains assignment/state authority; Complete Delivery owns finalization.
 - **Current implementation:** The API creates a final-mile task when Logistics dispatches a Shipment from its sole hub, supports Courier-scoped task listing/detail/accept/reject, task-bound hub-handoff evidence submission, `in_transit`/`out_for_delivery` movement, and an accepted-task delivery-context read with the immutable destination address/contact and hub context. An accepted dispatch schedule has an advisory Geoapify Matrix/Routing route; live Courier location telemetry remains deferred. Flutter failed-attempt reporting and exact retry are adopted locally against `4d8bfefa2a95007256e6616df415fa186d1b18eb`; see [failed-attempt handoff](failed-attempts.md). Live/device acceptance remains open.
-- **Flow:** Logistics dispatches → final-mile task is offered → Courier accepts → Courier picks up from hub → `in_transit` → `out_for_delivery` → proof/Complete Delivery.
+- **Flow:** Logistics dispatches → Courier accepts → photo and **Delivered** intent → Logistics delivery confirmation. **Direct final-mile delivery revision — 2026-10-23 (`courier-direct-delivery-v2`):** Courier accepts a parcel, then submits private photo POD and the linked **Delivered** intent directly to Logistics Delivery confirmations. Hub pickup validation and transit actions are optional compatibility steps, not prerequisites. Existing `delivery_accepted`, `picked_up_from_hub`, `in_transit`, and `out_for_delivery` tasks are eligible. Submission preserves task/Shipment/Order/payment state; only the existing Logistics approval policy commits delivered. Skipped pickup/transit timestamps and evidence are not fabricated. External Flutter adoption of this revision remains open.
 - **Task boundary:** One Delivery Task represents one Order/Parcel and one leg. First-mile and final-mile assignments are independent and may use the same or a different Courier.
 - **Non-goals:** assignment, acceptance, pickup, scan/evidence recording, proof storage, completion, route-provider credentials, returns/refunds, or a production Courier web UI.
 
@@ -66,7 +66,7 @@ accepted final-mile task
 
 ### Canonical status and ownership
 
-- Final-mile sequence is `delivery_assigned` → `delivery_accepted` → `picked_up_from_hub` → `in_transit` → `out_for_delivery` → `delivered`.
+- Primary final-mile sequence is `delivery_assigned` → `delivery_accepted` → pending photo/intent review → `delivered`. Optional legacy pickup/transit states remain supported; pending review is an intent status, not a new physical state.
 - `delivery_assigned` is an offer, not acceptance; `picked_up_from_hub` is physical possession and is committed by Pick Up Order after Logistics validation.
 - This feature reads transit context and may submit permitted location updates; it must not directly write custody or `OrderStatus`.
 - `delivered` is owned by Complete Delivery after Proof of Delivery requirements are satisfied.
@@ -116,7 +116,7 @@ accepted final-mile task
 - `GET /api/v1/courier/tasks/{task}/delivery` — implemented; returns the immutable destination address/contact and pickup-hub context only after the Courier accepts the offer.
 - `POST /api/v1/courier/final-mile-tasks/{task}/accept` — implemented; accepts the current Logistics offer.
 - `POST /api/v1/courier/final-mile-tasks/{task}/reject` — implemented; records a reason and leaves the task available for Logistics re-offer.
-- `POST /api/v1/courier/final-mile-tasks/{task}/pickup` — implemented companion action owned by `docs/features/courier/pick-up-order/specs.md`; use its exact request, pending-evidence response, and retry contract. Deliver Order starts movement only after Logistics records `picked_up_from_hub`.
+- `POST /api/v1/courier/final-mile-tasks/{task}/pickup` — implemented companion action owned by `docs/features/courier/pick-up-order/specs.md`; use its exact request, pending-evidence response, and retry contract. Legacy movement starts only after Logistics records `picked_up_from_hub`; direct photo/Delivered submission requires acceptance only.
 - `POST /api/v1/courier/final-mile-tasks/{task}/status` — implemented; advances only `picked_up_from_hub → in_transit → out_for_delivery`. Send JSON `{ "target_state": "in_transit", "expected_revision": 4 }` and a UUID `Idempotency-Key` header.
 - Current `FinalMileStatusRequest` also accepts `status` as an alias for `target_state`, and `revision` for `expected_revision`; canonical fields take precedence when both are supplied. The Flutter handoff's `{status, expected_revision}` is supported. Revision must be at least 1; unknown fields fail `422`.
 - Movement returns `200 {data: <task projection>}`; invalid sequence/stale revision gives `409 TASK_STATE_CONFLICT`, reused key with changed payload gives `409 IDEMPOTENCY_KEY_REUSED`. Retain the same key/payload after timeout and refetch state; this review does not add or change the endpoint.

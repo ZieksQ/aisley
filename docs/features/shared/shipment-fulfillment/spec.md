@@ -3,7 +3,7 @@ feature: shipment-fulfillment
 title: Shipment and Fulfillment Lifecycle Decision and Revision Guide
 system: AISLEY
 type: Feature Specification
-version: 2.1
+version: 2.2
 status: Cross-document decision and reconciliation guide; shared physical schema and P0 final-mile transitions implemented
 roles: Customer, Seller, Logistics, Courier
 scope: Shared order-to-delivery vocabulary, decision record, and future backend contract
@@ -14,6 +14,8 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/P
 ---
 
 > **Cross-document decision notice:** This document is the canonical decision and reconciliation record for shared Shipment/Parcel/DeliveryTask concerns; it is not a replacement for the implementation contracts in `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, the domain documents, or owning feature specifications. Use it to answer cross-role concerns and direct revisions to those files. A checked decision is the accepted cross-role rule for those revisions; copy its wording and rationale into the owning canonical documents before implementation. This guide does not itself create a route, migration, or working endpoint. If existing documents or code disagree with a checked decision, reconcile the disagreement explicitly instead of silently choosing one.
+
+**Direct final-mile delivery revision — 2026-10-23 (`courier-direct-delivery-v2`):** Courier accepts a parcel, then submits private photo POD and the linked **Delivered** intent directly to Logistics Delivery confirmations. Hub pickup validation and transit actions are optional compatibility steps, not prerequisites. Existing `delivery_accepted`, `picked_up_from_hub`, `in_transit`, and `out_for_delivery` tasks are eligible. Submission preserves task/Shipment/Order/payment state; only the existing Logistics approval policy commits delivered. Skipped pickup/transit timestamps and evidence are not fabricated. External Flutter adoption of this revision remains open.
 
 ## Frozen sorting assignment contract — 2026-10-06
 
@@ -48,7 +50,7 @@ Final-mile Courier hub handoff is task-bound: the accepted Delivery Task and exp
 
 ## Final-mile handoff revision (2026-09-20)
 
-Logistics dispatches at most 15 sorted destination-hub parcels to one Courier schedule, and the Courier accepts or rejects each parcel independently. Underlying Shipment, Parcel, Delivery Task, offer, and Order records stay separate. Courier final-mile delivery uses private photo POD, a separate **Delivered** intent, and Logistics confirmation; a failed delivery attempt records a reason without changing `out_for_delivery`, so the Courier may retry later. Advisory Geoapify Matrix/Routing results and MapLibre display apply only to that final-mile schedule. Linehaul manifests, transfers, and custody remain independent. Historical QR-delivery and route-deferred statements below are superseded by the owning 2026-09-20 feature revisions.
+Logistics dispatches at most 15 sorted destination-hub parcels to one Courier schedule, and the Courier accepts or rejects each parcel independently. Underlying Shipment, Parcel, Delivery Task, offer, and Order records stay separate. Courier final-mile delivery uses private photo POD, a separate **Delivered** intent, and Logistics confirmation; a failed delivery attempt records a reason without changing the accepted delivery state, so the Courier may retry later. Advisory Geoapify Matrix/Routing results and MapLibre display apply only to that final-mile schedule. Linehaul manifests, transfers, and custody remain independent. Historical QR-delivery and route-deferred statements below are superseded by the owning 2026-09-20 feature revisions.
 
 ## WHAT
 

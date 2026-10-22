@@ -5,7 +5,7 @@ import { newDeliverySubmission, submitDelivery, type DeliverySubmission } from '
 import { DeliveryHistory } from './DeliveryHistory'
 import { DeliveryPhotoCapture } from './DeliveryPhotoCapture'
 import { FinalMileBatches } from './FinalMileBatches'
-import type { Address, Area, Completion, DeliveryContext, EvidenceReceipt, FinalMileTask } from './finalMileTypes'
+import type { Address, Area, Completion, DeliveryContext, FinalMileTask } from './finalMileTypes'
 
 type PendingRequest = { signature: string; key: string }
 
@@ -52,7 +52,6 @@ export function FinalMileTasks({ token }: { token: string }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
-  const [pendingHubPickup, setPendingHubPickup] = useState<string[]>([])
   const [photo, setPhoto] = useState<File | null>(null)
   const [codCollected, setCodCollected] = useState(false)
   const [failedReason, setFailedReason] = useState('recipient_unavailable')
@@ -84,7 +83,6 @@ export function FinalMileTasks({ token }: { token: string }) {
       const task = (await request<{ data: FinalMileTask }>(`/api/v1/courier/final-mile-tasks/${taskId}`, {}, token)).data
       if (requestNumber !== detailRequest.current) return
       setDetail(task)
-      if (task.status !== 'delivery_accepted') setPendingHubPickup((current) => current.filter((id) => id !== taskId))
       setTasks((current) => current.map((item) => item.task_id === taskId ? task : item))
       if (task.status !== 'delivery_assigned' && task.status !== 'rejected') {
         const [context, status] = await Promise.all([
@@ -136,22 +134,20 @@ export function FinalMileTasks({ token }: { token: string }) {
     setError(null)
     setNotice(null)
     try {
-      const result = await request<{ data: FinalMileTask | EvidenceReceipt | Completion }>(path, {
+      const result = await request<{ data: FinalMileTask | Completion }>(path, {
         method: 'POST',
         headers: idempotent && key ? { 'Idempotency-Key': key } : undefined,
         body: JSON.stringify(body ?? {}),
       }, token)
-      if (name === 'accept' || name === 'move' || name === 'reject') {
+      if (name === 'accept' || name === 'reject') {
         const task = result.data as FinalMileTask
         setDetail(task)
         setTasks((current) => current.map((item) => item.task_id === task.task_id ? task : item))
       }
-      setNotice(name === 'pickup' ? 'Hub pickup evidence submitted. Awaiting Logistics validation.'
-        : name === 'failed' ? 'Attempt recorded. This delivery remains assigned for a later retry.'
+      setNotice(name === 'failed' ? 'Attempt recorded. This delivery remains assigned for a later retry.'
           : name === 'reject' ? 'Parcel rejected. It is available for Logistics to schedule again.'
-            : 'Action recorded by the API.')
+            : 'Parcel accepted for delivery.')
       retry.current = null
-      if (name === 'pickup') setPendingHubPickup((current) => [...new Set([...current, detail.task_id])])
       if (name !== 'reject') await loadDetail(detail.task_id)
       if (name === 'accept' || name === 'reject') {
         setDispatchRevision((current) => current + 1)
@@ -189,14 +185,15 @@ export function FinalMileTasks({ token }: { token: string }) {
   const task = detail?.task_id === selectedId ? detail : null
   const active = task && !busy
   const proofId = completion?.evidence_id ?? task?.evidence_id
-  const hasReusableProof = task?.status === 'out_for_delivery' && proofId && ['awaiting_validation', 'validated'].includes(completion?.evidence_status ?? '')
+  const canReportDelivery = !!task && ['delivery_accepted', 'picked_up_from_hub', 'in_transit', 'out_for_delivery'].includes(task.status)
+  const hasReusableProof = canReportDelivery && proofId && ['awaiting_validation', 'validated'].includes(completion?.evidence_status ?? '')
     && completion?.proof_failed_attempt_count === task.failed_attempt_count
     && (!completion.intent_id || completion.intent_evidence_id !== proofId)
   const payment = delivery?.order
   const isCod = payment?.payment_method === 'cod'
   const paymentKnown = payment && ['cod', 'prepaid'].includes(payment.payment_method ?? '')
     && !!payment.currency && payment.payable_total != null && payment.payable_total !== '' && Number.isFinite(Number(payment.payable_total)) && Number(payment.payable_total) >= 0
-  const canSubmitDelivery = task?.status === 'out_for_delivery' && completion?.completion_status !== 'awaiting_validation'
+  const canSubmitDelivery = canReportDelivery && completion?.completion_status !== 'awaiting_validation'
     && paymentKnown && (!isCod || codCollected)
     && (photo ? photo.size > 0 && photo.size < 10 * 1024 * 1024 : hasReusableProof)
 
@@ -244,15 +241,7 @@ export function FinalMileTasks({ token }: { token: string }) {
               <div><dt>Delivery address</dt><dd>{address(delivery.destination)}</dd></div>
               {delivery.delivery_instructions ? <div><dt>Instructions</dt><dd>{delivery.delivery_instructions}</dd></div> : null}
             </dl> : null}
-            {task.status === 'delivery_accepted' ? <p className="confirmation-note">Confirm hub pickup only after physically receiving the parcel. Submission awaits Logistics validation.</p> : null}
-            {pendingHubPickup.includes(task.task_id) && task.status === 'delivery_accepted' ? <p className="status-line">Hub pickup evidence is awaiting Logistics validation.</p> : null}
-            {task.status === 'delivery_accepted' && !pendingHubPickup.includes(task.task_id) ? <div className="verification-panel">
-              <p>Confirm the selected delivery was physically received from the Logistics hub.</p>
-              <Button className="min-h-11 rounded-md px-4 shadow-none" disabled={!active} onClick={() => void act('pickup', `/api/v1/courier/final-mile-tasks/${task.task_id}/pickup`, { expected_revision: task.revision }, true)} variant="secondary">Request hub pickup confirmation</Button>
-            </div> : null}
-            {task.status === 'delivery_accepted' ? <p className="confirmation-note">Hub custody changes only after Logistics validates pickup evidence. Refresh to check its status.</p> : null}
-            {task.status === 'picked_up_from_hub' || task.status === 'in_transit' ? <Button className="min-h-11 rounded-md px-4 shadow-none" disabled={!active} onClick={() => void act('move', `/api/v1/courier/final-mile-tasks/${task.task_id}/status`, { target_state: task.status === 'picked_up_from_hub' ? 'in_transit' : 'out_for_delivery', expected_revision: task.revision }, true)} variant="secondary">{task.status === 'picked_up_from_hub' ? 'Start transit' : 'Out for delivery'}</Button> : null}
-            {task.status === 'out_for_delivery' && completion?.completion_status !== 'awaiting_validation' ? <div className="verification-panel">
+            {canReportDelivery && completion?.completion_status !== 'awaiting_validation' ? <div className="verification-panel">
               <DeliveryPhotoCapture busy={!!busy} key={task.task_id} onPhoto={(value) => { setPhoto(value); deliverySubmission.current = null }} photo={photo} retrying={task.failed_attempt_count > 0} />
               {isCod ? <label className="flex items-start gap-2 text-sm"><input checked={codCollected} disabled={!!busy} className="mt-1 accent-[#E6007A]" onChange={(event) => setCodCollected(event.target.checked)} type="checkbox" /><span>Confirm I collected the full COD amount {payment?.payable_total ? `${payment?.currency === 'PHP' ? '₱' : `${payment?.currency ?? ''} `}${Number(payment?.payable_total).toLocaleString('en-PH', { minimumFractionDigits: 2 })}` : ''} in cash.</span></label> : null}
               {!paymentKnown ? <p className="error-message" role="alert">Payment details are unavailable. Refresh the task before submitting Delivered.</p> : null}
@@ -263,7 +252,7 @@ export function FinalMileTasks({ token }: { token: string }) {
             </div> : null}
             {task.failed_attempts?.length ? <p className="status-line">Delivery attempt unsuccessful: {task.failed_attempts[0].reason.replaceAll('_', ' ')} · {new Date(task.failed_attempts[0].attempted_at).toLocaleString('en-PH')}. Retry delivery remains available on this task; submit fresh POD after another attempt.</p> : null}
             {completion ? <p className="status-line">Completion: {completion.completion_status?.replaceAll('_', ' ') ?? 'No intent'} · Proof: {completion.evidence_status.replaceAll('_', ' ')}{completion.delivered_at ? ` · Delivered ${new Date(completion.delivered_at).toLocaleString('en-PH')}` : ''}</p> : null}
-            {task.status === 'out_for_delivery' && completion?.completion_status !== 'awaiting_validation' ? <div className="space-y-2">
+            {canReportDelivery && completion?.completion_status !== 'awaiting_validation' ? <div className="space-y-2">
               <Button className="min-h-11 rounded-md px-4 shadow-none" disabled={!active || !canSubmitDelivery} onClick={() => void deliver()} variant="secondary">{busy === 'delivery' ? 'Submitting delivery…' : 'Delivered'}</Button>
               {deliveryStage ? <p className="status-line" role="status">{deliveryStage}</p> : <p className="status-line">Submit the parcel photo and delivery together to Logistics delivery confirmations.</p>}
             </div> : null}

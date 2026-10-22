@@ -347,7 +347,7 @@ class FulfillmentTransitionService
                 return $previous->fresh($this->completionRelations());
             }
             $task = $this->ownedFinalTask($courier, $taskId, true);
-            if ($task->revision !== $expectedRevision || $task->status !== FulfillmentTaskStatus::OutForDelivery) {
+            if ($task->revision !== $expectedRevision || ! $task->status->canSubmitDelivery()) {
                 throw FulfillmentException::conflict('COMPLETION_STATE_CONFLICT', 'The task is not ready for completion. Refresh and try again.');
             }
             $order = $task->shipment->parcel->order;
@@ -1081,9 +1081,9 @@ class FulfillmentTransitionService
             ShipmentStatus::PickedUpFromSeller => [],
             ShipmentStatus::ReceivedAtHub => $shipment->route === null || $shipment->route->status === HubRouteStatus::Local ? ['sorted_at_hub'] : [],
             ShipmentStatus::SortedAtHub => [],
-            ShipmentStatus::DeliveryAccepted => ['picked_up_from_hub'],
-            ShipmentStatus::PickedUpFromHub => ['in_transit'],
-            ShipmentStatus::InTransit => ['out_for_delivery'],
+            ShipmentStatus::DeliveryAccepted => ['picked_up_from_hub', 'delivered'],
+            ShipmentStatus::PickedUpFromHub => ['in_transit', 'delivered'],
+            ShipmentStatus::InTransit => ['out_for_delivery', 'delivered'],
             ShipmentStatus::OutForDelivery => ['delivered'],
             default => [],
         };
@@ -1272,9 +1272,9 @@ class FulfillmentTransitionService
             ShipmentStatus::PickedUpFromSeller => $target === ShipmentStatus::ReceivedAtHub->value,
             ShipmentStatus::ReceivedAtHub => $target === ShipmentStatus::SortedAtHub->value,
             ShipmentStatus::SortedAtHub => $target === ShipmentStatus::DispatchedFromHub->value,
-            ShipmentStatus::DeliveryAccepted => $target === ShipmentStatus::PickedUpFromHub->value,
-            ShipmentStatus::PickedUpFromHub => $target === ShipmentStatus::InTransit->value,
-            ShipmentStatus::InTransit => $target === ShipmentStatus::OutForDelivery->value,
+            ShipmentStatus::DeliveryAccepted => in_array($target, [ShipmentStatus::PickedUpFromHub->value, ShipmentStatus::Delivered->value], true),
+            ShipmentStatus::PickedUpFromHub => in_array($target, [ShipmentStatus::InTransit->value, ShipmentStatus::Delivered->value], true),
+            ShipmentStatus::InTransit => in_array($target, [ShipmentStatus::OutForDelivery->value, ShipmentStatus::Delivered->value], true),
             ShipmentStatus::OutForDelivery => $target === ShipmentStatus::Delivered->value,
             default => false,
         };

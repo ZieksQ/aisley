@@ -3,8 +3,8 @@
 namespace App\Services\Logistics;
 
 use App\Enums\DeliveryApprovalMode;
+use App\Enums\FulfillmentTaskStatus;
 use App\Enums\ShipmentEvidenceStatus;
-use App\Enums\ShipmentStatus;
 use App\Enums\UserStatus;
 use App\Exceptions\Fulfillment\FulfillmentException;
 use App\Jobs\Logistics\ApprovePrepaidDelivery;
@@ -29,7 +29,7 @@ class AutomaticDeliveryApprovalService
                     return;
                 }
                 if ($shipment->current_logistics_organization_id !== $intent->review_organization_id || $shipment->current_hub_id !== $intent->review_hub_id
-                    || $shipment->status !== ShipmentStatus::OutForDelivery || $shipment->condition_hold) {
+                    || ! in_array($shipment->status->value, FulfillmentTaskStatus::deliverySubmissionValues(), true) || $shipment->condition_hold) {
                     throw FulfillmentException::conflict('AUTOMATIC_REVIEW_CONFLICT', 'Delivery context changed; Logistics review is required.');
                 }
                 $organization = LogisticsOrganization::query()->whereKey($intent->review_organization_id)

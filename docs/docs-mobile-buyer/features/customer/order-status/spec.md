@@ -13,6 +13,8 @@ documentation_synced_on: 2026-10-12
 
 # Owned Orders and tracking
 
+**Direct final-mile delivery revision — 2026-10-23 (`courier-direct-delivery-v2`):** After accepting a parcel, the Courier may submit photo POD and completion intent without intermediate pickup/transit actions. Submission leaves the Buyer Order status unchanged; Logistics approval may move it directly from `assigned` to `delivered` (Completed). Existing status names and DTO fields are unchanged. External Buyer Flutter adoption/verification status is unchanged.
+
 ## WHAT
 
 Backend: Owned list/detail/timeline, status mapper, immutable facts and safe assigned-Courier projection

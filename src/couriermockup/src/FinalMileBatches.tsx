@@ -31,7 +31,7 @@ export function FinalMileBatches({ token, revision, onSelect, disabled }: { toke
       <div className="route-manifest-header">
         <div>
           <h3 id="final-mile-batches-heading">Assigned delivery parcels</h3>
-          <p>Review and accept or reject each parcel before hub pickup.</p>
+          <p>Review and accept or reject each parcel before delivery.</p>
         </div>
         <Button className="min-h-10 rounded-md px-4 shadow-none" disabled={disabled || loading} onClick={() => void load()} variant="outline">Refresh dispatches</Button>
       </div>

@@ -3,7 +3,7 @@ feature: logistics-update-status
 title: Update Status
 system: AISLEY
 type: Feature Specification
-version: 1.8
+version: 1.9
 status: Implemented dedicated offline receiving/sorting, offline-first barcode Parcel search, and recovery UI; exceptional recovery deferred
 role: Logistics
 scope: Logistics API and Logistics web recovery workflow
@@ -11,6 +11,8 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 ---
 
 # Update Status
+
+**Direct final-mile delivery revision — 2026-10-23 (`courier-direct-delivery-v2`):** Courier accepts a parcel, then submits private photo POD and the linked **Delivered** intent directly to Logistics Delivery confirmations. Hub pickup validation and transit actions are optional compatibility steps, not prerequisites. Existing `delivery_accepted`, `picked_up_from_hub`, `in_transit`, and `out_for_delivery` tasks are eligible. Submission preserves task/Shipment/Order/payment state; only the existing Logistics approval policy commits delivered. Skipped pickup/transit timestamps and evidence are not fabricated. External Flutter adoption of this revision remains open.
 
 ## Sorting exception and pickup authority — 2026-10-06
 
@@ -20,7 +22,7 @@ See [the Sorting revision](../../orders/logistics-sorting/versions-and-recovery.
 
 ## Final-mile photo confirmation revision (2026-09-20)
 
-For `delivered`, Logistics selects the matching Courier photo POD and completion intent, opens its private image through the scoped `GET /api/v1/logistics/delivery-proofs/{proof}/photo` route, then explicitly validates delivery through the existing revision-checked transition. Logistics can reject a bad photo with a reason and current task revision through `POST /api/v1/logistics/delivery-proofs/{proof}/reject`; its pending intent is rejected too, while custody stays `out_for_delivery`. The service checks that the image object still exists before accepting intent or finalization. A waybill QR, tracking ID, or Order reference cannot substitute for delivery proof. Hub pickup uses separate task-bound `task_confirmation` evidence without identifier input; Logistics validation commits its custody transition. Failed doorstep attempts keep the Shipment `out_for_delivery` and permit later Courier retry. Older QR-gated delivery wording below describes the superseded proof method.
+For `delivered`, Logistics selects the matching Courier photo POD and completion intent, opens its private image through the scoped `GET /api/v1/logistics/delivery-proofs/{proof}/photo` route, then explicitly validates delivery through the existing revision-checked transition. Logistics can reject a bad photo with a reason and current task revision through `POST /api/v1/logistics/delivery-proofs/{proof}/reject`; its pending intent is rejected too, while custody stays in its current accepted delivery state. The service checks that the image object still exists before accepting intent or finalization. A waybill QR, tracking ID, or Order reference cannot substitute for delivery proof. Hub pickup uses separate task-bound `task_confirmation` evidence without identifier input; Logistics validation commits its custody transition. Failed doorstep attempts keep the Shipment in its current accepted delivery state and permit later Courier retry. Older QR-gated delivery wording below describes the superseded proof method.
 
 ## WHAT
 
@@ -97,7 +99,7 @@ The deployed responses are safe for the Logistics dashboard and external Courier
 
 ### Completion handoff and blocked-action diagnosis
 
-- Courier first submits delivery proof at `out_for_delivery`, then explicitly submits a completion intent using its returned `proof_id` as `evidence_id`; HTTP 202 alone never means delivered.
+- Courier first submits delivery proof after acceptance, then explicitly submits a completion intent using its returned `proof_id` as `evidence_id`; HTTP 202 alone never means delivered.
 - Refresh the Logistics record through `GET /api/v1/logistics/update-status/records/{reference}` after Courier submission. Select `delivery_proof` evidence, not `hub_pickup` evidence, and its matching `completion_intents[].evidence_id`.
 - The current UI disables delivery validation when selected proof has no matching awaiting-validation/validated intent. Another proof's intent does not satisfy this condition; old loaded detail may require refresh.
 - Submit `POST /api/v1/logistics/update-status/transitions` with JSON `{ "reference": "waybill-or-order-reference", "target_state": "delivered", "expected_revision": 7, "evidence_id": "selected-proof-uuid" }` and a UUID `Idempotency-Key`. The example revision must be replaced by the fresh Shipment revision.

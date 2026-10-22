@@ -639,13 +639,11 @@ The parcel enters the Logistics **Ready to dispatch** queue
 ↓
 Logistics chooses one Courier and schedule for up to 15 parcels; dispatch and each final-mile offer commit atomically (`dispatched_from_hub` → `delivery_assigned`)
 ↓
-Final-mile Courier accepts the task (`delivery_accepted`)
+Final-mile Courier accepts the task (`delivery_accepted`); separate hub pickup/transit actions are optional legacy steps
 ↓
-Courier picks the parcel up from the hub (`picked_up_from_hub`)
+Courier delivers the parcel and submits a private photo with the **Delivered** intent
 ↓
-Courier transports and delivers the parcel (`in_transit` → `out_for_delivery`)
-↓
-Courier submits completion intent/proof; Logistics validates and the shared service commits `delivered`
+Logistics reviews Delivery confirmations; approval atomically commits task, Shipment and Order `delivered`
 ↓
 Buyer may rate/review
 

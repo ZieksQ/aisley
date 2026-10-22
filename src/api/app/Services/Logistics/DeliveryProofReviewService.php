@@ -3,7 +3,6 @@
 namespace App\Services\Logistics;
 
 use App\Enums\DeliveryApprovalMode;
-use App\Enums\FulfillmentTaskStatus;
 use App\Enums\ShipmentEvidenceStatus;
 use App\Exceptions\Fulfillment\FulfillmentException;
 use App\Models\Shipment;
@@ -27,7 +26,7 @@ class DeliveryProofReviewService
             if ($evidence->status === ShipmentEvidenceStatus::Rejected && $evidence->rejection_reason === trim($reason)) {
                 return $evidence;
             }
-            if ($task->revision !== $revision || $task->status !== FulfillmentTaskStatus::OutForDelivery
+            if ($task->revision !== $revision || ! $task->status->canSubmitDelivery()
                 || $evidence->status !== ShipmentEvidenceStatus::AwaitingValidation) {
                 throw FulfillmentException::conflict('PROOF_REVIEW_CONFLICT', 'The proof or delivery changed. Refresh before reviewing it.');
             }

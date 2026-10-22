@@ -22,7 +22,7 @@ class DeliveryConfirmationReadService
             $query->whereIn('status', [ShipmentEvidenceStatus::Validated->value, ShipmentEvidenceStatus::Rejected->value])->orderByDesc('validated_at');
         } else {
             $query->where('status', ShipmentEvidenceStatus::AwaitingValidation->value)
-                ->whereHas('task', fn ($task) => $task->where('status', FulfillmentTaskStatus::OutForDelivery->value))
+                ->whereHas('task', fn ($task) => $task->whereIn('status', FulfillmentTaskStatus::deliverySubmissionValues()))
                 ->whereHas('completionIntent', fn ($intent) => $intent->where('status', ShipmentEvidenceStatus::AwaitingValidation->value))
                 ->orderBy('submitted_at');
         }

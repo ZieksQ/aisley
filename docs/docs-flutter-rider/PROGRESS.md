@@ -59,3 +59,8 @@ Short, dated implementation log. Append entries; archive complete logs after 150
 
 - Synced `courier-final-mile-parcel-decisions-v2`: individual accept/reject, rejected-parcel scheduling, current-member batch reads and accepted-subset routes. The same task, rejection history and staging assignment survive new dispatch schedules; the old bulk route remains compatibility-only. Updated affected schema, fulfillment, dispatch, dashboard and map guidance.
 - Laravel and the development mockup implement this revision, including the existing private photo POD and **Delivered** intent. External Flutter's recorded batch implementation/adoption and live/device gates remain unchanged; per-parcel adoption is open. Platform regression/browser evidence belongs to the main progress log; no Flutter tests, build or device acceptance ran here.
+
+## 2026-10-23 — Direct accepted-parcel delivery API revision
+
+- Synced affected Courier photo/completion/delivery/pickup/failed-attempt and shared lifecycle notes for `courier-direct-delivery-v2`: accept → photo plus Delivered intent → Logistics confirmation; intermediate hub-pickup/transit actions are optional compatibility paths. Accepted and existing later delivery states are eligible; pending submission preserves physical/payment state and approval does not fabricate skipped timestamps.
+- Platform verification: 37 isolated SQLite API tests / 779 assertions, mockup build/typecheck/lint, scoped Pint and synthetic Chromium direct-flow/queue/retry checks pass. These are backend/harness results, not Flutter adoption. External Flutter implementation, deployed PostgreSQL/concurrency and installed-device/live acceptance of this revision remain open.

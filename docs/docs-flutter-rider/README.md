@@ -88,3 +88,7 @@ Registration adopts [email OTP verification](registration-email.md) before accou
 ## Per-parcel last-mile revision — 2026-10-22
 
 Laravel and the development mockup now use individual parcel accept/reject. Rejected Shipments return to `sorted_at_hub` for Logistics scheduling; current batch reads retain unaffected siblings, and routes include accepted current members only. The old bulk acceptance endpoint remains for compatibility. See the [decision contract](features/courier/accept-delivery-requests/specs.md). External Flutter still has its recorded batch implementation; adoption of this revision remains open. POD and completion wire contracts are unchanged.
+
+## Direct accepted-parcel delivery revision — 2026-10-23
+
+Backend contract `courier-direct-delivery-v2` permits private photo POD, failed-attempt reporting and matching completion intent directly from `delivery_accepted` and existing later delivery states. Logistics Delivery confirmations reviews these without a required hub-pickup/transit sequence. Submission preserves physical/payment state; approval may commit Order `assigned` → `delivered`. Existing endpoint fields, authentication and optional legacy movement routes remain supported. See [Complete Delivery](features/courier/complete-delivery/specs.md). External Flutter adoption and device/live acceptance of this revision remain open.

@@ -45,7 +45,7 @@ window.fetch = async (input, options = {}) => {
  state.requests.push({ path, method, credentials: options.credentials, authorization: headers.get('Authorization'), key: headers.get('Idempotency-Key'), multipart: options.body instanceof FormData })
  const response = (data, status = 200) => new Response(JSON.stringify({ data }), { status, headers: { 'Content-Type': 'application/json' } })
  if (path === '/api/v1/logistics/update-status/transitions') return new Promise(resolve => {
-  state.releaseReview = () => { state.tasks[0].completion_status = 'validated'; state.tasks[0].status = 'delivered'; resolve(response({ status: 'delivered' })) }
+  state.releaseReview = () => { state.tasks[0].completion_status = 'validated'; state.tasks[0].status = 'delivered'; state.tasks[0].order.status = 'delivered'; resolve(response({ status: 'delivered' })) }
  })
  if (path === '/api/v1/logistics/delivery-confirmations') {
   const rows = state.tasks.filter(item => item.completion_status === 'awaiting_validation').map(item => ({
@@ -65,7 +65,7 @@ window.fetch = async (input, options = {}) => {
  const id = path.split('/')[2]
  const current = state.tasks.find((item) => item.task_id === id)
  if (!current) return response([], 404)
- const completion = () => ({ task_id: id, intent_id: current.completion_status ? 'intent' : null, intent_evidence_id: current.evidence_id, task_status: current.status, order_status: 'out_for_delivery', evidence_id: current.evidence_id, evidence_status: current.evidence_status, proof_failed_attempt_count: current.evidence_id ? 0 : null, completion_status: current.completion_status, delivered_at: null, revision: current.revision })
+ const completion = () => ({ task_id: id, intent_id: current.completion_status ? 'intent' : null, intent_evidence_id: current.evidence_id, task_status: current.status, order_status: current.order.status, evidence_id: current.evidence_id, evidence_status: current.evidence_status, proof_failed_attempt_count: current.evidence_id ? 0 : null, completion_status: current.completion_status, delivered_at: null, revision: current.revision })
  if (method === 'GET' && path.endsWith('/completion')) return response(completion())
  if (method === 'GET' && path.endsWith('/delivery')) return response({ ...current, pickup_hub: { name: 'Manila hub', address: null }, destination: { city_municipality: 'Calamba', province: 'Laguna' } })
  if (method === 'GET') return response(current)
