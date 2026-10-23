@@ -6,6 +6,7 @@ use App\Enums\FulfillmentTaskLeg;
 use App\Enums\FulfillmentTaskStatus;
 use App\Exceptions\Fulfillment\FulfillmentException;
 use App\Models\DispatchSchedule;
+use App\Models\DispatchScheduleShipment;
 use App\Models\User;
 use App\Services\Fulfillment\FulfillmentTransitionService;
 use Illuminate\Support\Facades\DB;
@@ -33,10 +34,22 @@ class FinalMileBatchService
 
     public function isCurrent(User $courier, DispatchSchedule $schedule): bool
     {
-        return $schedule->shipments->isNotEmpty() && $schedule->shipments->every(fn ($member) => $member->task?->courier_id === $courier->id
-            && $member->task?->leg === FulfillmentTaskLeg::FinalMile
-            && $member->shipment?->current_logistics_organization_id === $schedule->logistics_organization_id
-            && $member->shipment?->current_hub_id === $schedule->logistics_hub_id);
+        // Historical membership is immutable; expose only current assigned parcels.
+        $schedule->setRelation('shipments', $schedule->shipments->filter(function ($member) use ($courier, $schedule): bool {
+            if ($member->task?->courier_id !== $courier->id
+                || $member->task?->leg !== FulfillmentTaskLeg::FinalMile
+                || $member->shipment?->current_logistics_organization_id !== $schedule->logistics_organization_id
+                || $member->shipment?->current_hub_id !== $schedule->logistics_hub_id) {
+                return false;
+            }
+            $latest = DispatchScheduleShipment::query()->where('delivery_task_id', $member->delivery_task_id)
+                ->orderByRaw('COALESCE(shipment_revision_at_dispatch, 0) DESC')
+                ->orderByDesc('created_at')->orderByDesc('id')->value('id');
+
+            return $latest === $member->id;
+        })->values());
+
+        return $schedule->shipments->isNotEmpty();
     }
 
     public function accept(User $courier, string $id): DispatchSchedule

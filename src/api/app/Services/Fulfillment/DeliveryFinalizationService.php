@@ -46,7 +46,17 @@ class DeliveryFinalizationService
         if ($evidence !== null) {
             $evidence = ShipmentEvidence::query()->whereKey($evidence->id)->lockForUpdate()->firstOrFail();
         }
-        if ($task === null || $evidence?->delivery_task_id !== $task->id || $evidence?->courier_id !== $task->courier_id || $task->leg !== FulfillmentTaskLeg::FinalMile || $task->status !== FulfillmentTaskStatus::OutForDelivery || $evidence?->purpose !== ShipmentEvidencePurpose::DeliveryProof || $evidence->type !== 'photo' || ! $evidence->storage_disk || ! $evidence->storage_path || ! Storage::disk($evidence->storage_disk)->exists($evidence->storage_path)) {
+        if ($task === null
+            || $task->leg !== FulfillmentTaskLeg::FinalMile
+            || ! $task->status->canSubmitDelivery()
+            || $shipment->status->value !== $task->status->value
+            || $evidence?->delivery_task_id !== $task->id
+            || $evidence?->courier_id !== $task->courier_id
+            || $evidence?->purpose !== ShipmentEvidencePurpose::DeliveryProof
+            || $evidence->type !== 'photo'
+            || ! $evidence->storage_disk
+            || ! $evidence->storage_path
+            || ! Storage::disk($evidence->storage_disk)->exists($evidence->storage_path)) {
             throw FulfillmentException::conflict('COMPLETION_STATE_CONFLICT', 'The final-mile task is not ready for completion.');
         }
         $failedAttemptCount = FinalMileFailedAttempt::query()->where('delivery_task_id', $task->id)->count();
@@ -88,18 +98,24 @@ class DeliveryFinalizationService
         $method = $logistics === null ? DeliveryApprovalMode::Automatic : DeliveryApprovalMode::Manual;
         $evidence->update(['status' => ShipmentEvidenceStatus::Validated, 'validated_at' => now(),
             'validated_by_logistics_id' => $logistics?->id, 'review_method' => $method, 'rejection_reason' => null]);
-        if ($order->status !== OrderStatus::OutForDelivery) {
+        $expectedOrderStatus = match ($task->status) {
+            FulfillmentTaskStatus::DeliveryAccepted, FulfillmentTaskStatus::PickedUpFromHub => OrderStatus::Assigned,
+            FulfillmentTaskStatus::InTransit => OrderStatus::InTransit,
+            default => OrderStatus::OutForDelivery,
+        };
+        if ($order->status !== $expectedOrderStatus) {
             throw FulfillmentException::conflict('ORDER_STATE_CONFLICT', 'The Order is not ready to be delivered.');
         }
-        $this->orderTransitions->transition($order, OrderStatus::OutForDelivery, OrderStatus::Delivered, 'courier_complete_delivery');
+        $this->orderTransitions->transition($order, $expectedOrderStatus, OrderStatus::Delivered, 'courier_complete_delivery');
         if ($order->payment_method === PaymentMethod::CashOnDelivery) {
             $order->update(['payment_status' => PaymentStatus::Paid]);
         }
         $order->loadMissing('shop.seller');
         DB::afterCommit(fn () => $order->shop?->seller?->notify(new SellerOrderDeliveredNotification($order)));
         $at = now();
+        $fromState = $shipment->status->value;
         $task->update(['status' => FulfillmentTaskStatus::Delivered, 'delivered_at' => $at, 'revision' => $task->revision + 1]);
-        $shipment->update(['status' => ShipmentStatus::Delivered, 'revision' => $shipment->revision + 1]);
+        $shipment->update(['status' => ShipmentStatus::Delivered, 'revision' => $shipment->revision + 1, 'sorting_lane_id' => null]);
         // The existing financial recognition workflow posts a COD receivable.
         // Prepaid capture and settlement are outside this fulfillment revision.
         if ($order->payment_method === PaymentMethod::CashOnDelivery) {
@@ -112,7 +128,7 @@ class DeliveryFinalizationService
             'shipment_id' => $shipment->id, 'delivery_task_id' => $task->id,
             'delivery_task_offer_id' => $task->offers()->where('status', FulfillmentOfferStatus::Accepted->value)->latest('sequence')->value('id'),
             'shipment_evidence_id' => $evidence->id, 'event_type' => 'delivery_completed',
-            'from_state' => ShipmentStatus::OutForDelivery->value, 'to_state' => ShipmentStatus::Delivered->value,
+            'from_state' => $fromState, 'to_state' => ShipmentStatus::Delivered->value,
             'performing_courier_id' => $task->courier_id, 'recorded_by_logistics_id' => $logistics?->id,
             'metadata' => ['request_hash' => $requestHash, 'review_method' => $method->value,
                 'cod_collector_organization_id' => $shipment->current_logistics_organization_id],

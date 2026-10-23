@@ -3,13 +3,15 @@ feature: order-status
 title: Customer Order Monitoring and Logistics Tracking
 system: AISLEY
 type: Feature Specification
-version: 1.6
+version: 1.7
 status: Implemented read-only tracking and scheduled-delivery Courier projection; live map deferred
 role: Customer
 scope: Customer storefront and Laravel API
 ---
 
 # Customer Order Monitoring and Logistics Tracking
+
+**Direct final-mile delivery revision — 2026-10-23 (`courier-direct-delivery-v2`):** Courier photo/intent submission is available immediately after acceptance and leaves the Buyer Order status unchanged until approval. Logistics confirmation may move the Order directly from `assigned` to `delivered` (Completed), without intervening transit projections. Status names and DTO fields are unchanged.
 
 ## WHAT
 

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { ApiError } from '../../lib/api'
 import { sortingMutation } from '../../lib/sortingApi'
-import { ErrorNotice, field, manilaDate } from '../PickupUi'
+import { ErrorNotice, manilaDate } from '../PickupUi'
 import { SortingButton } from './SortingButton'
 import { PublishedVersions } from './PublishedVersions'
 import { TimedNotice } from './TimedNotice'
@@ -64,13 +64,13 @@ export function PlanVersionControls({ plan, lanes, hubs, onChanged, onBlocked }:
     <TimedNotice message={notice} onChange={setNotice} />
   </>
 
-  return <section className="space-y-3 border-t border-zinc-200 pt-3 dark:border-white/10" aria-label="Plan publication">
+  return <section className="space-y-3 border-t border-slate-200 pt-3 dark:border-slate-700" aria-label="Plan publication">
 
     <h4 className="font-semibold">
       Draft publication
     </h4>
 
-    <p className="text-sm text-zinc-600 dark:text-zinc-400">
+    <p className="text-sm text-slate-600 dark:text-slate-400">
       {plan.draft_dirty ? 'Draft has unpublished changes.' : 'Draft matches the latest publication.'} Active version: {plan.versions.find((version) => version.id === plan.active_version_id)?.number ?? 'None'}.
     </p>
     {feedback}
@@ -86,7 +86,7 @@ export function PlanVersionControls({ plan, lanes, hubs, onChanged, onBlocked }:
       </SortingButton>
 
       <PublishedVersions plan={plan} lanes={lanes} hubs={hubs} blocked={busy || uncertain} feedback={feedback} actions={(version) => <>
-        <div className="flex flex-wrap gap-2 border-t border-zinc-200 pt-3 dark:border-white/10">
+        <div className="flex flex-wrap gap-2 border-t border-slate-200 pt-3 dark:border-slate-700">
 
           <SortingButton disabled={blocked || version.id === plan.active_version_id} onClick={() => { if (window.confirm(`Activate version ${version.number} for new scans now?`)) void perform('activate', { version_id: version.id }) }}>
             Activate selected version
@@ -101,7 +101,7 @@ export function PlanVersionControls({ plan, lanes, hubs, onChanged, onBlocked }:
 
           <label className="text-sm">
             One-time activation (Asia/Manila)
-            <FlatpickrInput className={`${field} mt-1`} required value={time} disabled={blocked} onChange={setTime} options={{ allowInput: true, enableTime: true, time_24hr: true, dateFormat: 'Y-m-d\\TH:i', minuteIncrement: 1, minDate: 'today' }} placeholder="Select date and time" />
+            <FlatpickrInput className={`portal-input mt-1`} required value={time} disabled={blocked} onChange={setTime} options={{ allowInput: true, enableTime: true, time_24hr: true, dateFormat: 'Y-m-d\\TH:i', minuteIncrement: 1, minDate: 'today' }} placeholder="Select date and time" />
           </label>
 
           <SortingButton type="submit" disabled={blocked}>
@@ -116,7 +116,7 @@ export function PlanVersionControls({ plan, lanes, hubs, onChanged, onBlocked }:
 
       <label className="text-sm">
         One-time activation (Asia/Manila)
-        <FlatpickrInput className={`${field} mt-1`} required value={time} disabled={blocked} onChange={setTime} options={{ allowInput: true, enableTime: true, time_24hr: true, dateFormat: 'Y-m-d\\TH:i', minuteIncrement: 1, minDate: 'today' }} placeholder="Select date and time" />
+        <FlatpickrInput className={`portal-input mt-1`} required value={time} disabled={blocked} onChange={setTime} options={{ allowInput: true, enableTime: true, time_24hr: true, dateFormat: 'Y-m-d\\TH:i', minuteIncrement: 1, minDate: 'today' }} placeholder="Select date and time" />
       </label>
 
       <SortingButton type="submit" disabled={blocked}>
@@ -130,14 +130,14 @@ export function PlanVersionControls({ plan, lanes, hubs, onChanged, onBlocked }:
         Activation history
       </h4>
 
-      <ul className="divide-y divide-zinc-200 text-sm dark:divide-white/10">
+      <ul className="divide-y divide-slate-200 text-sm dark:divide-white/10">
         {plan.activations.map((activation) => <li className="space-y-1 py-2" key={activation.id}>
 
           <p>
             {manilaDate(activation.scheduled_for)} · {activation.status}
           </p>
 
-          <p className="break-all text-xs text-zinc-600 dark:text-zinc-400">
+          <p className="break-all text-xs text-slate-600 dark:text-slate-400">
             Requested by {activation.requested_by}{activation.completed_at ? ` · Completed ${manilaDate(activation.completed_at)}` : ''}
           </p>
           {activation.failure_reason ? <p>

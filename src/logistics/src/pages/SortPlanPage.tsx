@@ -1,6 +1,9 @@
-import { FaArrowsRotate, FaPen, FaPlus, FaPowerOff, FaPrint, FaRoute, FaWarehouse, FaXmark } from 'react-icons/fa6'
+import { ActivePlanMappings } from '../components/sorting/ActivePlanMappings'
+import '../features/hubOperations/workspaces.css'
+import { PortalButton, PortalSkeleton } from '@aisley/ui/portal'
+import { FaArrowsRotate, FaPen, FaPlus, FaPowerOff, FaPrint, FaWarehouse, FaXmark } from 'react-icons/fa6'
 import { Link } from 'react-router-dom'
-import { ActionButton, ErrorNotice, PrimaryButton, field, panel } from '../components/PickupUi'
+import { ErrorNotice } from '../components/PickupUi'
 import { PlanWorkspace } from '../components/sorting/PlanWorkspace'
 import { TimedNotice } from '../components/sorting/TimedNotice'
 import { useSortPlanEditor } from '../components/sorting/useSortPlanEditor'
@@ -8,7 +11,7 @@ import { SupportedPostalCodes } from '../components/SupportedPostalCodes'
 import { CompactPagination, COMPACT_PAGE_SIZE } from '../components/CompactPagination'
 import type { SortingLane } from '../types/sorting'
 
-const iconButton = 'grid size-9 shrink-0 place-items-center rounded-md text-zinc-500 hover:bg-zinc-100 hover:text-zinc-950 focus-visible:outline-2 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-white/10 dark:hover:text-white'
+const iconButton = 'grid size-11 shrink-0 place-items-center rounded-md text-slate-600 dark:text-slate-400 hover:bg-slate-100 hover:text-slate-950 focus-visible:outline-2 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-white/10 dark:hover:text-white'
 
 export function SortPlanPage() {
   const editor = useSortPlanEditor()
@@ -48,11 +51,9 @@ export function SortPlanPage() {
     toggleLane,
     openLabel,
   } = editor
-  return <div className="mx-auto max-w-[1500px] px-3 py-3">
-    <header className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-200 pb-2 dark:border-white/10">
-      <h2 className="flex items-center gap-2 text-lg font-semibold">
-        <FaRoute className="text-[#4C1268] dark:text-purple-300" aria-hidden="true" />Sort plan
-      </h2>
+  return <div className="portal-page hub-workspace">
+    <header className="hub-page-header">
+      <div><h2 className="portal-page-heading">Sort plan</h2><p className="portal-secondary mt-2 text-sm">Map destinations to physical lanes and control routing for future scans.</p></div>
       <div className="flex items-center gap-1">
         <button aria-label="How sort plans work" title="Help" className={iconButton} onClick={() => helpDialog.current?.showModal()} type="button">
           ?
@@ -71,71 +72,35 @@ export function SortPlanPage() {
     {notice && !workspaceOpen ? <div className="mt-2">
       <TimedNotice message={notice} onChange={setNotice} />
     </div> : null}
-    <div className="mt-3 grid items-start gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,22rem)]">
-      <section className={`${panel} min-w-0`}>
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-200 px-3 py-2 dark:border-white/10">
+    {loading && !overview ? <PortalSkeleton label="Loading sort plan" /> : overview ? <>
+    <div className="mt-5 grid items-start gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(22rem,1fr)]">
+      <section className={`portal-section min-w-0`}>
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-4 py-3 dark:border-slate-700">
           <div>
             <h3 className="font-semibold">
               Active plan
             </h3>
-            <p className="text-xs text-zinc-500">
+            <p className="text-xs text-slate-600 dark:text-slate-400">
               {activePlan ? activePlan.name + ' · ' + activeMappings.length + ' destination mappings' : 'No plan is active for new scans'}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <ActionButton onClick={() => openPlanEditor(true)}>
+            <PortalButton onClick={() => openPlanEditor(true)}>
               <FaPlus aria-hidden="true" />New plan
-            </ActionButton>
-            <ActionButton onClick={() => { if (activePlan) selectPlan(activePlan.id); openPlanEditor(false) }}>
+            </PortalButton>
+            <PortalButton variant="primary" onClick={() => { if (activePlan) selectPlan(activePlan.id); openPlanEditor(false) }}>
               {activePlan ? 'Edit active plan' : 'Manage plans'}
-            </ActionButton>
+            </PortalButton>
           </div>
         </div>
-        {activePlan ? <div className="overflow-x-auto">
-          <table className="w-full min-w-[430px] text-left text-sm">
-            <thead className="border-b border-zinc-200 bg-zinc-50 text-xs dark:border-white/10 dark:bg-white/[0.03]">
-              <tr>
-                <th className="px-3 py-2">
-                  Lane no.
-                </th>
-                <th className="px-3 py-2">
-                  Physical lane
-                </th>
-                <th className="px-3 py-2">
-                  Destination
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-200 dark:divide-white/10">
-              {activeMappings.slice((currentMappingPage - 1) * COMPACT_PAGE_SIZE, currentMappingPage * COMPACT_PAGE_SIZE).map((mapping) => <tr key={mapping.id}>
-                <td className="px-3 py-2 font-mono">
-                  {mapping.lane?.position ?? '—'}
-                </td>
-                <td className="px-3 py-2">
-                  {mapping.lane?.code ?? 'Lane unavailable'}
-                </td>
-                <td className="px-3 py-2">
-                  {mapping.destination_type === 'hub' ? (overview?.next_hubs?.find((hub) => hub.id === mapping.destination_hub_id)?.name ?? 'Unavailable hub') : mapping.postal_code}
-                  <span className="ml-2 text-xs text-zinc-500">
-                    {mapping.destination_type === 'hub' ? 'Next hub' : 'Postal'}
-                  </span>
-                </td>
-              </tr>)}
-              {!activeMappings.length ? <tr>
-                <td colSpan={3} className="px-3 py-4 text-zinc-500">
-                  No destinations mapped. Edit the active plan to add one.
-                </td>
-              </tr> : null}
-            </tbody>
-          </table>
-        </div> : <p className="px-3 py-4 text-sm text-zinc-500">
+        {activePlan ? <ActivePlanMappings mappings={activeMappings.slice((currentMappingPage - 1) * COMPACT_PAGE_SIZE, currentMappingPage * COMPACT_PAGE_SIZE)} hubs={overview?.next_hubs ?? []} /> : <p className="px-3 py-4 text-sm text-slate-600 dark:text-slate-400">
           Open Manage plans to activate an existing plan, or create a new one.
         </p>}
         <CompactPagination label="Active plan lanes" page={currentMappingPage} total={activeMappings.length} onPageChange={setMappingPage} />
       </section>
-      <div className="min-w-0 space-y-3">
-        <section className={panel}>
-          <div className="flex items-center justify-between border-b border-zinc-200 px-3 py-2 dark:border-white/10">
+      <div className="min-w-0 space-y-5">
+        <section className="portal-section">
+          <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 dark:border-slate-700">
             <h3 className="font-semibold">
               Physical lanes
             </h3>
@@ -143,16 +108,16 @@ export function SortPlanPage() {
               <FaPlus aria-hidden="true" />
             </button>
           </div>
-          {orderedLanes.length ? <div className="divide-y divide-zinc-200 dark:divide-white/10">
-            {orderedLanes.slice((currentLanePage - 1) * COMPACT_PAGE_SIZE, currentLanePage * COMPACT_PAGE_SIZE).map((lane) => <div className="flex flex-wrap items-center gap-1 px-2 py-1 text-sm" key={lane.id}>
-              <span className="w-8 shrink-0 text-right font-mono text-zinc-500">
+          {orderedLanes.length ? <div className="divide-y divide-slate-200 dark:divide-white/10">
+            {orderedLanes.slice((currentLanePage - 1) * COMPACT_PAGE_SIZE, currentLanePage * COMPACT_PAGE_SIZE).map((lane) => <div className="hub-lane-row" key={lane.id}>
+              <span className="w-8 shrink-0 text-right font-mono text-slate-600 dark:text-slate-400">
                 {lane.position}
               </span>
               <div className="min-w-0 flex-1 basis-36 pl-2">
                 <strong className="font-mono">
                   {lane.code}
                 </strong>
-                <span className="ml-2 text-xs text-zinc-500">
+                <span className="mt-1 block text-xs text-slate-600 dark:text-slate-400">
                   {lane.name} · {lane.type}{lane.is_active ? '' : ' · Inactive'}
                 </span>
               </div>
@@ -166,7 +131,7 @@ export function SortPlanPage() {
                 <FaPowerOff aria-hidden="true" />
               </button>
             </div>)}
-          </div> : <p className="px-3 py-4 text-sm text-zinc-500">
+          </div> : <p className="px-3 py-4 text-sm text-slate-600 dark:text-slate-400">
             Create a standard lane and an exception lane.
           </p>}
           <CompactPagination label="Physical lanes" page={currentLanePage} total={orderedLanes.length} onPageChange={setLanePage} />
@@ -177,9 +142,10 @@ export function SortPlanPage() {
         <SupportedPostalCodes onChange={setSupportedCodes} />
       </div>
     </div>
+    </> : null}
     <PlanWorkspace editor={editor} />
-    <dialog aria-labelledby="sort-plan-help-title" className="m-auto max-h-[90dvh] w-[min(92vw,30rem)] overflow-y-auto border border-zinc-200 bg-white p-0 text-zinc-950 backdrop:bg-black/55 dark:border-white/15 dark:bg-[#18181b] dark:text-white" ref={helpDialog}>
-      <div className="flex items-center justify-between border-b border-zinc-200 px-3 py-2 dark:border-white/10">
+    <dialog aria-labelledby="sort-plan-help-title" className="m-auto max-h-[90dvh] w-[min(92vw,30rem)] overflow-y-auto rounded-xl border border-slate-200 bg-white p-0 text-slate-950 backdrop:bg-black/55 dark:border-slate-600 dark:bg-slate-800 dark:text-white" ref={helpDialog}>
+      <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 dark:border-slate-700">
         <h3 id="sort-plan-help-title" className="font-semibold">
           How sort plans work
         </h3>
@@ -208,9 +174,9 @@ export function SortPlanPage() {
         </li>
       </ol>
     </dialog>
-    <dialog className="m-auto max-h-[90dvh] w-[min(92vw,30rem)] border border-zinc-200 bg-white p-0 text-zinc-950 backdrop:bg-black/55 dark:border-white/15 dark:bg-[#18181b] dark:text-white" ref={laneDialog}>
+    <dialog className="m-auto max-h-[90dvh] w-[min(92vw,30rem)] border border-slate-200 bg-white p-0 text-slate-950 backdrop:bg-black/55 dark:border-slate-600 dark:bg-slate-800 dark:text-white" ref={laneDialog}>
       <form onSubmit={(event) => void saveLane(event)}>
-        <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-white/10">
+        <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 dark:border-slate-700">
           <h3 className="font-semibold">
             {editingLane ? 'Edit lane' : 'Add lane'}
           </h3>
@@ -221,19 +187,19 @@ export function SortPlanPage() {
         <div className="grid gap-3 p-4 sm:grid-cols-2">
           <label className="text-sm font-medium">
             Code
-            <input autoFocus className={field + ' mt-1 uppercase'} maxLength={24} onChange={(event) => setLaneCode(event.target.value)} placeholder="NCR-01" required value={laneCode} />
+            <input autoFocus className={'portal-input  mt-1 uppercase'} maxLength={24} onChange={(event) => setLaneCode(event.target.value)} placeholder="NCR-01" required value={laneCode} />
           </label>
           <label className="text-sm font-medium">
             Position
-            <input className={field + ' mt-1'} min="1" max="999" onChange={(event) => setLanePosition(event.target.value)} required type="number" value={lanePosition} />
+            <input className={'portal-input  mt-1'} min="1" max="999" onChange={(event) => setLanePosition(event.target.value)} required type="number" value={lanePosition} />
           </label>
           <label className="text-sm font-medium sm:col-span-2">
             Name
-            <input className={field + ' mt-1'} maxLength={80} onChange={(event) => setLaneName(event.target.value)} placeholder="NCR staging lane" required value={laneName} />
+            <input className={'portal-input  mt-1'} maxLength={80} onChange={(event) => setLaneName(event.target.value)} placeholder="NCR staging lane" required value={laneName} />
           </label>
           <label className="text-sm font-medium sm:col-span-2">
             Type
-            <select className={field + ' mt-1'} onChange={(event) => setLaneType(event.target.value as SortingLane['type'])} value={laneType}>
+            <select className={'portal-input  mt-1'} onChange={(event) => setLaneType(event.target.value as SortingLane['type'])} value={laneType}>
               <option value="standard">
                 Standard — maps destinations and marks sorted
               </option>
@@ -243,13 +209,13 @@ export function SortPlanPage() {
             </select>
           </label>
         </div>
-        <div className="flex justify-end gap-2 border-t border-zinc-200 px-4 py-3 dark:border-white/10">
-          <ActionButton onClick={() => laneDialog.current?.close()} type="button">
+        <div className="flex justify-end gap-2 border-t border-slate-200 px-4 py-3 dark:border-slate-700">
+          <PortalButton onClick={() => laneDialog.current?.close()} type="button">
             Cancel
-          </ActionButton>
-          <PrimaryButton busy={busy} type="submit">
+          </PortalButton>
+          <PortalButton variant="primary" isLoading={busy} type="submit">
             Save lane
-          </PrimaryButton>
+          </PortalButton>
         </div>
       </form>
     </dialog>

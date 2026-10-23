@@ -135,7 +135,9 @@ class FulfillmentTransitionService
                 'offered_at' => now(),
             ]);
             $task->update(['status' => FulfillmentTaskStatus::DeliveryAssigned, 'courier_id' => $courierId, 'revision' => $task->revision + 1]);
-            if ($shipment->status === ShipmentStatus::DispatchedFromHub) {
+            if ($shipment->status === ShipmentStatus::DispatchedFromHub || $shipment->status === ShipmentStatus::SortedAtHub) {
+                app(SortingAssignmentService::class)->assertOpen($shipment);
+                app(ShipmentRouteService::class)->assertFinalMile($shipment);
                 $shipment->update(['status' => ShipmentStatus::DeliveryAssigned, 'revision' => $shipment->revision + 1]);
                 $order = $shipment->parcel->order()->lockForUpdate()->firstOrFail();
                 if ($order->status === OrderStatus::PickedUp) {
@@ -207,13 +209,21 @@ class FulfillmentTransitionService
         $requestHash = $this->hash(['task_id' => strtolower($taskId), 'reason' => trim($reason)]);
 
         return DB::transaction(function () use ($courier, $taskId, $reason, $idempotencyKey, $requestHash): DeliveryTask {
-            $previous = DeliveryTaskOffer::query()->where('courier_id', $courier->id)->where('idempotency_key', $idempotencyKey)->lockForUpdate()->first();
+            $previous = ShipmentEvent::query()->where('performing_courier_id', $courier->id)
+                ->where('idempotency_key', $idempotencyKey)->lockForUpdate()->first();
             if ($previous !== null) {
-                if (! hash_equals($previous->request_hash, $requestHash)) {
+                if ($previous->event_type !== 'final_mile_rejection' || ($previous->metadata['request_hash'] ?? null) !== $requestHash) {
                     throw FulfillmentException::conflict('IDEMPOTENCY_KEY_REUSED', 'This Idempotency-Key was already used for another rejection.');
                 }
+                $affiliation = $this->courierAffiliation($courier);
+                $task = $previous->task()->with($this->taskRelations())->firstOrFail();
+                if (($task->courier_id !== null && $task->courier_id !== $courier->id)
+                    || $task->shipment->current_logistics_organization_id !== $affiliation->logistics_organization_id
+                    || $task->shipment->current_hub_id !== $affiliation->logistics_hub_id) {
+                    throw FulfillmentException::notFound('TASK_NOT_FOUND', 'This final-mile task is not available.');
+                }
 
-                return $previous->task->fresh($this->taskRelations());
+                return $task;
             }
             $task = $this->ownedFinalTask($courier, $taskId, true);
             $offer = $task->offers()->where('courier_id', $courier->id)->orderByDesc('sequence')->lockForUpdate()->first();
@@ -223,7 +233,13 @@ class FulfillmentTransitionService
             $before = $task->status->value;
             $offer->update(['status' => FulfillmentOfferStatus::Rejected, 'rejection_reason' => trim($reason), 'responded_at' => now()]);
             $task->update(['status' => FulfillmentTaskStatus::Rejected, 'courier_id' => null, 'revision' => $task->revision + 1]);
-            $this->event($task->shipment, $task, 'final_mile_rejection', $before, FulfillmentTaskStatus::Rejected->value, $courier->id, null, $offer, null, ['reason' => trim($reason)], $idempotencyKey);
+            // The parcel never left hub custody: release it back to scheduling.
+            $shipment = $task->shipment;
+            if (! in_array($shipment->status, [ShipmentStatus::DeliveryAssigned, ShipmentStatus::DispatchedFromHub], true)) {
+                throw FulfillmentException::conflict('SHIPMENT_STATE_CONFLICT', 'The parcel is no longer available for rejection.');
+            }
+            $shipment->update(['status' => ShipmentStatus::SortedAtHub, 'revision' => $shipment->revision + 1]);
+            $this->event($shipment, $task, 'final_mile_rejection', $before, FulfillmentTaskStatus::Rejected->value, $courier->id, null, $offer, null, ['reason' => trim($reason), 'request_hash' => $requestHash], $idempotencyKey);
             $this->notifications->queueOfferRejected($offer);
 
             return $task->fresh($this->taskRelations());
@@ -331,7 +347,7 @@ class FulfillmentTransitionService
                 return $previous->fresh($this->completionRelations());
             }
             $task = $this->ownedFinalTask($courier, $taskId, true);
-            if ($task->revision !== $expectedRevision || $task->status !== FulfillmentTaskStatus::OutForDelivery) {
+            if ($task->revision !== $expectedRevision || ! $task->status->canSubmitDelivery()) {
                 throw FulfillmentException::conflict('COMPLETION_STATE_CONFLICT', 'The task is not ready for completion. Refresh and try again.');
             }
             $order = $task->shipment->parcel->order;
@@ -1065,9 +1081,9 @@ class FulfillmentTransitionService
             ShipmentStatus::PickedUpFromSeller => [],
             ShipmentStatus::ReceivedAtHub => $shipment->route === null || $shipment->route->status === HubRouteStatus::Local ? ['sorted_at_hub'] : [],
             ShipmentStatus::SortedAtHub => [],
-            ShipmentStatus::DeliveryAccepted => ['picked_up_from_hub'],
-            ShipmentStatus::PickedUpFromHub => ['in_transit'],
-            ShipmentStatus::InTransit => ['out_for_delivery'],
+            ShipmentStatus::DeliveryAccepted => ['picked_up_from_hub', 'delivered'],
+            ShipmentStatus::PickedUpFromHub => ['in_transit', 'delivered'],
+            ShipmentStatus::InTransit => ['out_for_delivery', 'delivered'],
             ShipmentStatus::OutForDelivery => ['delivered'],
             default => [],
         };
@@ -1256,9 +1272,9 @@ class FulfillmentTransitionService
             ShipmentStatus::PickedUpFromSeller => $target === ShipmentStatus::ReceivedAtHub->value,
             ShipmentStatus::ReceivedAtHub => $target === ShipmentStatus::SortedAtHub->value,
             ShipmentStatus::SortedAtHub => $target === ShipmentStatus::DispatchedFromHub->value,
-            ShipmentStatus::DeliveryAccepted => $target === ShipmentStatus::PickedUpFromHub->value,
-            ShipmentStatus::PickedUpFromHub => $target === ShipmentStatus::InTransit->value,
-            ShipmentStatus::InTransit => $target === ShipmentStatus::OutForDelivery->value,
+            ShipmentStatus::DeliveryAccepted => in_array($target, [ShipmentStatus::PickedUpFromHub->value, ShipmentStatus::Delivered->value], true),
+            ShipmentStatus::PickedUpFromHub => in_array($target, [ShipmentStatus::InTransit->value, ShipmentStatus::Delivered->value], true),
+            ShipmentStatus::InTransit => in_array($target, [ShipmentStatus::OutForDelivery->value, ShipmentStatus::Delivered->value], true),
             ShipmentStatus::OutForDelivery => $target === ShipmentStatus::Delivered->value,
             default => false,
         };

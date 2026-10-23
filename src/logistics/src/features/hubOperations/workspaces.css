@@ -1,0 +1,117 @@
+/* Role-owned composition; controls and surfaces use @aisley/ui portal tokens. */
+.hub-workspace {
+  max-width: 90rem;
+}
+.hub-page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+.hub-page-header > div:first-child {
+  min-width: 0;
+  flex: 1 1 19rem;
+}
+.hub-page-header p {
+  max-width: 65ch;
+  line-height: 1.6;
+}
+.hub-header-actions {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+.hub-pickup-filters {
+  display: grid;
+  align-items: end;
+  gap: 1rem;
+  padding: 1rem;
+}
+.hub-pickup-filters > label {
+  min-width: 0;
+}
+.hub-receiving-grid {
+  display: grid;
+  align-items: stretch;
+  gap: 1.25rem;
+}
+.hub-session-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  border-block: 1px solid var(--portal-border);
+  padding: 1rem 0;
+}
+.hub-session-summary dt {
+  color: var(--portal-muted);
+  font-size: .75rem;
+}
+.hub-session-summary dd {
+  margin-top: .375rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -.035em;
+  font-variant-numeric: tabular-nums;
+}
+.hub-lane-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .25rem;
+  padding: .75rem;
+  font-size: .875rem;
+}
+.hub-workspace dialog {
+  border-radius: .75rem;
+}
+.hub-workspace :is(input, select, textarea) {
+  accent-color: var(--brand-primary);
+}
+.hub-workspace input::placeholder {
+  color: var(--portal-muted);
+}
+.hub-workspace :is(button, a):active:not(:disabled) {
+  transition-duration: 80ms;
+}
+.hub-workspace :is(th, td) {
+  vertical-align: top;
+}
+.hub-workspace .portal-input {
+  color-scheme: inherit;
+}
+@media (min-width: 640px) {
+  .hub-pickup-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .hub-session-summary {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: .75rem;
+    padding: 1.25rem 0;
+  }
+}
+@media (min-width: 1024px) {
+  .hub-receiving-grid {
+    grid-template-columns: minmax(0, 1.4fr) minmax(19rem, 1fr);
+  }
+}
+@media (min-width: 1280px) {
+  .hub-pickup-filters {
+    grid-template-columns: minmax(0, 1.6fr) repeat(2, minmax(0, 1fr));
+  }
+}
+/* Flatpickr portals live under body; limit their palette to these workspaces. */
+body:has(.hub-workspace) .flatpickr-calendar .flatpickr-day:is(.selected, .selected:hover, .today:hover, .today:focus) {
+  border-color: #2563eb;
+  background: #2563eb;
+  color: #fff;
+}
+body:has(.hub-workspace) .flatpickr-calendar .flatpickr-day.today {
+  border-color: #2563eb;
+}
+html.dark body:has(.hub-workspace) .flatpickr-calendar {
+  border-color: #334155;
+  background: #1e293b;
+}

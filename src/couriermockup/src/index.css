@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@source "../../../packages/ui/src";
 
 :root {
   font-family: ui-sans-serif, system-ui, sans-serif;

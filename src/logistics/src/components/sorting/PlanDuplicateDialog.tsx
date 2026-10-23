@@ -54,15 +54,15 @@ export function PlanDuplicateDialog({ plan, onClose, onBlocked, onCopied }: {
   }
 
   return (
-    <dialog ref={dialog} aria-labelledby="duplicate-plan-title" className="m-auto max-h-[90dvh] w-[min(92vw,28rem)] overflow-y-auto rounded-md border border-zinc-300 bg-white p-0 text-zinc-950 backdrop:bg-black/50 dark:border-white/20 dark:bg-zinc-900 dark:text-white" onCancel={(event) => { event.stopPropagation(); event.preventDefault(); close() }} onClose={(event) => event.stopPropagation()}>
+    <dialog ref={dialog} aria-labelledby="duplicate-plan-title" className="m-auto max-h-[90dvh] w-[min(92vw,28rem)] overflow-y-auto rounded-md border border-slate-300 bg-white p-0 text-slate-950 backdrop:bg-black/50 dark:border-slate-600 dark:bg-slate-800 dark:text-white" onCancel={(event) => { event.stopPropagation(); event.preventDefault(); close() }} onClose={(event) => event.stopPropagation()}>
 
-      <div className="flex items-center justify-between gap-3 border-b border-zinc-200 px-4 py-3 dark:border-white/10">
+      <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-3 dark:border-slate-700">
 
         <h3 id="duplicate-plan-title" className="font-semibold">
           Duplicate plan?
         </h3>
 
-        <button type="button" aria-label="Close duplicate confirmation" disabled={busy || uncertain} className="grid size-9 place-items-center rounded-md hover:bg-zinc-100 focus-visible:outline-2 disabled:opacity-40 dark:hover:bg-white/10" onClick={close}>
+        <button type="button" aria-label="Close duplicate confirmation" disabled={busy || uncertain} className="grid size-11 place-items-center rounded-md hover:bg-slate-100 focus-visible:outline-2 disabled:opacity-40 dark:hover:bg-white/10" onClick={close}>
           <FaXmark aria-hidden="true" />
         </button>
 
@@ -84,7 +84,7 @@ export function PlanDuplicateDialog({ plan, onClose, onBlocked, onCopied }: {
 
       </div>
 
-      <div className="flex justify-end gap-2 border-t border-zinc-200 px-4 py-3 dark:border-white/10">
+      <div className="flex justify-end gap-2 border-t border-slate-200 px-4 py-3 dark:border-slate-700">
 
         <SortingButton disabled={busy || uncertain} onClick={close}>
           Cancel

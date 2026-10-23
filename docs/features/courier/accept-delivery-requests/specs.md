@@ -4,37 +4,37 @@ feature: courier-accept-delivery-requests
 title: Accept Delivery Requests
 system: AISLEY
 type: Feature Specification
-version: 1.6
-status: First-mile acceptance and final-mile dispatch batch acceptance implemented
-implementation_status: First-mile listing/acceptance, atomic final-mile batch acceptance, and exceptional single-task reject/re-offer are implemented
+version: 1.7
+status: First-mile and per-parcel final-mile acceptance implemented
+implementation_status: Per-parcel accept/reject, rejected-parcel rescheduling, and partial-dispatch routes are implemented
 flutter_status: Atomic 1–15 parcel dispatch-batch list, detail, acceptance, and uncertain-result reconciliation implemented; live API acceptance unverified
 canonical: true
 copied_backend_checkout: 4c3f504
 scope: External Flutter mobile client and Laravel Courier API
 backend_contract_commit: d1abeee73d0141e1fd7dda4bea0ee3fead370378
-backend_contract_version: courier-first-and-final-mile-accept-v1
+backend_contract_version: courier-final-mile-parcel-decisions-v2
 source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/domains/Courier.md, docs/domains/Logistics.md, docs/features/shared/shipment-fulfillment/spec.md
-documentation_synced_on: 2026-10-12
+documentation_synced_on: 2026-10-22
 ---
 
 # Accept Delivery Requests
 
-**Flutter adoption boundary:** Laravel treats one dispatch schedule as the normal final-mile offer and accepts all 1–15 parcel tasks atomically. Flutter now uses the dedicated list, detail, and accept routes with state-idempotent uncertain-result reconciliation; authenticated live API acceptance remains unverified. Never simulate a batch by looping individual accept calls.
+**Flutter adoption boundary:** Laravel now supports independent parcel decisions as the normal final-mile flow. The existing external Flutter implementation uses batch acceptance; per-parcel decision/rescheduling adoption and live API acceptance remain unverified. The development mockup uses per-task accept/reject; do not automatically loop decisions over a dispatch.
 
 ## Offer price revision (2026-09-21)
 
 An authorized final-mile task and batch projection includes `parcel.price` (the Order merchandise subtotal) and `parcel.currency`, alongside item count and destination area. The Courier can see the parcel's merchandise price before acceptance without receiving payment credentials, address details beyond the offer's safe area, or an identifier entry requirement. The development mockup labels this value **Parcel price**; it is not the COD amount due, which the accepted-task delivery context exposes as `data.order.payable_total` and `data.order.currency`. The assigned task remains the server-side parcel identity for later handoff and POD.
 
-## Final-mile dispatch batch revision (2026-09-20)
+## Per-parcel final-mile revision (2026-10-22)
 
-One Logistics dispatch schedule is the Courier's final-mile offer. The Courier reviews its parcel count and destination areas, then accepts the entire schedule with one explicit action; partial acceptance is invalid. Each existing Delivery Task and Order remains separate for custody and delivery history. The API must lock and recheck every member, its current offer, Courier affiliation, hub, and state before committing all acceptances together. Rejected individual offers and re-offers are recovery for legacy or exceptional tasks, not the normal batch acceptance path. First-mile and linehaul workflows are unchanged.
+One Logistics dispatch schedule groups 1–15 parcels, but each parcel is an independent offer. The Courier explicitly accepts or rejects the selected task only. Acceptance locks and rechecks its offer, Courier affiliation, hub and state; sibling tasks remain unchanged. Rejection records its reason/history, clears the Courier, and returns Shipment status to `sorted_at_hub` with its staging assignment intact so Logistics can schedule it again. The Order and physical milestones remain unchanged. First-mile and linehaul workflows are unchanged.
 
 - `GET /api/v1/courier/final-mile-batches` returns at most 30 Courier-scoped schedules ordered by `scheduled_for` descending in `{"data":[...]}`; detail returns `{"data":{...}}`.
-- `POST /api/v1/courier/final-mile-batches/{schedule}/accept` accepts an empty JSON object. It requires no `Idempotency-Key` header and returns `200 {"data":{...}}`.
-- The batch projection contains `id`, `reference`, `scheduled_for`, `parcel_count`, `status`, and ordered `tasks`; task DTOs retain their existing safe projection.
-- Batch `status` is `offered` before all members are accepted, `accepted` while every member is exactly `delivery_accepted`, and `in_progress` after every member was accepted and at least one advanced.
-- Acceptance is one locked, all-or-nothing transaction. A retry rechecks current task state and returns the latest canonical batch projection; it is state-idempotent, not a stored byte-identical receipt.
-- Foreign, empty, or no-longer-current membership is hidden as `404 BATCH_NOT_FOUND`; a member that fails the locked acceptance recheck returns `409 BATCH_STATE_CONFLICT`. Never loop per-task accepts to imitate the normal batch action.
+- Normal acceptance uses `POST /api/v1/courier/final-mile-tasks/{task}/accept`, empty JSON and no idempotency header; rejection uses the reason/key contract below. The old batch accept endpoint remains compatibility-only, with its locked state-idempotent bulk behavior.
+- The batch projection contains `id`, `reference`, `scheduled_for`, `parcel_count`, `status`, and ordered `tasks`; counts/tasks include only currently assigned, latest-schedule members. Historical Logistics membership/provenance remains immutable.
+- Batch `status` is `offered` while a current member is unaccepted, `accepted` while every current member is exactly `delivery_accepted`, otherwise `in_progress` once every current member was accepted. Use task status for each decision.
+- Routes include accepted current members only, even while siblings remain offered. No accepted member returns `409 BATCH_NOT_ACCEPTED`; rejection of one parcel never hides its siblings or reveals rejected/unaccepted destinations.
+- Foreign or empty-current schedules return `404 BATCH_NOT_FOUND`. Matching rejection key/payload retries do not release the parcel twice; a changed payload returns `409 IDEMPOTENCY_KEY_REUSED`. Refresh after uncertain acceptance; never infer custody from a successful decision.
 
 The development-only `src/couriermockup` may exercise the implemented final-mile offer list, detail, acceptance, and rejection routes with bearer authentication. It must use the same server projection and must not treat an accepted offer as hub custody.
 
@@ -96,13 +96,13 @@ Logistics offer
 - Opening, scrolling, resolving, or viewing a task never accepts it. Flutter must require an explicit confirmation action.
 - At commit, revalidate task availability, Courier affiliation/status, sole-hub scope, current revision, and any hard eligibility supplied by owning features.
 - Accept under a transaction with row locking or an equivalent compare-and-update guard. The authenticated Courier is the only actor recorded.
-- Retrying an already successful accept returns the same accepted projection. A changed request or stale revision returns a conflict and never overwrites history.
+- Retrying an already successful accept while still accepted returns the same accepted projection. A changed request or stale revision returns a conflict and never overwrites history.
 - Notification, push, or communication failure after acceptance or rejection does not roll back the committed task decision.
 - Offline acceptance is not allowed in the MVP; cached task data is reference-only and requires online revalidation.
 
 ### Final-mile rejection contract
 
-- `POST /api/v1/courier/final-mile-tasks/{task}/reject` is implemented. It requires an approved Courier offer, a reason, and an idempotency key; the rejected offer remains in history and the same task may be re-offered by Logistics.
+- `POST /api/v1/courier/final-mile-tasks/{task}/reject` is implemented. It requires an approved Courier offer, a reason, and an idempotency key; the rejected offer remains in history and the same task may be rescheduled or re-offered by Logistics.
 - Send JSON `{ "reason": "Cannot take this task" }` (3–1,000 characters) and a UUID `Idempotency-Key`; unknown fields are rejected. `200 data` contains `task_id`, `status: rejected`, and current `offer` with `responded_at`/`rejection_reason`; it does not expose a full history array or next-action hint.
 
 ## HOW
@@ -153,7 +153,7 @@ Logistics offer
 - Before acceptance, exact street address and contact details remain hidden unless the owning task contract authorizes them; after acceptance, reveal only operationally necessary values.
 - The primary action is an explicit **Accept delivery** confirmation. Opening, scrolling, or resolving a waybill never accepts a task.
 - Show rejection only for an eligible final-mile offer using the implemented reject endpoint. First-mile has no equivalent route; do not display a working first-mile rejection control.
-- On rejection, show `rejected`, reason, time, and “Logistics may offer this task again”; do not show the Order as rejected or cancelled.
+- On rejection, show `rejected`, reason, time, and “Available for Logistics scheduling again”; do not show the Order as rejected or cancelled.
 - A re-offered task returns as a new offer event for the same task ID. Preserve prior rejection history and display the current offer only when the server authorizes it.
 - An informational `stale` badge shows last server time and offers refresh; it never starts an automatic reassignment timer.
 
@@ -187,7 +187,7 @@ Logistics offer
 - After a successful accept, refresh Dashboard and remove the task from the available list; the next action is Pick Up Order, not transit.
 - After a rejected offer, return to the Dashboard or wait for a server re-offer; do not locally create a replacement task.
 - Keep the current first-mile accept endpoint available while the additive final-mile task/history migration is rolled out; final-mile reject/re-offer calls require that migration and the authenticated Courier/Logistics scopes.
-- The Flutter copy must record the inspected commit from this frontmatter and `backend_contract_version: courier-first-and-final-mile-accept-v1`; verify separate first-/final-mile fixtures against the deployed API.
+- The Flutter copy must record the inspected commit from this frontmatter and `backend_contract_version: courier-final-mile-parcel-decisions-v2`; verify separate first-/final-mile fixtures against the deployed API.
 - Push or realtime delivery is only a refresh hint; the API response remains authoritative.
 
 ### Backend implementation boundary

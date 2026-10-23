@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ApiError } from '../../lib/api'
 import { sortingExceptions, sortingMutation } from '../../lib/sortingApi'
-import { ErrorNotice, field, manilaDate, panel } from '../PickupUi'
+import { ErrorNotice, manilaDate } from '../PickupUi'
 import { SortingButton } from './SortingButton'
 
 type Exception = {
@@ -56,10 +56,10 @@ export function ExceptionQueue({ hasSession, onChanged }: { hasSession: boolean;
     } finally { setBusy(false) }
   }
 
-  return <section className={`${panel} mt-3`} aria-labelledby="exception-queue-title">
+  return <section className={`portal-section mt-3`} aria-labelledby="exception-queue-title">
 
 
-    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-200 p-3 dark:border-white/10">
+    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 p-3 dark:border-slate-700">
       <h3 id="exception-queue-title" className="font-semibold">
         Outstanding exceptions ({queue?.total ?? '…'})
       </h3>
@@ -77,11 +77,11 @@ export function ExceptionQueue({ hasSession, onChanged }: { hasSession: boolean;
       {error ? <ErrorNotice message={error} retry={uncertain ? () => { if (attempt.current) void mutate(attempt.current.path, {}) } : () => void load()} /> : null}
       {loading ? <p role="status">
         Loading exceptions…
-      </p> : !error && !queue?.data.length ? <p className="text-sm text-zinc-500">
+      </p> : !error && !queue?.data.length ? <p className="text-sm text-slate-600 dark:text-slate-400">
         No outstanding sorting exceptions.
       </p> : null}
 
-      <ul className="divide-y divide-zinc-200 dark:divide-white/10">
+      <ul className="divide-y divide-slate-200 dark:divide-white/10">
         {queue?.data.map((row) => <li key={row.id} className="space-y-2 py-3">
 
 
@@ -100,7 +100,7 @@ export function ExceptionQueue({ hasSession, onChanged }: { hasSession: boolean;
           <p className="text-sm">
             Next action: {row.next_action}
           </p>
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-slate-600 dark:text-slate-400">
             {row.attempts} attempt(s) · {manilaDate(row.last_attempt_at)}
           </p>
           {row.exception_code === 'damaged' && !row.released_at ? <SortingButton disabled={busy || uncertain} onClick={() => { setInspecting(row); setReason(''); dialog.current?.showModal() }}>
@@ -114,7 +114,7 @@ export function ExceptionQueue({ hasSession, onChanged }: { hasSession: boolean;
         <SortingButton disabled={hasSession || !selected.length || busy || uncertain} onClick={() => void mutate('/api/v1/logistics/sorting/sessions', { recovery_shipment_ids: selected })}>
           Start recovery session ({selected.length})
         </SortingButton>
-        <span className="text-xs text-zinc-500">
+        <span className="text-xs text-slate-600 dark:text-slate-400">
           One open session per hub; select up to 100 parcels.
         </span>
       </div>
@@ -132,7 +132,7 @@ export function ExceptionQueue({ hasSession, onChanged }: { hasSession: boolean;
 
     </div>
 
-    <dialog ref={dialog} aria-labelledby="inspection-title" className="m-auto max-h-[90dvh] w-[min(92vw,30rem)] overflow-y-auto rounded-md border border-zinc-300 bg-white p-4 text-zinc-950 backdrop:bg-black/50 dark:border-white/20 dark:bg-zinc-900 dark:text-white" onCancel={(event) => { if (busy || uncertain) event.preventDefault() }}>
+    <dialog ref={dialog} aria-labelledby="inspection-title" className="m-auto max-h-[90dvh] w-[min(92vw,30rem)] overflow-y-auto rounded-md border border-slate-300 bg-white p-4 text-slate-950 backdrop:bg-black/50 dark:border-slate-600 dark:bg-slate-800 dark:text-white" onCancel={(event) => { if (busy || uncertain) event.preventDefault() }}>
 
 
       <form className="space-y-3" onSubmit={(event) => { event.preventDefault(); if (inspecting) void mutate(`/api/v1/logistics/sorting/exceptions/${inspecting.id}/release`, { expected_revision: inspecting.revision, reason }) }}>
@@ -148,7 +148,7 @@ export function ExceptionQueue({ hasSession, onChanged }: { hasSession: boolean;
 
         <label className="block text-sm">
           Inspection / release reason
-          <input className={`${field} mt-1`} value={reason} required minLength={3} maxLength={1000} disabled={busy || uncertain} onChange={(event) => setReason(event.target.value)} />
+          <input className={`portal-input mt-1`} value={reason} required minLength={3} maxLength={1000} disabled={busy || uncertain} onChange={(event) => setReason(event.target.value)} />
         </label>
 
         <div className="flex justify-end gap-2">

@@ -2,7 +2,6 @@
 
 namespace App\Services\Courier;
 
-use App\Enums\FulfillmentTaskStatus;
 use App\Enums\ShipmentEvidencePurpose;
 use App\Enums\ShipmentEvidenceStatus;
 use App\Exceptions\Fulfillment\FulfillmentException;
@@ -44,7 +43,7 @@ class DeliveryPhotoService
                     return $prior->load('task');
                 }
                 $task = $this->fulfillment->ownedFinalTask($courier, $taskId, true);
-                if ($task->revision !== $revision || $task->status !== FulfillmentTaskStatus::OutForDelivery) {
+                if ($task->revision !== $revision || ! $task->status->canSubmitDelivery()) {
                     throw FulfillmentException::conflict('TASK_STATE_CONFLICT', 'Refresh this delivery before submitting a photo.');
                 }
                 if ($task->completionIntents()->where('status', ShipmentEvidenceStatus::AwaitingValidation->value)->exists()) {

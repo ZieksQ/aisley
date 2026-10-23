@@ -3,7 +3,7 @@ feature: logistics-delivery-confirmations
 title: Delivery Confirmations
 system: AISLEY
 type: Feature Specification
-version: 1.1
+version: 1.3
 status: Implemented queue, history, prepaid approval policy and Logistics review page
 canonical: true
 role: Logistics
@@ -11,6 +11,8 @@ scope: Laravel API and Logistics dashboard
 ---
 
 # Delivery Confirmations
+
+**Direct final-mile delivery revision — 2026-10-23 (`courier-direct-delivery-v2`):** Courier accepts a parcel, then submits private photo POD and the linked **Delivered** intent directly to Logistics Delivery confirmations. Hub pickup validation and transit actions are optional compatibility steps, not prerequisites. Existing `delivery_accepted`, `picked_up_from_hub`, `in_transit`, and `out_for_delivery` tasks are eligible. Submission preserves task/Shipment/Order/payment state; only the existing Logistics approval policy commits delivered. Skipped pickup/transit timestamps and evidence are not fabricated. External Flutter adoption of this revision remains open.
 
 ## WHAT
 
@@ -21,7 +23,7 @@ Only the shared fulfillment finalization workflow may commit `delivered`; it ser
 ## MUST
 
 - Require authenticated active Logistics access and policy consent. Resolve the Logistics organization and sole hub from the authenticated account.
-- Return only current-hub final-mile tasks in `out_for_delivery` with a matching awaiting-validation completion intent and awaiting-validation photo POD.
+- Return only current-hub final-mile tasks in accepted delivery states (`delivery_accepted`, `picked_up_from_hub`, `in_transit`, `out_for_delivery`) with a matching awaiting-validation completion intent and awaiting-validation photo POD.
 - Include task and Shipment revisions, Order reference/payment method/status, proof ID/status/submission time, Courier identity, intent state and timestamp, and server-generated COD declaration when the Order is COD.
 - Keep proof bytes/storage metadata out of queue JSON. Preview only with `GET /api/v1/logistics/delivery-proofs/{proof}/photo`.
 - Search by Order reference and paginate with bounded `per_page` (maximum 50); responses are `private, no-store`.
@@ -47,6 +49,7 @@ COD completion intent accepts only `cod_collected: true`; the declaration amount
 - The protected dashboard route is `/delivery-confirmations` and appears in Logistics navigation.
 - A reviewer selects a pending row, loads the private image, checks Courier and Order context, and confirms COD collection explicitly before approving COD delivery.
 - A reviewer may request correction with a reason; the task remains assigned and pending at the current delivery state.
+- Pending reviews refresh on window focus/visibility return and every 30 seconds while the page is visible. Background reads preserve the workspace; pause refresh while a decision is submitting or has an uncertain result. Manual refresh remains available.
 - Pending intent remains active Courier work. Completed history is populated only after authoritative Logistics approval.
 - The search input keeps the available toolbar width while its submit action remains content-sized. The queue and review workspace stack on mobile, tablet, and iPad-sized viewports, then use a bounded two-column layout when wide desktop space is available.
 
@@ -72,3 +75,7 @@ COD completion intent accepts only `cod_collected: true`; the declaration amount
 - Source: [Onfleet completion requirements](https://docs.onfleet.com/reference/completion-requirements), [Bringg delivery documentation](https://help.bringg.com/delivery-hub/docs/release-notes).
 
 - Prepaid fulfillment does not create COD receivables or settlement entries. Prepaid payment capture/settlement remain outside this revision.
+
+## Courier mockup submission clarification (2026-10-22)
+
+The harness uses one **Delivered** action to upload the selected private photo then submit its matching intent. Photo upload alone does not create a pending confirmation entry. The queue continues to require both records and current hub/task scope; it must never fabricate an intent for an uploaded photo. The harness preserves upload/intent retry identities and reconciles uncertain results before reporting success.

@@ -15,4 +15,15 @@ enum FulfillmentTaskStatus: string
     case OutForDelivery = 'out_for_delivery';
     case Delivered = 'delivered';
     case Rejected = 'rejected';
+
+    /** Accepted final-mile states that can report a doorstep delivery. */
+    public static function deliverySubmissionValues(): array
+    {
+        return [self::DeliveryAccepted->value, self::PickedUpFromHub->value, self::InTransit->value, self::OutForDelivery->value];
+    }
+
+    public function canSubmitDelivery(): bool
+    {
+        return in_array($this->value, self::deliverySubmissionValues(), true);
+    }
 }

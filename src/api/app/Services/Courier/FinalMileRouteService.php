@@ -23,8 +23,9 @@ class FinalMileRouteService
             || $member->shipment?->current_hub_id !== $schedule->logistics_hub_id)) {
             throw FulfillmentException::conflict('BATCH_STATE_CONFLICT', 'A parcel is no longer in this Courier dispatch.');
         }
-        if ($schedule->shipments->contains(fn ($member) => $member->task?->accepted_at === null)) {
-            throw FulfillmentException::conflict('BATCH_NOT_ACCEPTED', 'Accept the complete dispatch before loading its route.');
+        $schedule->setRelation('shipments', $schedule->shipments->filter(fn ($member) => $member->task?->accepted_at !== null)->values());
+        if ($schedule->shipments->isEmpty()) {
+            throw FulfillmentException::conflict('BATCH_NOT_ACCEPTED', 'Accept a parcel before loading its route.');
         }
         $schedule->loadMissing('shipments.shipment.parcel.order.address');
         $hub = $schedule->shipments->first()->shipment?->currentHub?->address;

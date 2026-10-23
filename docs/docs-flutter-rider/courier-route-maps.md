@@ -26,7 +26,7 @@ selectors, idempotency keys, pagination, or mutation retries are involved.
 | Path | Response and ownership |
 | --- | --- |
 | `/api/v1/courier/pickup-schedules/{schedule}/route-manifest` | `{data: manifest}`; assigned Courier schedule/organization/hub scope |
-| `/api/v1/courier/final-mile-batches/{schedule}/route` | `{data: route}`; every member belongs to this accepted final-mile dispatch |
+| `/api/v1/courier/final-mile-batches/{schedule}/route` | `{data: route}`; only accepted current parcel members are routed, including partially accepted dispatches |
 | `/api/v1/courier/linehaul-trips/{trip}/route` | Additive hub-to-hub advisory route v1 (2026-10-21); assigned driver only; Flutter adoption remains open; see below |
 | `/api/v1/courier/map-style` | Raw version-8 raster style; no `data` envelope |
 | `/api/v1/courier/map-tiles/{z}/{x}/{y}.png` | Private PNG; bounded zoom and tile coordinates |

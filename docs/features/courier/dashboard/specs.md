@@ -53,7 +53,7 @@ approved Courier session
 
 - The Flutter Dashboard owns presentation, per-section freshness/retry and navigation; Laravel v2 supplies the authoritative bounded snapshot. The legacy response remains a compatibility scaffold.
 - Opening a card must not accept an offer, assign a Courier, scan a parcel, change a task state, or mark an Order delivered.
-- Accept Delivery Requests owns first-mile task acceptance and normal atomic final-mile dispatch-batch acceptance; individual final-mile acceptance is exceptional recovery, not the normal batch action.
+- Accept Delivery Requests owns first-mile task acceptance and normal per-parcel final-mile accept/reject decisions; dispatch grouping does not decide sibling tasks.
 - Pick Up Order owns first-mile identifier verification and explicit Seller pickup. Final-mile hub handoff uses the accepted task and revision without an identifier; Logistics validation, not evidence submission, establishes `picked_up_from_hub`.
 - Deliver Order owns final-mile transit context; Proof of Delivery owns private photo evidence; Complete Delivery owns the photo-linked intent, while Logistics validates before `delivered`.
 - Delivery History owns completed-task reads. Flutter Dashboard links to its task-chat inbox; Logistics/Seller/Buyer messaging is locally implemented in its owning task screens, while live cross-role behavior remains unverified. Incident Reporting and Profit Dashboard remain drafts.
@@ -65,7 +65,7 @@ approved Courier session
 - Linked task screens read `GET /api/v1/courier/first-mile-tasks` or `GET /api/v1/courier/final-mile-tasks`; Flutter adopts the separately documented batch list/detail/accept contract through the Courier work menu and offered-task handoff.
 - The partial preview may show first-mile `assigned` as offered and `accepted` as active; final-mile `delivery_assigned` is an offer and `delivery_accepted` or later authorized task states are active. Unknown status/leg stays unclassified, never actionable.
 - Final-mile offers are normally one dispatch schedule; a task-list row is not a separate normal acceptance button or a fabricated batch summary.
-- First-mile acceptance remains per task; normal final-mile acceptance is one atomic schedule action. Exceptional final-mile task rejection/re-offer leaves the Order unchanged; first-mile has no Courier rejection endpoint. Never loop per-task accepts to imitate a batch.
+- First-mile acceptance remains per task; normal final-mile acceptance is per parcel. Final-mile rejection returns the Shipment to scheduling without changing the Order; first-mile has no Courier rejection endpoint. Never loop per-task accepts to imitate a batch.
 - An unfinished task may be presented as informationally `stale`; staleness does not cancel or automatically reassign it in the MVP.
 - `delivery_assigned` is an offer/assignment, not acceptance; `picked_up_from_hub` is not implied by either value.
 - Generic Order statuses such as `assigned` and `picked_up` must not be presented as physical Courier actions without a detailed task response.
@@ -115,7 +115,7 @@ approved Courier session
 - [x] The current Flutter handoff records partial task-bound hub pickup/photo POD adoption; installed-device and end-to-end Logistics validation remain unverified.
 - [x] Flutter shows read-only first-/final-mile previews from their separate authorized list APIs, each with source labels, independent states, and safe navigation/refetch.
 - [x] Imported Flutter progress reports preview tests covering page-limited first-mile reads, unpaginated final-mile reads, unknown-status handling, partial failure, logout clearing, and no action or fabricated count.
-- [x] Flutter locally adopts the documented empty-body, state-idempotent final-mile batch action and reconciliation; live acceptance remains open. Do not reactivate normal per-task acceptance or loop task calls.
+- [x] Flutter locally adopts the documented empty-body, state-idempotent final-mile batch action and reconciliation; live acceptance remains open. This is historical client adoption; the 2026-10-22 per-parcel contract awaits Flutter adoption. Never loop task calls without individual decisions.
 - [x] V2 returns safe available/active summaries with explicit request timestamps, per-section states and has_more without invented totals.
 - [x] Partial preview rows identify their explicit leg/status and show only authorized list fields; distance/ETA is displayed only if the source DTO includes it.
 - [x] Rejected offers remain visible with safe reason/time; Logistics can re-offer the same task from the dedicated Dispatch page without changing the Order or duplicating task/waybill history.
@@ -180,7 +180,7 @@ approved Courier session
 - Seller confirms `ready_for_pickup`; selected Logistics creates and offers the first-mile task. The partial preview reads it only from the authorized first-mile list.
 - A first-mile Courier accepts through Accept Delivery Requests, then Pick Up Order confirms `picked_up_from_seller`.
 - Logistics receives and sorts the parcel at its sole hub, then one dispatch schedule creates 1–15 separate final-mile offers for one Courier; a task-list preview cannot claim schedule-wide acceptance.
-- Normal final-mile acceptance is an atomic schedule action; each parcel retains its own task and evidence. The contract and local Flutter batch adoption/tests are recorded; live authenticated acceptance remains unverified. Read-only dashboard navigation is unaffected.
+- Normal final-mile acceptance is per parcel (2026-10-22); each parcel retains its own task and evidence. The contract and local Flutter batch adoption/tests are recorded; live authenticated acceptance remains unverified. Read-only dashboard navigation is unaffected.
 - Final-mile pickup submits evidence with HTTP 202; only Logistics validation establishes `picked_up_from_hub`. Deliver Order owns movement, and completion intent likewise waits for Logistics finalization.
 - Final-mile hub handoff sends task revision without QR/reference; delivery proof uses private photo POD, not the first-mile scanner. Dashboard cards must not replay either mutation.
 - Dashboard refreshes independent task previews after returning from an owning feature; it never predicts a transition from a tap or local timer.
@@ -208,7 +208,7 @@ approved Courier session
 
 - [x] `GET /api/v1/courier/dashboard` is a private, no-store read scaffold with unavailable aggregate sections; its `OPERATIONAL_SCHEMA_DEFERRED` reason is a compatibility literal, not a claim that task tables are absent.
 - [x] The separate inbox owns bounded cursor pagination, unread/read state, and foreground 30-second polling; mark-read never changes task state.
-- [x] First-mile and final-mile assignments are independent; normal final-mile dispatch may offer and atomically accept 1–15 separate tasks in one schedule. No one-active-task rule is established here.
+- [x] First-mile and final-mile assignments are independent; normal final-mile dispatch offers 1–15 separate tasks in one schedule for independent parcel decisions. No one-active-task rule is established here.
 - [x] Task expiration and custody are server-authoritative; offline data never authorizes acceptance, scanning, pickup, or completion.
 - [x] Route calculation belongs to the owning delivery/route API, not the dashboard; no map, route provider, or geometry is inferred from scaffold data.
 - [x] [V2](aggregate-api.md) defines row types, five-row bounds/order, has_more, partial failure and navigation; batch offers open the existing batch screen.

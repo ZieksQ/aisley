@@ -4,7 +4,7 @@ feature: courier-proof-of-delivery
 title: Proof of Delivery (e-POD)
 system: AISLEY
 type: Feature Specification
-version: 1.9
+version: 1.10
 status: Implemented photo POD submission and Logistics validation; signature deferred
 implementation_status: Courier private photo submission and Logistics private preview/validation are implemented; former reference proof is retired for delivery
 flutter_status: Android capture/browser fallback, upload, COD confirmation, and in-memory authenticated Courier photo review are implemented locally; Logistics and device/browser acceptance remain unverified
@@ -12,9 +12,9 @@ canonical: true
 scope: External Flutter mobile client and Laravel Courier API
 backend_contract_commit: d1abeee73d0141e1fd7dda4bea0ee3fead370378
 failed_attempt_contract_commit: 4d8bfefa2a95007256e6616df415fa186d1b18eb
-backend_contract_version: courier-epod-v2-photo
+backend_contract_version: courier-direct-delivery-v2
 source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/domains/Courier.md, docs/domains/Logistics.md, docs/references/file-upload-requirements.md, docs/features/shared/shipment-fulfillment/spec.md
-documentation_synced_on: 2026-10-12
+documentation_synced_on: 2026-10-23
 ---
 
 # Proof of Delivery (e-POD)
@@ -53,7 +53,7 @@ final-mile task
 
 - Require `auth:sanctum`, `courier.active`, and `policy.consent`; Flutter sends `Authorization: Bearer <token>`.
 - Resolve the Courier, task, Order/Parcel, Logistics organization, and sole hub server-side. Never trust client `courier_id`, owner IDs, target status, or storage path.
-- The Courier must have an accepted final-mile task and the task must be in the approved delivery/drop-off state.
+- **Direct final-mile delivery revision — 2026-10-23 (`courier-direct-delivery-v2`):** Courier accepts a parcel, then submits private photo POD and the linked **Delivered** intent directly to Logistics Delivery confirmations. Hub pickup validation and transit actions are optional compatibility steps, not prerequisites. Existing `delivery_accepted`, `picked_up_from_hub`, `in_transit`, and `out_for_delivery` tasks are eligible. Submission preserves task/Shipment/Order/payment state; only the existing Logistics approval policy commits delivered. Skipped pickup/transit timestamps and evidence are not fabricated. External Flutter adoption of this revision remains open.
 - Evidence may be created only for that task's Order/Parcel and the authenticated Courier's current Logistics affiliation.
 - Cross-role, cross-organization, foreign task, guessed proof ID, or inactive-account access fails closed without existence disclosure.
 ### Logistics validation and recording authority
@@ -67,7 +67,7 @@ final-mile task
 - Complete Delivery records intent for the linked awaiting-validation or validated photo; only Logistics validation of that photo and matching intent commits `delivered`.
 ### Evidence methods and upload policy
 
-- The implemented delivery method at `out_for_delivery` is one private photo POD. Final-mile hub handoff uses the accepted task and `expected_revision` with a UUID `Idempotency-Key`, not QR/reference input; first-mile verification remains separate. Signature and proof combinations are deferred.
+- The implemented delivery method from `delivery_accepted` onward is one private photo POD. Final-mile hub handoff uses the accepted task and `expected_revision` with a UUID `Idempotency-Key`, not QR/reference input; first-mile verification remains separate. Signature and proof combinations are deferred.
 - If an image is enabled, inherit `docs/references/file-upload-requirements.md`: JPEG/JPG, PNG, or WebP, strictly under 10 MiB, detected MIME/signature/decode validation, generated object key, and private authorized delivery.
 - Store bytes in the configured private filesystem/object-storage abstraction (Azure-compatible in this project); store only generated path and required metadata in the database.
 - Never expose raw disk/blob paths, cloud credentials, bearer tokens, or public predictable evidence URLs.
@@ -228,3 +228,7 @@ Idempotency-Key: <UUID header>
 - COD approval creates a future-only Courier cash obligation. Receiving cash from that Courier is a separate Logistics receipt and does not clear the platform COD invoice.
 - Logistics Pending/History/Approval settings views retain private photos, timestamps, correction reasons and reviewer/system attribution.
 - Flutter implementation and device acceptance statuses are unchanged; this revision documents API behavior, not external-client adoption.
+
+## Development mockup submission (2026-10-22)
+
+The development harness exposes **Take parcel photo**, rear-camera capture, preview/retake and **Choose photo** fallback for accepted final-mile tasks. Its single **Delivered** button requires a selected photo or current reusable uploaded proof and, for COD, known payable amount/currency plus explicit cash acknowledgment. One click uploads private multipart POD and submits the matching completion intent with a separate idempotency key. Capture alone does not upload or complete delivery. A saved photo is retained across completion failure; retry reuses the same completion key and does not upload it again. An uncertain completion response is reconciled through GET. Only the complete proof/intent pair enters Logistics delivery confirmations. The API and external Flutter two-step wire contract/adoption are unchanged.

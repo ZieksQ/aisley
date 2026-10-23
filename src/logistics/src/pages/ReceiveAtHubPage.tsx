@@ -1,3 +1,5 @@
+import '../features/hubOperations/workspaces.css'
+import { PortalButton, PortalScanner, type ScannerFeedback } from '@aisley/ui/portal'
 import { Link, useSearchParams } from 'react-router-dom'
 import { ReceivingWorkspace } from '../features/linehaulReceiving/ReceivingWorkspace'
 import { useWaybillCamera } from '../lib/useWaybillCamera'
@@ -5,7 +7,7 @@ import Dexie from 'dexie'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { FaBarcode, FaCloudArrowUp, FaKeyboard, FaTrashCan } from 'react-icons/fa6'
 import { ConnectionStatus } from '../components/ConnectionStatus'
-import { ActionButton, ErrorNotice, PrimaryButton, field, panel } from '../components/PickupUi'
+import { ErrorNotice } from '../components/PickupUi'
 import { ApiError, csrf, request } from '../lib/api'
 import { receivingDb, type PendingReceipt } from '../lib/receivingDb'
 
@@ -30,7 +32,7 @@ function formatDate(value: string): string {
 export function ReceiveAtHubPage() {
   const [params] = useSearchParams()
   const trip = params.get('trip')
-  if (trip) return <div className="mx-auto max-w-[1200px] px-4 py-4 sm:px-6"><h2 className="text-xl font-semibold">Receive at hub</h2><Link className="mt-2 inline-block text-sm underline" to="/inbound-linehaul">Inbound linehaul</Link><ReceivingWorkspace trip={trip} scanning /></div>
+  if (trip) return <div className="portal-page hub-workspace"><h2 className="portal-page-heading">Receive at hub</h2><Link className="mt-2 inline-block text-sm underline" to="/inbound-linehaul">Inbound linehaul</Link><ReceivingWorkspace trip={trip} scanning /></div>
   return <OriginReceiving />
 }
 
@@ -41,6 +43,7 @@ function OriginReceiving() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
+  const [scanFeedback, setScanFeedback] = useState<ScannerFeedback>()
   const [online, setOnline] = useState(navigator.onLine)
   const videoRef = useRef<HTMLVideoElement>(null)
   const lastAutoSyncBatch = useRef('')
@@ -57,7 +60,8 @@ function OriginReceiving() {
     }
     try {
       await receivingDb.receipts.add({ id: crypto.randomUUID(), reference, scannedAt: new Date().toISOString(), source })
-      setNotice(`${reference} saved on this device.`)
+      setNotice(`${reference} scanned · Pending verification. Saved on this device until synced.`)
+      setScanFeedback({ id: crypto.randomUUID(), message: `${reference} scanned · Pending verification` })
       setError('')
       setManualReference('')
       await loadReceipts()
@@ -114,36 +118,35 @@ function OriginReceiving() {
     setScannerOpen(false)
   })
 
-  return <div className="mx-auto max-w-[1280px] px-3 py-3 sm:px-5 lg:px-6">
-    <div className="flex flex-wrap items-start justify-between gap-3 border-b border-zinc-200 pb-3 dark:border-white/10">
-      <div><div className="flex items-center gap-3"><FaBarcode className="text-[#4C1268] dark:text-purple-300" aria-hidden="true" /><h2 className="text-xl font-semibold">Receive at hub</h2></div><p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Scan the waybill's tracking barcode or QR, or enter its tracking ID. Scans stay on this device until synced.</p></div>
+  return <div className="portal-page hub-workspace">
+    <div className="hub-page-header">
+      <div><div><h2 className="portal-page-heading">Receive at hub</h2></div><p className="mt-1 text-sm text-slate-600 dark:text-slate-400">Record arriving parcels before moving them to sorting. Scans stay on this device until synced.</p></div>
       <ConnectionStatus online={online} syncing={busy} offlineLabel="Offline — scans are safe on this device" />
     </div>
 
     {error ? <div className="mt-4"><ErrorNotice message={error} /></div> : null}
     {notice ? <p className="mt-4 border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-200" role="status">{notice}</p> : null}
 
-    <div className="mt-3 grid items-start gap-3 lg:grid-cols-[minmax(0,1fr)_22rem]">
-      <section className={panel}>
-        <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-3 dark:border-white/10"><h3 className="font-semibold">Barcode scanner</h3><ActionButton onClick={() => setScannerOpen((value) => !value)}>{scannerOpen ? 'Stop camera' : 'Start camera'}</ActionButton></div>
-        <div className="p-3">
-          {scannerOpen ? <><video ref={videoRef} className="aspect-video max-h-64 w-full bg-black object-contain" autoPlay muted playsInline /><p className="mt-2 text-xs text-zinc-500">Move close enough for the bars to fill most of the preview while keeping both ends and white margins visible. The waybill QR also works.</p></> : <div className="grid min-h-48 place-items-center border border-dashed border-zinc-300 px-3 text-center text-sm text-zinc-500 dark:border-white/15"><div><FaBarcode className="mx-auto mb-3 text-3xl" aria-hidden="true" /><p>Camera scanning is stopped.</p><p className="mt-1 text-xs">Scan the tracking barcode up close or use the waybill QR.</p></div></div>}
+    <div className="hub-receiving-grid">
+      <PortalScanner title="Barcode & QR scanner" scanFeedback={scanFeedback} error={error} onExpand={() => setScannerOpen(true)} controls={<PortalButton onClick={() => setScannerOpen((value) => !value)}>{scannerOpen ? 'Stop camera' : 'Start camera'}</PortalButton>}>
+        <div className="portal-scanner-camera p-4">
+          {scannerOpen ? <><video ref={videoRef} className="aspect-video max-h-64 w-full bg-black object-contain" autoPlay muted playsInline /><p className="portal-scanner-hint portal-secondary mt-2 text-xs">Keep the full barcode or QR code in view. Both formats use the same scanner.</p></> : <div className="portal-scanner-placeholder"><div><FaBarcode className="mx-auto mb-3 text-3xl" aria-hidden="true" /><p>Ready to receive parcels</p><p className="mt-1 text-xs">Start the camera to scan a barcode or 2D QR code.</p></div></div>}
         </div>
-      </section>
+      </PortalScanner>
 
-      <section className={panel}>
-        <div className="border-b border-zinc-200 px-4 py-3 dark:border-white/10"><h3 className="font-semibold">Manual entry</h3></div>
+      <section className="portal-section">
+        <div className="border-b border-slate-200 px-4 py-3 dark:border-slate-700"><h3 className="font-semibold">Manual entry</h3></div>
         <form className="p-4" onSubmit={(event) => { event.preventDefault(); void queueReceipt(manualReference, 'manual') }}>
           <label className="block text-sm font-medium" htmlFor="parcel-reference">Tracking ID or waybill reference</label>
-          <div className="relative mt-1"><FaKeyboard className="pointer-events-none absolute left-3 top-3 text-zinc-400" aria-hidden="true" /><input id="parcel-reference" className={`${field} pl-9`} value={manualReference} onChange={(event) => setManualReference(event.target.value)} autoComplete="off" placeholder="AWB-..." /></div>
-          <PrimaryButton className="mt-3 w-full" type="submit">Add to receiving queue</PrimaryButton>
+          <div className="relative mt-1"><FaKeyboard className="pointer-events-none absolute left-3 top-3 text-slate-400" aria-hidden="true" /><input id="parcel-reference" className={`portal-input pl-9!`} value={manualReference} onChange={(event) => setManualReference(event.target.value)} autoComplete="off" placeholder="AWB-..." /></div>
+          <PortalButton variant="primary" className="mt-3 w-full" type="submit">Add to receiving queue</PortalButton>
         </form>
       </section>
     </div>
 
-    <section className={`${panel} mt-3 overflow-hidden`}>
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200 px-4 py-3 dark:border-white/10"><div><h3 className="font-semibold">Pending on this device ({receipts.length})</h3><p className="mt-1 text-xs text-zinc-500">Auto-syncs at 10 parcels, when connection returns, or every 5 minutes.</p></div><PrimaryButton busy={busy} disabled={!online || receipts.length === 0} onClick={() => void sync()}><FaCloudArrowUp aria-hidden="true" />Sync scans</PrimaryButton></div>
-      {receipts.length ? <ul className="divide-y divide-zinc-200 dark:divide-white/10">{receipts.map((receipt) => <li key={receipt.id} className="flex items-start justify-between gap-3 px-4 py-3"><div><p className="font-mono text-sm font-medium">{receipt.reference}</p><p className="mt-1 text-xs text-zinc-500">{receipt.source === 'barcode' ? 'Scanned' : 'Entered manually'} · {formatDate(receipt.scannedAt)}</p>{receipt.error ? <p className="mt-1 text-xs text-red-700 dark:text-red-300">{receipt.error}</p> : null}</div><button type="button" aria-label={`Remove ${receipt.reference}`} className="grid size-9 place-items-center rounded-md text-zinc-500 hover:bg-zinc-100 hover:text-red-700 dark:hover:bg-white/10" onClick={() => void receivingDb.receipts.delete(receipt.id).then(loadReceipts)}><FaTrashCan aria-hidden="true" /></button></li>)}</ul> : <p className="px-4 py-8 text-center text-sm text-zinc-500">No parcels are waiting to sync.</p>}
+    <section className={`portal-section mt-5 overflow-hidden`}>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3 dark:border-slate-700"><div><h3 className="font-semibold">Pending on this device ({receipts.length})</h3><p className="mt-1 text-xs text-slate-600 dark:text-slate-400">Auto-syncs at 10 parcels, when connection returns, or every 5 minutes.</p></div><PortalButton variant="primary" isLoading={busy} disabled={!online || receipts.length === 0} onClick={() => void sync()}><FaCloudArrowUp aria-hidden="true" />Sync scans</PortalButton></div>
+      {receipts.length ? <ul className="divide-y divide-slate-200 dark:divide-white/10">{receipts.map((receipt) => <li key={receipt.id} className="flex items-start justify-between gap-3 px-4 py-3"><div className="min-w-0"><p className="break-all font-mono text-sm font-medium">{receipt.reference}</p><p className="mt-1 text-xs text-slate-600 dark:text-slate-400">{receipt.source === 'barcode' ? 'Scanned' : 'Entered manually'} · {formatDate(receipt.scannedAt)}</p>{receipt.error ? <p className="mt-1 text-xs text-red-700 dark:text-red-300">{receipt.error}</p> : null}</div><button type="button" aria-label={`Remove ${receipt.reference}`} className="grid size-11 place-items-center rounded-md text-slate-600 dark:text-slate-400 hover:bg-slate-100 hover:text-red-700 dark:hover:bg-white/10" onClick={() => void receivingDb.receipts.delete(receipt.id).then(loadReceipts)}><FaTrashCan aria-hidden="true" /></button></li>)}</ul> : <div className="portal-state border-0! rounded-none!"><p className="portal-state-title">Receiving queue is clear</p><p className="portal-secondary">Scan a parcel or enter its tracking ID to start receiving.</p></div>}
     </section>
   </div>
 }

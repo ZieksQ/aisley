@@ -3,8 +3,8 @@ feature: logistics-deploy-rider
 title: Deploy Rider
 system: AISLEY
 type: Feature Specification
-version: 1.5
-status: Implemented sorted-parcel dispatch schedules, Courier batch acceptance, and advisory final-mile routing
+version: 1.6
+status: Implemented sorted-parcel dispatch schedules, per-parcel Courier acceptance, and advisory final-mile routing
 role: Logistics
 scope: Logistics API and Logistics web dispatch workflow
 source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/domains/Logistics.md, docs/domains/Courier.md, docs/features/shared/shipment-fulfillment/spec.md
@@ -16,11 +16,11 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 Linehaul uses a separate Logistics-managed `can_drive_company_truck` capability and `linehaul_trips` assignment. It does not use final-mile offers or the Courier's personal vehicle. Active pickup/final-mile work blocks a linehaul driver assignment, and an active linehaul assignment blocks conflicting driver reuse. Final-mile schedules retain their 15-parcel contract. See `docs/features/logistics/company-truck-linehaul-dispatch/spec.md`.
 
-## Courier batch handoff revision (2026-09-20)
+## Courier parcel handoff revision (2026-10-22)
 
-The existing 1–15 parcel dispatch schedule is one final-mile offer to its assigned Courier. The Courier accepts all offered member tasks atomically from the schedule, while each parcel retains its own task, offer, Shipment, proof, completion, and history. Rejected legacy or exceptional task offers retain the existing re-offer path. Linehaul manifests are separate and cannot appear in final-mile batch acceptance or routing.
+The existing 1–15 parcel dispatch schedule groups independent final-mile offers. The Courier accepts or rejects each parcel separately. Rejection clears its assigned Courier and returns the Shipment to `sorted_at_hub`, preserving its lane/session, physical milestones, Order and immutable task/offer/membership history. The parcel reappears in the normal ready queue for a new schedule; re-offering the same task remains supported. Accepted and untouched siblings remain assigned and visible. Linehaul is unchanged.
 
-The accepted batch route is calculated with Geoapify Matrix and Routing from confirmed hub/Customer coordinate pairs. It is advisory, bounded to the schedule, and cannot authorize dispatch or delivery. Missing coordinates or provider failure keeps the schedule and parcel address list available. The older single-task normal-offer and vendor-neutral route language below is historical for this revised flow.
+The accepted batch route is calculated with Geoapify Matrix and Routing from confirmed hub/Customer coordinate pairs. It is advisory, bounded to the schedule, and cannot authorize dispatch or delivery. Missing coordinates or provider failure keeps the schedule and parcel address list available. Only accepted current members enter the route; rejected or superseded members never reappear in an earlier Courier schedule.
 
 ## WHAT
 

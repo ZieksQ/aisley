@@ -72,3 +72,8 @@ Short, dated implementation log. Append entries; archive complete logs after 150
 
 - Updated only the affected media API contract: new PNG/JPG/JPEG/MP4 uploads and bindings are limited to 8,000,000 bytes each; images have 4,096-pixel edge/8-megapixel bounds, and the school backend can explicitly disable malware scanning. Previously committed WebP/documents and exact message replay remain readable.
 - External Flutter implementation and adoption evidence are unchanged. Removing WebP from new selection and adopting the revised image bounds require client verification; deployed/installed-device gates remain open. Backend/storage/web checks belong to the platform progress log.
+
+## 2026-10-23 — Direct final-mile approval status note
+
+- Documented `courier-direct-delivery-v2` in the Buyer Order-status contract: Courier proof/intent submission immediately after acceptance leaves the Order unchanged until Logistics approval, which may move `assigned` directly to `delivered` (Completed). Status names and DTO fields are unchanged.
+- Platform API/harness verification is recorded in the main progress log. No Buyer Flutter implementation, tests or adoption status changed; deployed and installed-device acceptance remain open.

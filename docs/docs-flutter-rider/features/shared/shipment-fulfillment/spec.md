@@ -3,7 +3,7 @@ feature: shipment-fulfillment
 title: Shipment and Fulfillment Lifecycle Decision and Revision Guide
 system: AISLEY
 type: Feature Specification
-version: 2.0
+version: 2.1
 status: Cross-document decision and reconciliation guide; shared physical schema and P0 final-mile transitions implemented
 roles: Customer, Seller, Logistics, Courier
 scope: Shared order-to-delivery vocabulary, decision record, and future backend contract
@@ -16,6 +16,8 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/P
 > **Cross-document decision notice:** This document is the canonical decision and reconciliation record for shared Shipment/Parcel/DeliveryTask concerns; it is not a replacement for the implementation contracts in `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, the domain documents, or owning feature specifications. Use it to answer cross-role concerns and direct revisions to those files. A checked decision is the accepted cross-role rule for those revisions; copy its wording and rationale into the owning canonical documents before implementation. This guide does not itself create a route, migration, or working endpoint. If existing documents or code disagree with a checked decision, reconcile the disagreement explicitly instead of silently choosing one.
 
 # Shipment and Fulfillment Lifecycle (Decision and Revision Guide)
+
+**Direct final-mile delivery revision — 2026-10-23 (`courier-direct-delivery-v2`):** Courier accepts a parcel, then submits private photo POD and the linked **Delivered** intent directly to Logistics Delivery confirmations. Hub pickup validation and transit actions are optional compatibility steps, not prerequisites. Existing `delivery_accepted`, `picked_up_from_hub`, `in_transit`, and `out_for_delivery` tasks are eligible. Submission preserves task/Shipment/Order/payment state; only the existing Logistics approval policy commits delivered. Skipped pickup/transit timestamps and evidence are not fabricated. External Flutter adoption of this revision remains open.
 
 ## Shared shipping authority revision — 2026-10-04
 
@@ -33,13 +35,13 @@ Final-mile Courier hub handoff is task-bound: the accepted Delivery Task and exp
 
 ## Final-mile handoff revision (2026-09-20)
 
-Logistics dispatches at most 15 sorted destination-hub parcels to one Courier schedule, and the Courier accepts that whole schedule atomically. Underlying Shipment, Parcel, Delivery Task, offer, and Order records stay separate. Courier final-mile delivery uses private photo POD, a separate **Delivered** intent, and Logistics confirmation; a failed delivery attempt records a reason without changing `out_for_delivery`, so the Courier may retry later. Advisory Geoapify Matrix/Routing results and MapLibre display apply only to that final-mile schedule. Linehaul manifests, transfers, and custody remain independent. Historical QR-delivery and route-deferred statements below are superseded by the owning 2026-09-20 feature revisions.
+Logistics dispatches at most 15 sorted destination-hub parcels to one Courier schedule, and the Courier accepts or rejects each parcel independently. Underlying Shipment, Parcel, Delivery Task, offer, and Order records stay separate. Courier final-mile delivery uses private photo POD, a separate **Delivered** intent, and Logistics confirmation; a failed delivery attempt records a reason without changing the accepted delivery state, so the Courier may retry later. Advisory Geoapify Matrix/Routing results and MapLibre display apply only to that final-mile schedule. Linehaul manifests, transfers, and custody remain independent. Historical QR-delivery and route-deferred statements below are superseded by the owning 2026-09-20 feature revisions.
 
 ## WHAT
 
 - **Purpose:** Keep a compact reference for the future movement of a prepared Order from Seller pickup through the Logistics hub to Buyer delivery.
 - **Why it exists:** Current Order, waybill, pickup, Logistics, and Courier documents mention the same physical flow in different places. This guide collects terminology, records cross-role decisions, and identifies exactly which documents must be revised together.
-- **Current baseline:** Seller pickup requests, selected Logistics organizations, shared waybills, pickup schedules, first-mile assignment/acceptance/confirmation, route manifests, shared Parcel/Shipment records, hub processing, atomic final-mile dispatch-batch acceptance, task-bound hub handoff, private photo POD, and Logistics-gated delivery completion exist. Waybills expose an explicit tracking ID with a thin Code 128 barcode, and Logistics sort plans route exact Buyer postal codes at scan time. Signature proof, live location telemetry, returns, and exceptional recovery remain deferred; advisory Geoapify final-mile routing is implemented.
+- **Current baseline:** Seller pickup requests, selected Logistics organizations, shared waybills, pickup schedules, first-mile assignment/acceptance/confirmation, route manifests, shared Parcel/Shipment records, hub processing, per-parcel final-mile acceptance/rejection, task-bound hub handoff, private photo POD, and Logistics-gated delivery completion exist. Waybills expose an explicit tracking ID with a thin Code 128 barcode, and Logistics sort plans route exact Buyer postal codes at scan time. Signature proof, live location telemetry, returns, and exceptional recovery remain deferred; advisory Geoapify final-mile routing is implemented.
 - **Role boundary:** Seller prepares and hands off; Logistics operates its single hub and assigns first-mile/final-mile work; Courier acts only on an assigned mobile API task; Customer reads safe tracking projections.
 - **Non-goals:** changing current routes or migrations, adding a second waybill, choosing a map provider, optimizing routes, creating multi-hub operations, billing subscriptions, or building Courier web UI.
 
@@ -179,7 +181,7 @@ awaiting_seller_pickup
 
 ### MVP re-offer, expiry, and hub transfer rules
 
-- A Courier rejects only its currently offered, unaccepted final-mile assignment. Record rejection reason, actor, and UTC timestamp; leave the Order, Shipment custody, reservation, and physical milestones unchanged.
+- A Courier rejects only its currently offered, unaccepted final-mile assignment. Record rejection reason, actor, and UTC timestamp; return the Shipment to `sorted_at_hub` for Logistics rescheduling while preserving the Order, hub custody, staging assignment, reservation and physical milestones.
 - Deployed Logistics re-offer appends a new offer for the same final-mile task and returns it to `delivery_assigned`; the rejected offer remains immutable. First-mile rejection/re-offer (`seller_pickup_assigned`) is a target policy only: no Courier first-mile rejection endpoint is deployed.
 - Lock the task and current offer together. Acceptance/rejection/re-offer races allow only one compatible commit; conflicting requests receive `409`. Matching retries return the original committed result.
 - Automatic offer expiry and timed reassignment are deferred. MVP offers have no expiry deadline; unfinished tasks are not automatically cancelled or reassigned. A stale indicator is advisory and cannot authorize mutations.
@@ -235,7 +237,7 @@ Complete each unchecked question before creating physical operational migrations
        **Answer/owner:**
   - **Offered:** Logistics sends the task to a Courier; store the task, Courier, offer time, and expiry/state.
   - **Accepted:** The Courier accepts the offer; the task’s current assignment becomes that Courier.
-  - **Rejected:** The Courier declines an eligible final-mile offer; store the rejection reason and timestamp. First-mile rejection/re-offer is planned and has no deployed Courier endpoint. The Order and custody state do not change.
+  - **Rejected:** The Courier declines an eligible final-mile offer; store the rejection reason and timestamp. First-mile rejection/re-offer is planned and has no deployed Courier endpoint. The Order and hub custody do not change; the Shipment returns to `sorted_at_hub` for scheduling.
   - **Re-offered:** Logistics offers the same `DeliveryTask` to another Courier by creating a new offer/assignment record. Do not create a new Order, Parcel, or Shipment.
 
 - [x] **Actor timestamps and presentation:** Which server timestamps and performing/validating/recording actors are required? Should a restricted Logistics/Admin audit log be separate from Customer/Courier milestone timelines?  

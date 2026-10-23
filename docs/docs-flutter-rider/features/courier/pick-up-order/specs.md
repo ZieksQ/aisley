@@ -4,7 +4,7 @@ feature: courier-pick-up-order
 title: Pick Up Order
 system: AISLEY
 type: Feature Specification
-version: 2.11
+version: 2.12
 status: Implemented first-mile identifier pickup and task-bound final-mile hub handoff
 implementation_status: First-mile Courier API and route-manifest API retain QR/tracking-ID/Order-reference verification; final-mile hub handoff uses an accepted task and revision without identifier entry; Flutter remains external
 flutter_status: First-mile pickup, schedule filtering, task-bound hub handoff, and Android/web MapLibre pickup routes implemented locally; live API and installed-device/browser map acceptance remain unverified
@@ -15,14 +15,14 @@ backend_contract_commit: d5c160d4a5a21272e487b6f46a82de35e81395cb
 backend_contract_version: first-and-final-mile-pickup-v1-tracking-id
 map_contract_commit: 51d96947569d1603fdfb6d264ebd2a04bf866280
 source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/domains/Courier.md, docs/domains/Logistics.md
-documentation_synced_on: 2026-10-12
+documentation_synced_on: 2026-10-23
 ---
 
 > **Authority:** `docs/features/orders/logistics-pickups/spec.md` owns Seller-to-Logistics scheduling, and `docs/features/orders/waybill/spec.md` owns the shared waybill and QR identity. This document owns Courier pickup from Seller (first mile) and hub-pickup evidence submission (final mile). Logistics Update Status owns authoritative hub-handoff validation; Deliver Order owns subsequent travel.
 
 # Pick Up Order Specification
 
-**Flutter adoption boundary:** The external Flutter progress records first-mile QR/Code 128 candidates and task-bound final-mile hub handoff as implemented locally. The final-mile `pickup` request sends only the current task revision; identifier fields return `422`. First-mile Seller pickup retains separate identifier verification. Authenticated Logistics validation and installed-device behavior remain unverified, so submission alone must not be shown as confirmed custody.
+**Direct final-mile delivery revision — 2026-10-23 (`courier-direct-delivery-v2`):** Courier accepts a parcel, then submits private photo POD and the linked **Delivered** intent directly to Logistics Delivery confirmations. Hub pickup validation and transit actions are optional compatibility steps, not prerequisites. Existing `delivery_accepted`, `picked_up_from_hub`, `in_transit`, and `out_for_delivery` tasks are eligible. Submission preserves task/Shipment/Order/payment state; only the existing Logistics approval policy commits delivered. Skipped pickup/transit timestamps and evidence are not fabricated. External Flutter adoption of this revision remains open. **Flutter adoption boundary:** The external Flutter progress records first-mile QR/Code 128 candidates and task-bound final-mile hub handoff as implemented locally. The final-mile `pickup` request sends only the current task revision; identifier fields return `422`. First-mile Seller pickup retains separate identifier verification. Authenticated Logistics validation and installed-device behavior remain unverified, so submission alone must not be shown as confirmed custody.
 
 ## Final-mile handoff revision (2026-09-21)
 
