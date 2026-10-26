@@ -7,7 +7,7 @@ type: Feature Specification
 version: 1.7
 status: First-mile and per-parcel final-mile acceptance implemented
 implementation_status: Per-parcel accept/reject, rejected-parcel rescheduling, and partial-dispatch routes are implemented
-flutter_status: Atomic 1–15 parcel dispatch-batch list, detail, acceptance, and uncertain-result reconciliation implemented; live API acceptance unverified
+flutter_status: Independent parcel accept/reject and exact uncertain-decision recovery implemented locally; live/device acceptance remains open
 canonical: true
 copied_backend_checkout: 4c3f504
 scope: External Flutter mobile client and Laravel Courier API
@@ -19,7 +19,7 @@ documentation_synced_on: 2026-10-22
 
 # Accept Delivery Requests
 
-**Flutter adoption boundary:** Laravel now supports independent parcel decisions as the normal final-mile flow. The existing external Flutter implementation uses batch acceptance; per-parcel decision/rescheduling adoption and live API acceptance remain unverified. The development mockup uses per-task accept/reject; do not automatically loop decisions over a dispatch.
+**Flutter adoption boundary:** Laravel now supports independent parcel decisions as the normal final-mile flow. Flutter implements individual parcel decisions and preserves sibling membership; deployed API and physical-device acceptance remain unverified. The development mockup uses per-task accept/reject; do not automatically loop decisions over a dispatch.
 
 ## Offer price revision (2026-09-21)
 

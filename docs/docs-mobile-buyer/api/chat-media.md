@@ -59,3 +59,7 @@ Adopted media baseline: Laravel `28fc740` and the 2026-10-11 decimal-byte limit 
 ## Backend contract revision — 2026-10-17
 
 New upload/binding policy now allows PNG/JPG/JPEG/MP4 only with the image bounds above and explicit optional malware scanning. Deployed storage/processing and updated Flutter selection acceptance remain unverified by this documentation update. Historical media and all participant/role/relationship rules remain unchanged.
+
+## Flutter policy adoption — 2026-10-26
+
+New mobile chat selections accept JPEG/PNG only, at most 8,000,000 bytes inclusive, with 4,096-pixel edges and 8,000,000 pixels. The image-only composer keeps receive-only MP4/documents and authorized historical WebP/document reads; committed exact-send replay remains intact. Local verification is recorded in the owning platform-sync reference; deployed media exchange and installed-device acceptance remain open.

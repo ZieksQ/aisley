@@ -64,3 +64,8 @@ Short, dated implementation log. Append entries; archive complete logs after 150
 
 - Synced affected Courier photo/completion/delivery/pickup/failed-attempt and shared lifecycle notes for `courier-direct-delivery-v2`: accept → photo plus Delivered intent → Logistics confirmation; intermediate hub-pickup/transit actions are optional compatibility paths. Accepted and existing later delivery states are eligible; pending submission preserves physical/payment state and approval does not fabricate skipped timestamps.
 - Platform verification: 37 isolated SQLite API tests / 779 assertions, mockup build/typecheck/lint, scoped Pint and synthetic Chromium direct-flow/queue/retry checks pass. These are backend/harness results, not Flutter adoption. External Flutter implementation, deployed PostgreSQL/concurrency and installed-device/live acceptance of this revision remain open.
+
+## 2026-10-26 — External Flutter platform contract adoption
+
+- Courier adopts platform `1858785e` parcel decisions, direct accepted-task Delivered submission, linehaul jobs/routes/departure/arrival, and current chat image limits. Selectively synchronized contracts, current adoption notes and [verification](references/platform-sync-2026-10-26.md), retaining historical logs, local design/configuration and authority boundaries.
+- External checks: clean analyzer; 1,146 full, 378 focused and 35 final guard tests; isolated web/APK builds and 18 Chromium checks pass. These are standalone-client checks, not backend/deployed or installed-device acceptance. No device/emulator was attached; live/provider/physical-device/signing gates remain open.

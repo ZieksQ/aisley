@@ -4,10 +4,14 @@ system: AISLEY
 type: Feature Index
 role: Courier / Rider
 platform: Flutter / Dart
-status: Flutter dashboard previews, inbox, support tickets, final-mile batch acceptance, photo-POD/COD intent, and Logistics/Seller/Buyer chat implemented; live acceptance remains open
+status: Flutter individual parcel decisions, direct photo-POD/COD intent, linehaul jobs/routes/driver confirmations, dashboard/inbox/support and chat implemented locally; live/device acceptance remains open
 ---
 
 # Courier feature index
+
+## Platform adoption — 2026-10-26
+
+Current Flutter behavior and verification superseding historical adoption summaries below are recorded in [the platform sync reference](../../references/platform-sync-2026-10-26.md). Work includes Linehaul jobs; individual final-mile parcel decisions; accepted-task photo/Delivered submission; and revised JPEG/PNG chat selection. Live/deployed and installed-device gates remain open.
 
 ## Implementation rule
 
@@ -24,7 +28,7 @@ Before implementing a remaining draft feature, verify that the backend provides:
 3. any required shared Shipment/Delivery Task schema and transition rules; and
 4. integration/contract-test coverage.
 
-Until then, implement only a truthful scaffold or unavailable state for that missing capability. Do not fabricate task counts, route/location telemetry, proof media, earnings, or notification data. Flutter implements atomic dispatch-batch list/detail/acceptance plus photo selection/upload and completion intent with COD confirmation; authenticated batch/API, COD/Logistics validation, and installed-device/browser uploads remain unverified.
+Until then, implement only a truthful scaffold or unavailable state for that missing capability. Do not fabricate task counts, route/location telemetry, proof media, earnings, or notification data. Flutter implements dispatch list/detail with individual parcel decisions, direct photo/Delivered submission with COD confirmation, and linehaul jobs/routes/driver confirmations; authenticated batch/API, COD/Logistics validation, and installed-device/browser uploads remain unverified.
 
 ## Current Courier API
 
@@ -81,7 +85,7 @@ Until then, implement only a truthful scaffold or unavailable state for that mis
 - `GET /api/v1/courier/operational-conversations` and `POST /api/v1/courier/operational-conversations` (authenticated task-scoped inbox and first message)
 - `GET /api/v1/courier/operational-conversations/{conversation}` and `GET /api/v1/courier/operational-conversations/{conversation}/messages` (private detail/history)
 - `POST /api/v1/courier/operational-conversations/{conversation}/messages` and `POST /api/v1/courier/operational-conversations/{conversation}/read` (idempotent send and monotonic read marker)
-- `GET /api/v1/courier/linehaul-trips` (authenticated assigned company-truck trip read; Flutter trip screen not verified)
+- `GET /api/v1/courier/linehaul-trips` (authenticated assigned company-truck trip read; Flutter adopted locally)
 - `POST /api/v1/courier/linehaul-trips/{trip}/depart` and `POST /api/v1/courier/linehaul-trips/{trip}/arrival` (assigned driver, explicit confirmation/revision; [contract v1](../../linehaul-trips.md); Flutter adoption open)
 - `GET /api/v1/courier/linehaul-trips/{trip}/route` (additive 2026-10-21 assigned-driver hub road route; [DTO and fallbacks](../../courier-route-maps.md#additive-linehaul-route-contract--2026-10-21); Flutter linehaul adoption remains open)
 
