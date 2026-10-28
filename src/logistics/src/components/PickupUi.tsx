@@ -14,7 +14,7 @@ export function PrimaryButton({ className = '', ...props }: React.ComponentProps
 }
 
 export function ErrorNotice({ message, retry }: { message: string; retry?: () => void }) {
-  return <div className="border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-400/25 dark:bg-red-400/10 dark:text-red-200" role="alert"><p>{message}</p>{retry ? <button className="mt-2 font-semibold underline" onClick={retry} type="button">Try again</button> : null}</div>
+  return <div className="border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-400/25 dark:bg-red-400/10 dark:text-red-200" role="alert"><p>{message}</p>{retry ? <button className="mt-2 inline-flex min-h-11 min-w-11 items-center justify-center font-semibold underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand-focus)]" onClick={retry} type="button">Try again</button> : null}</div>
 }
 
 export function StatusLabel({ status }: { status: string }) {

@@ -1,7 +1,7 @@
 ---
 feature: logistics-support-tickets
-version: 1.0
-status: Logistics web UI and API implemented; production interaction checks pending
+version: 1.1
+status: Logistics web UI/API and in-app support-ticket notifications implemented; production interaction checks pending
 role: Logistics
 ---
 
@@ -12,6 +12,7 @@ An active, Admin-approved Logistics account uses its own dashboard's `/support-t
 - The first-release form contains subject (1–150 characters), category (`general`, `account`, `order`, `delivery`), and plain-text description (1–2,000 characters). No parcel, pickup, Courier task, or organization-record link is accepted yet.
 - `/api/v1/logistics/support-tickets` provides cursor-paginated list/create/detail/reply/read routes under active Logistics, Sanctum, and policy-consent gates. The API derives and scopes ownership to the authenticated Logistics User.
 - Create/reply require UUID idempotency keys; replies include the current `expected_revision`. A requester reply reopens a waiting or resolved ticket.
+- Ticket creation and requester replies notify eligible Admins; Admin replies and explicit public status changes notify the active requester. These database inbox alerts use the `Support tickets` category and safe ticket-only copy; ticket and notification read states remain separate.
 - The Logistics page has a distinct navigation entry, polls/refetches visible history, preserves uncertain drafts/keys for safe retry, and renders plain text safely.
 - Operational decisions remain in their owning Logistics workflows. Linked records, attachments, ineligible-account appeals, and proactive Admin outreach are deferred.
 

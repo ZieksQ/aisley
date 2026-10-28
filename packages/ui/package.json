@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./chat": "./src/chat/index.ts",
+    "./notifications": "./src/notifications/index.ts",
     "./portal": "./src/portal/index.ts",
     "./portal.css": "./src/portal/portal.css",
     "./charts": "./src/charts/index.ts",

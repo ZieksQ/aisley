@@ -6,10 +6,18 @@ import { NewTicketForm } from './new-ticket-form'
 import { TicketDetailView } from './ticket-detail'
 import './workspace.css'
 
-export function SupportTicketsWorkspace({ client }: { client: TicketClient }) {
+export function SupportTicketsWorkspace({
+  client,
+  initialTicketId = null,
+  onSelectedTicketIdChange,
+}: {
+  client: TicketClient
+  initialTicketId?: string | null
+  onSelectedTicketIdChange?: (id: string | null) => void
+}) {
   const [items, setItems] = useState<SupportTicket[]>([])
   const [nextCursor, setNextCursor] = useState<string | null>(null)
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [selectedId, setSelectedId] = useState<string | null>(initialTicketId)
   const [detail, setDetail] = useState<TicketDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [busyOlder, setBusyOlder] = useState(false)
@@ -45,6 +53,7 @@ export function SupportTicketsWorkspace({ client }: { client: TicketClient }) {
   }, [client])
 
   useEffect(() => { void refreshList() }, [refreshList])
+  useEffect(() => { if (initialTicketId) setSelectedId(initialTicketId) }, [initialTicketId])
   useEffect(() => { if (selectedId) { setDetail(null); void refreshDetail(selectedId) } }, [selectedId, refreshDetail])
   useEffect(() => {
     const refresh = () => { if (!document.hidden) { void refreshList(); if (selectedId) void refreshDetail(selectedId) } }
@@ -94,7 +103,7 @@ export function SupportTicketsWorkspace({ client }: { client: TicketClient }) {
     </p>}
     <div className="support-ticket-columns">
       <div>
-        <NewTicketForm client={client} onCreated={(id) => { setSelectedId(id); void refreshList() }} />
+        <NewTicketForm client={client} onCreated={(id) => { setSelectedId(id); onSelectedTicketIdChange?.(id); void refreshList() }} />
         <section aria-label="Your tickets" className="support-ticket-list">
           <h2>Your tickets</h2>
           {loading && <p>Loading tickets…</p>}
@@ -103,7 +112,7 @@ export function SupportTicketsWorkspace({ client }: { client: TicketClient }) {
             aria-current={ticket.id === selectedId ? 'true' : undefined}
             className="support-ticket-list-item"
             key={ticket.id}
-            onClick={() => setSelectedId(ticket.id)}
+            onClick={() => { setSelectedId(ticket.id); onSelectedTicketIdChange?.(ticket.id) }}
             type="button"
           >
             <strong>{ticket.subject}</strong>

@@ -2,6 +2,9 @@
 
 namespace App\Http\Resources\Seller;
 
+use App\Models\User;
+use App\Services\Notifications\NotificationCategoryCatalog;
+use App\Services\Support\SupportTicketNotificationPresenter;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -12,17 +15,27 @@ class SellerNotificationResource extends JsonResource
     public function toArray(Request $request): array
     {
         $data = is_array($this->data) ? $this->data : [];
+        /** @var User $recipient */
+        $recipient = $request->user();
+        $type = (string) $this->type;
+        $categories = app(NotificationCategoryCatalog::class);
+        $category = $categories->category($recipient->role, $type);
+        $support = str_starts_with($type, 'support-ticket.')
+            ? app(SupportTicketNotificationPresenter::class)->project($type, $data, $recipient)
+            : null;
 
         return [
             'id' => $this->id,
-            'type' => $this->type,
-            'title' => $this->string($data, 'title', $this->fallbackTitle()),
-            'summary' => $this->string($data, 'summary', $this->fallbackSummary($data)),
+            'type' => $type,
+            'title' => $support !== null ? $support['title'] : $this->string($data, 'title', $this->fallbackTitle()),
+            'summary' => $support !== null ? $support['summary'] : $this->string($data, 'summary', $this->fallbackSummary($data)),
+            'category' => $category,
+            'category_label' => $categories->label($recipient->role, $category),
             'read_at' => $this->read_at?->toIso8601String(),
             'created_at' => $this->created_at?->toIso8601String(),
-            'destination' => $this->destination($data),
-            'resource_type' => $this->value($data, 'resource_type'),
-            'resource_id' => $this->value($data, 'resource_id'),
+            'destination' => $support !== null ? $support['destination'] : $this->destination($data),
+            'resource_type' => $support !== null ? $support['resource_type'] : $this->value($data, 'resource_type'),
+            'resource_id' => $support !== null ? $support['resource_id'] : $this->value($data, 'resource_id'),
             'product_id' => $this->value($data, 'product_id'),
             'schedule' => $this->schedule($data),
         ];

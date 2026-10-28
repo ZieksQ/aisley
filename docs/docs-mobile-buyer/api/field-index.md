@@ -903,7 +903,11 @@ Use [operation contracts](operations.md) for envelopes and [machine-readable def
 | `resource_type` | `string` | null allowed; required |
 | `resource_id` | `string` | null allowed; required |
 | `product_id` | `UUID` | null allowed; required |
-| `destination` | `URL` | non-null; required |
+| `destination` | `URL` | null allowed; required |
+
+When the linked resource is unavailable or redacted, `resource_type`, `resource_id`, and
+`destination` may be null. A null destination is display-only; clients must not infer or construct
+a navigation target.
 
 ## ShopConversation
 

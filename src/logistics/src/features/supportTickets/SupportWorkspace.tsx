@@ -9,15 +9,33 @@ import './support.css'
 const statuses = { open: 'Open', in_progress: 'In progress', waiting_for_requester: 'Waiting for you', resolved: 'Resolved' }
 const emptyDraft: TicketDraftState = { dirty: false, busy: false, uncertain: false }
 
-export function SupportWorkspace({ client }: { client: TicketClient }) {
+export function SupportWorkspace({
+  client,
+  initialTicketId = null,
+  onSelectedTicketIdChange,
+}: {
+  client: TicketClient
+  initialTicketId?: string | null
+  onSelectedTicketIdChange?: (id: string | null) => void
+}) {
   const tickets = useSupportTickets(client)
   const [creating, setCreating] = useState(false)
   const [draft, setDraft] = useState(emptyDraft)
   const newButton = useRef<HTMLDivElement>(null)
   const content = useRef<HTMLDivElement>(null)
+  const lastInitialTicketId = useRef<string | null>(null)
   const blocker = useBlocker(({ currentLocation, nextLocation }) =>
-    (draft.dirty || draft.busy || draft.uncertain) && currentLocation.pathname !== nextLocation.pathname &&
+    (draft.dirty || draft.busy || draft.uncertain) && (currentLocation.pathname !== nextLocation.pathname || currentLocation.search !== nextLocation.search) &&
     !nextLocation.state?.supportAccessLost)
+
+  useEffect(() => {
+    if (lastInitialTicketId.current === initialTicketId) return
+    lastInitialTicketId.current = initialTicketId
+    if (!initialTicketId) return
+    setDraft(emptyDraft)
+    setCreating(false)
+    tickets.setSelectedId(initialTicketId)
+  }, [initialTicketId, tickets.setSelectedId])
 
   useEffect(() => {
     if (blocker.state !== 'blocked') return
@@ -53,6 +71,7 @@ export function SupportWorkspace({ client }: { client: TicketClient }) {
     setDraft(emptyDraft)
     setCreating(false)
     tickets.setSelectedId(id)
+    onSelectedTicketIdChange?.(id)
     if (!id) window.requestAnimationFrame(() => newButton.current?.querySelector<HTMLButtonElement>('button:last-child')?.focus())
   }
 
@@ -74,6 +93,7 @@ export function SupportWorkspace({ client }: { client: TicketClient }) {
             setDraft(emptyDraft)
             tickets.setSelectedId(null)
             setCreating(true)
+            onSelectedTicketIdChange?.(null)
           }}
           type="button"
         >
@@ -125,6 +145,7 @@ export function SupportWorkspace({ client }: { client: TicketClient }) {
             setDraft(emptyDraft)
             setCreating(false)
             tickets.setSelectedId(id)
+            onSelectedTicketIdChange?.(id)
             tickets.refresh()
           }}
           onDraftChange={setDraft}

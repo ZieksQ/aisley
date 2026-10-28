@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers\Customer;
 
+use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Customer\ListNotificationsRequest;
 use App\Http\Resources\Customer\CustomerNotificationResource;
 use App\Models\User;
 use App\Notifications\Customer\OrderStatusChangedNotification;
+use App\Services\Notifications\NotificationCategoryCatalog;
+use App\Services\Support\SupportTicketNotificationPresenter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Notifications\DatabaseNotification;
@@ -14,6 +17,8 @@ use Illuminate\Support\Facades\DB;
 
 class NotificationController extends Controller
 {
+    public function __construct(private readonly NotificationCategoryCatalog $categories) {}
+
     public function index(ListNotificationsRequest $request): JsonResponse
     {
         /** @var User $customer */
@@ -23,10 +28,12 @@ class NotificationController extends Controller
         $query->when($request->input('status') === 'unread', fn ($query) => $query->whereNull('read_at'))
             ->when($request->input('status') === 'read', fn ($query) => $query->whereNotNull('read_at'))
             ->orderByDesc('created_at')->orderByDesc('id');
+        $this->categories->filter($query, UserRole::Customer, $request->input('category'));
 
         return CustomerNotificationResource::collection(
             $query->paginate((int) $request->input('per_page', 20))->withQueryString(),
-        )->response()->header('Cache-Control', 'no-store, private');
+        )->additional(['meta' => ['categories' => $this->categories->options(UserRole::Customer)]])
+            ->response()->header('Cache-Control', 'no-store, private');
     }
 
     public function show(Request $request, string $notification): JsonResponse
@@ -70,6 +77,7 @@ class NotificationController extends Controller
                 'customer-campaign.promotion',
                 'customer-product-qa.answered',
                 'customer-product-review.responded',
+                ...SupportTicketNotificationPresenter::TYPES,
             ])
             ->where(function ($query) use ($statuses, $statusExpression): void {
                 $query->where('type', '!=', 'customer-order.status-changed')

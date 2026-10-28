@@ -17,3 +17,4 @@ docs/context/seller-operations-redesign/
 
 # cabigan extra docs
 docs/cabigan/*
+/.orchestrator/tmp/

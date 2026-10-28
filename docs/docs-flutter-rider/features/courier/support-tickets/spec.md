@@ -3,9 +3,9 @@ feature: courier-support-tickets
 title: Courier Support Tickets
 system: AISLEY
 type: Feature Specification
-version: 1.1
-status: Courier API and external Flutter UI implemented; live acceptance pending
-implementation_status: Five protected requester routes, Flutter requester flow, and shared ticket persistence are implemented
+version: 1.2
+status: Courier API, requester flow, and in-app ticket notifications implemented; live acceptance pending
+implementation_status: Five protected requester routes, Flutter requester flow, shared ticket persistence, and ticket notification producer are implemented
 canonical: true
 file_state: copied_read_only
 canonical_source: docs/features/courier/support-tickets/spec.md
@@ -14,8 +14,9 @@ role: Courier
 scope: Laravel API and external Flutter mobile application
 backend_contract_commit: 40c68de
 backend_contract_version: courier-support-tickets-v1
+additional_backend_contract: ticket-notifications-category-filters on API v1; current feature branch is uncommitted
 source_coverage: docs/features/admin/support-ticket-system/spec.md, docs/schema.md, docs/domain/Courier.md
-documentation_synced_on: 2026-10-12
+documentation_synced_on: 2026-10-29
 ---
 
 # Courier Support Tickets
@@ -33,7 +34,7 @@ documentation_synced_on: 2026-10-12
 - Creating a ticket starts it as `open`; a Courier reply may reopen `waiting_for_requester` or `resolved` to `open`.
 - Tickets do not approve accounts, alter Orders or tasks, change custody, issue refunds, or decide compliance cases.
 - Linked Order, Parcel, Delivery Task, Shop, Logistics, and compliance contexts are not accepted in this release.
-- Attachments, internal Admin notes, push notifications, email ingestion, guest appeals, and offline writes are deferred.
+- Attachments, internal Admin notes, push/email delivery, guest appeals, and offline writes are deferred. In-app ticket notifications are described below.
 
 ```text
 approved Courier → create ticket → Admin triage/reply/status
@@ -72,6 +73,7 @@ approved Courier → create ticket → Admin triage/reply/status
 - Mark-read requires `last_read_sequence >= 0`; it never moves the Courier marker backward.
 - Reject a read sequence greater than the ticket's current last sequence with validation failure.
 - Courier read state is independent from each Admin's read marker and from the notification inbox.
+- Notification read state is also independent from the Courier's ticket read marker.
 - A resolved ticket remains readable and may be reopened only through an authorized reply or Admin action.
 
 ### Concurrency and retries
@@ -191,7 +193,12 @@ Mutation responses contain `data` with the full safe summary and `event` with th
 - `SupportTicketWriter` owns transactions, row locks, revisions, idempotency receipts, append-only events, and safe logging.
 - `SupportTicketView` returns role-safe summaries/events; Flutter must not model raw Eloquent records.
 - UUID-backed ticket, event, read-marker, and idempotency tables are shared with other requester roles and Admin.
-- No notification is emitted in this release; Flutter refresh/polling reads the authoritative ticket history.
+- Notification categories and inbox fields are defined in the [Courier notification contract](../notification/specs.md); notification reads never mark ticket history read.
+- The writer queues `support-ticket.created`, `requester-replied`, `admin-replied`, and explicit
+  `status-changed` alerts after commit. Ticket creation/replies notify eligible Admins; Admin replies
+  and public status changes notify the active requester. Automatic reply reopens and assignments do
+  not alert. Payloads contain a safe reference, never a reply body, and use `/support-tickets/{UUID}`
+  only after recipient permission and current Courier affiliation checks.
 
 ### Verification and rollout
 
@@ -201,4 +208,4 @@ Mutation responses contain `data` with the full safe summary and `event` with th
 - Imported Flutter controller/widget tests cover cursor continuation, unknown safe fields, conflicts, throttling, timeout reconciliation, offline blocking and cleanup. Production-theme 320/390px, 1×/2× light/dark tests cover contrast/target/label guidelines, list/create/detail/reply, keyboard menus/focus and loading/stale/retry/draft states; device/screen-reader acceptance remains open.
 - Record the adopted Laravel commit/API version in Flutter `docs/PROGRESS.md`.
 - Flutter dashboard navigation exposes the implemented screens; live API availability and authenticated acceptance still require separate verification.
-- Retention, attachments, ticket notifications, linked business records, and ineligible-account appeals require separate approved revisions.
+- Retention, attachments, linked business records, and ineligible-account appeals require separate approved revisions. Ticket alerts are in-app only; push/email remain deferred.

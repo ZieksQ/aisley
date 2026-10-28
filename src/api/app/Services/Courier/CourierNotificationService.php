@@ -14,6 +14,8 @@ use App\Models\DeliveryTaskOffer;
 use App\Models\LinehaulTrip;
 use App\Models\PickupSchedule;
 use App\Models\User;
+use App\Services\Notifications\NotificationCategoryCatalog;
+use App\Services\Support\SupportTicketNotificationPresenter;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
@@ -26,6 +28,11 @@ use Throwable;
 
 class CourierNotificationService
 {
+    public function __construct(
+        private readonly NotificationCategoryCatalog $categories,
+        private readonly SupportTicketNotificationPresenter $supportTickets,
+    ) {}
+
     /** @var list<string> */
     public const TYPES = [
         'pickup-schedule.assigned',
@@ -34,6 +41,7 @@ class CourierNotificationService
         'pickup-schedule.reminder',
         'courier-task.final-mile-offered',
         'courier-linehaul.trip-scheduled',
+        ...SupportTicketNotificationPresenter::TYPES,
     ];
 
     /** @return MorphMany<DatabaseNotification> */
@@ -65,16 +73,18 @@ class CourierNotificationService
     }
 
     /** @return array{data: list<array<string, mixed>>, meta: array<string, mixed>} */
-    public function list(User $courier, string $status, int $limit, ?string $cursor): array
+    public function list(User $courier, string $status, int $limit, ?string $cursor, ?string $category = null): array
     {
+        $cursorCategory = $category === 'all' ? '' : ($category ?? '');
         $query = $this->query($courier)
             ->when($status === 'unread', fn (Builder $builder) => $builder->whereNull('read_at'))
             ->when($status === 'read', fn (Builder $builder) => $builder->whereNotNull('read_at'))
             ->orderByDesc('created_at')
             ->orderByDesc('id');
+        $this->categories->filter($query, UserRole::Courier, $category);
 
         if ($cursor !== null) {
-            [$createdAt, $id] = $this->decodeCursor($cursor, $courier, $status);
+            [$createdAt, $id] = $this->decodeCursor($cursor, $courier, $status, $cursorCategory);
             $query->where(function (Builder $builder) use ($createdAt, $id): void {
                 $builder->where('created_at', '<', $createdAt)
                     ->orWhere(fn (Builder $sameTime) => $sameTime
@@ -92,9 +102,10 @@ class CourierNotificationService
             'data' => $items->map(fn (DatabaseNotification $notification): array => $this->project($notification, $courier))->values()->all(),
             'meta' => [
                 'next_cursor' => $hasNext && $last instanceof DatabaseNotification
-                    ? $this->encodeCursor($last, $courier, $status)
+                    ? $this->encodeCursor($last, $courier, $status, $cursorCategory)
                     : null,
                 'generated_at' => now()->utc()->toISOString(),
+                'categories' => $this->categories->options(UserRole::Courier),
             ],
         ];
     }
@@ -104,9 +115,30 @@ class CourierNotificationService
     {
         $data = $this->data($notification->data);
         $scope = $this->scope($courier);
+        $type = (string) $notification->type;
+        $category = $this->categories->category(UserRole::Courier, $type);
+        if (str_starts_with($type, 'support-ticket.')) {
+            $context = $scope === null
+                ? $this->emptyContext()
+                : $this->supportTickets->project($type, $data, $courier);
+
+            return [
+                'id' => (string) $notification->id,
+                'type' => $type,
+                'title' => $context['title'],
+                'summary' => $context['summary'],
+                'category' => $category,
+                'category_label' => $this->categories->label(UserRole::Courier, $category),
+                'read_at' => $this->utc($notification->read_at),
+                'created_at' => $this->utc($notification->created_at),
+                'resource_type' => $context['resource_type'],
+                'resource_id' => $context['resource_id'],
+                'destination' => $context['destination'],
+            ];
+        }
         $context = $scope === null
             ? $this->emptyContext()
-            : match ($notification->type) {
+            : match ($type) {
                 'pickup-schedule.assigned', 'pickup-schedule.revised', 'pickup-schedule.cancelled', 'pickup-schedule.reminder' => $this->scheduleContext($data, $notification->type, $courier, $scope),
                 'courier-task.final-mile-offered' => $this->finalOfferContext($data, $courier, $scope),
                 'courier-linehaul.trip-scheduled' => $this->linehaulContext($data, $courier),
@@ -115,9 +147,11 @@ class CourierNotificationService
 
         return [
             'id' => (string) $notification->id,
-            'type' => (string) $notification->type,
+            'type' => $type,
             'title' => $context['title'],
             'summary' => $context['summary'],
+            'category' => $category,
+            'category_label' => $this->categories->label(UserRole::Courier, $category),
             'read_at' => $this->utc($notification->read_at),
             'created_at' => $this->utc($notification->created_at),
             'resource_type' => $context['resource_type'],
@@ -419,13 +453,13 @@ class CourierNotificationService
     }
 
     /** @return array{0: string, 1: string} */
-    private function decodeCursor(string $cursor, User $courier, string $status): array
+    private function decodeCursor(string $cursor, User $courier, string $status, string $category): array
     {
         $encoded = strtr($cursor, '-_', '+/');
         $encoded .= str_repeat('=', (4 - strlen($encoded) % 4) % 4);
         $decoded = base64_decode($encoded, true);
         $payload = is_string($decoded) ? json_decode($decoded, true) : null;
-        $scope = $this->cursorScope($courier, $status);
+        $scope = $this->cursorScope($courier, $status, $category);
         $signature = is_array($payload) ? ($payload['signature'] ?? null) : null;
         $unsigned = is_array($payload) ? ($payload['unsigned'] ?? null) : null;
         $valid = is_array($unsigned)
@@ -448,10 +482,10 @@ class CourierNotificationService
         return [$createdAt, $unsigned['id']];
     }
 
-    private function encodeCursor(DatabaseNotification $notification, User $courier, string $status): string
+    private function encodeCursor(DatabaseNotification $notification, User $courier, string $status, string $category): string
     {
         $unsigned = [
-            'scope' => $this->cursorScope($courier, $status),
+            'scope' => $this->cursorScope($courier, $status, $category),
             'created_at' => CarbonImmutable::instance($notification->created_at)->utc()->toISOString(),
             'id' => (string) $notification->id,
         ];
@@ -460,9 +494,9 @@ class CourierNotificationService
         return rtrim(strtr(base64_encode(json_encode($payload, JSON_THROW_ON_ERROR)), '+/', '-_'), '=');
     }
 
-    private function cursorScope(User $courier, string $status): string
+    private function cursorScope(User $courier, string $status, string $category): string
     {
-        return hash('sha256', implode('|', [(string) $courier->id, $status, implode(',', self::TYPES)]));
+        return hash('sha256', implode('|', [(string) $courier->id, $status, $category, implode(',', self::TYPES)]));
     }
 
     /** @return array<string, mixed> */

@@ -3,6 +3,8 @@ export type AdminNotification = {
   type: string
   title: string
   summary: string
+  category?: string | null
+  category_label?: string | null
   resource_type: string | null
   resource_id: string | null
   destination: string | null
@@ -25,6 +27,7 @@ export type NotificationListResponse = {
     per_page: number
     to: number | null
     total: number
+    categories?: { key: string; label: string }[]
   }
 }
 

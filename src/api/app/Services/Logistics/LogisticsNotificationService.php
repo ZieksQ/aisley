@@ -14,6 +14,8 @@ use App\Models\LinehaulTrip;
 use App\Models\SellerPickupRequest;
 use App\Models\ShipmentEvidence;
 use App\Models\User;
+use App\Services\Notifications\NotificationCategoryCatalog;
+use App\Services\Support\SupportTicketNotificationPresenter;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Carbon;
@@ -23,6 +25,11 @@ use Throwable;
 
 class LogisticsNotificationService
 {
+    public function __construct(
+        private readonly NotificationCategoryCatalog $categories,
+        private readonly SupportTicketNotificationPresenter $supportTickets,
+    ) {}
+
     /** @var list<string> */
     public const TYPES = [
         'cod_invoice_issued',
@@ -35,6 +42,7 @@ class LogisticsNotificationService
         'logistics-courier.vehicle-updated',
         'logistics-linehaul.return-scheduled',
         'logistics-linehaul.receiving-discrepancies',
+        ...SupportTicketNotificationPresenter::TYPES,
     ];
 
     /** @return MorphMany<DatabaseNotification> */
@@ -48,14 +56,30 @@ class LogisticsNotificationService
     {
         $data = $this->data($notification->data);
         $type = (string) $notification->type;
+        if (str_starts_with($type, 'support-ticket.')) {
+            $support = $this->supportTickets->project($type, $data, $logistics);
+
+            return [
+                'id' => (string) $notification->id,
+                'type' => $type,
+                ...$support,
+                'category' => $this->categories->category(UserRole::Logistics, $type),
+                'category_label' => $this->categories->label(UserRole::Logistics, 'support'),
+                'read_at' => $this->utc($notification->read_at),
+                'created_at' => $this->utc($notification->created_at),
+            ];
+        }
         $context = $this->context($type, $data, $logistics);
         [$title, $summary] = $this->copy($type, $data);
+        $category = $this->categories->category(UserRole::Logistics, $type);
 
         return [
             'id' => (string) $notification->id,
             'type' => $type,
             'title' => $title,
             'summary' => $summary,
+            'category' => $category,
+            'category_label' => $this->categories->label(UserRole::Logistics, $category),
             'read_at' => $this->utc($notification->read_at),
             'created_at' => $this->utc($notification->created_at),
             'resource_type' => $context['resource_type'],

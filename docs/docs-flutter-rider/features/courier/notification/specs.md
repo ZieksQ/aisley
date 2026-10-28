@@ -4,16 +4,17 @@ feature: courier-notification
 title: Courier Notifications
 system: AISLEY
 type: Feature Specification
-version: 1.2
-status: Laravel Courier inbox API and external Flutter inbox implemented; dashboard v2 implemented; default v1 scaffold retained
-implementation_status: Scoped inbox routes and pickup/final-mile/linehaul producers implemented; Flutter inbox and targeted pickup/final-mile navigation adopted against courier-notifications-v1; linehaul navigation deferred
+version: 1.3
+status: Laravel inbox/category API and support-ticket alerts implemented; Flutter category/ticket navigation code present; deployed/device acceptance pending
+implementation_status: Scoped inbox routes, existing producers, ticket alerts and category filters implemented; local Courier client code/test changes present; linehaul navigation remains deferred
 canonical: true
 copied_backend_checkout: 4c3f504
 scope: Laravel Courier API and external Flutter mobile application
 backend_contract_commit: feature/courier-notifications
 backend_contract_version: courier-notifications-v1
+additional_backend_contract: ticket-notifications-category-filters on API v1; current feature branch is uncommitted
 source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/domains/Courier.md, docs/features/courier/dashboard/specs.md
-documentation_synced_on: 2026-10-12
+documentation_synced_on: 2026-10-29
 ---
 
 # Courier Notifications
@@ -29,6 +30,7 @@ Laravel now allows `courier-linehaul.trip-scheduled` for the assigned qualified 
 - Laravel writes database notifications to the scheduled Courier for pickup-schedule assignment, revision, cancellation, and due reminder, and now delivers committed final-mile-offer alerts.
 - The protected `/api/v1/courier/notifications` list, count, detail, and mark-read routes are implemented in Laravel. The imported Flutter progress records an implemented notification screen in the external client; dashboard v2 supplies bounded notification cards; default v1 retains the unavailable aggregate scaffold.
 - The inbox exposes existing pickup-schedule alerts and committed final-mile-offer alerts with deterministic recipient/type/source identity.
+- The inbox also exposes safe, after-commit support-ticket alerts in the `support` category; their exact recipients and safe destination are defined by the [shared support contract](../support-tickets/spec.md).
 - Final-mile offers remain visible through the owning task API even when an alert is delayed or unavailable.
 - Non-goals: SMTP, background push, SMS, chat, campaigns, generic Courier login alerts, notification-driven task mutations, or a Courier web UI.
 
@@ -60,6 +62,7 @@ Logistics action commits → durable recipient alert → Courier inbox/count
 | `pickup-schedule.reminder` | Existing due-reminder command and producer | Current schedule/task list only if still authorized |
 | `courier-task.final-mile-offered` | Committed new or re-offered task offer to this Courier | Final-mile task detail only while currently accessible |
 | `courier-linehaul.trip-scheduled` | Committed visiting-truck return for the assigned driver | Informational until a verified Flutter trip route exists |
+| `support-ticket.*` | Ticket create/reply/explicit public status event; recipients follow the support contract | Safe ticket detail path only after reauthorization |
 
 - Existing schedule rows are projected safely by the Courier inbox service; legacy payloads are not trusted as public DTOs.
 - The final-mile producer runs only for a committed offer/re-offer to the recipient and keys uniqueness to that offer, recipient, and type.
@@ -88,7 +91,7 @@ Logistics action commits → durable recipient alert → Courier inbox/count
 - Build destinations from an allow-listed Flutter route key or approved app path and authorized resource ID; never trust stored external URLs.
 - Return `destination: null` if the linked task/schedule is missing, no longer offered to this Courier, or belongs to another organization/hub.
 - Opening a notification does not mark it read automatically and never performs a task action; the destination fetches current data from its owning API.
-- Unknown types are excluded. An allow-listed legacy row with malformed data becomes a safe generic alert with no destination; list and count use the same allow-list.
+- Existing Courier type allow-lists remain authoritative. A visible type without a named category is shown under Other; disallowed types remain excluded. An allow-listed legacy row with malformed data becomes a safe generic alert with no destination; list and count use the same allow-list.
 - A successful empty list and zero count must be distinguished from unavailable, timeout, authorization, and partial-delivery states.
 
 ### Acceptance criteria
@@ -99,6 +102,7 @@ Logistics action commits → durable recipient alert → Courier inbox/count
 - [x] A committed final-mile offer creates one recipient alert after commit; source rollback cannot create an alert, and deterministic identity prevents duplicate delivery on retries.
 - [x] List, detail, unread count, and mark-read agree on recipient/type scope and bounded ordering; a foreign UUID returns a scoped `404`.
 - [x] Mark-read is locked and idempotent, preserving the first `read_at`; delivery is decoupled from the committed source transaction.
+- [x] Status/category filters combine before cursor paging; the response includes role-specific category metadata and item category labels; changing filters resets the cursor and drops obsolete list responses.
 - [ ] Full re-offer/rejection history and worker-concurrency coverage require the remaining integration cases before this backend contract is considered complete.
 - [x] Flutter shows honest loading, empty, read/unread, stale, forbidden, offline, retry, and unavailable-destination states.
 - [ ] SQLite/PostgreSQL, API privacy/IDOR/concurrency, and Flutter contract/widget tests pass before the feature is marked implemented.
@@ -109,14 +113,15 @@ Logistics action commits → durable recipient alert → Courier inbox/count
 
 | Method and path | Request | Success |
 | --- | --- | --- |
-| `GET /api/v1/courier/notifications` | `status=all|unread|read`, `limit=1..20`, optional opaque `cursor` | `200` list `data` plus `meta.next_cursor` and `generated_at` |
+| `GET /api/v1/courier/notifications` | `status=all|unread|read`, optional role key `category`, `limit=1..20`, optional opaque `cursor` | `200` list `data` plus `meta.next_cursor`, `generated_at`, and `categories` |
 | `GET /api/v1/courier/notifications/unread-count` | No query/body | `200 {data:{unread_count:int}}` |
 | `GET /api/v1/courier/notifications/{notification}` | UUID path; no query/body | `200 {data:<notification>}`; read state unchanged |
 | `POST /api/v1/courier/notifications/{notification}/read` | Empty JSON body; no Idempotency-Key required | `200 {data:<notification>}` with persisted `read_at` |
 
 - These four routes are implemented under the protected Courier API. Flutter adopts this versioned contract through its repository, controller, and widget coverage; the dashboard v2 aggregate remains separate and bounded; default v1 is unavailable.
 - Register `unread-count` before the UUID detail route. Reject unsupported query/body fields and malformed cursors with `422`.
-- Default list: `status=all`, `limit=20`, ordered by `created_at DESC, id DESC`; the opaque cursor preserves that stable pair and current recipient/type scope.
+- Default list: `status=all`, `category` omitted, `limit=20`, ordered by `created_at DESC, id DESC`; category/status apply before cursor paging and the cursor binds recipient/type/category scope.
+- Courier category keys/labels are `pickups`/Pickups, `deliveries`/Deliveries, `linehaul`/Linehaul, `support`/Support tickets, and `other`/Other. `category=all` is equivalent to omission. The unread-count endpoint remains unfiltered and unchanged.
 - `meta.next_cursor` is null at the end. A cursor from another account, filter, or altered scope is invalid rather than a path to foreign rows.
 - Count uses the same recipient/type/authorization predicates as list; independent requests may see different committed snapshots, so Flutter refetches after mark-read.
 - List/detail/count responses use `Cache-Control: private, no-store`; safe GET retries are allowed. Mark-read retries return the same record and first read time.
@@ -129,13 +134,15 @@ Logistics action commits → durable recipient alert → Courier inbox/count
     "type": "pickup-schedule.assigned",
     "title": "Pickup scheduled",
     "summary": "A pickup window was assigned.",
+    "category": "pickups",
+    "category_label": "Pickups",
     "read_at": null,
     "created_at": "2026-09-20T02:00:00Z",
     "resource_type": "pickup_schedule",
     "resource_id": "00000000-0000-4000-8000-000000000002",
     "destination": "/pickup-schedules/00000000-0000-4000-8000-000000000002"
   }],
-  "meta": {"next_cursor": null, "generated_at": "2026-09-20T02:00:01Z"}
+  "meta": {"next_cursor": null, "generated_at": "2026-09-20T02:00:01Z", "categories": [{"key":"pickups","label":"Pickups"},{"key":"deliveries","label":"Deliveries"},{"key":"linehaul","label":"Linehaul"},{"key":"support","label":"Support tickets"},{"key":"other","label":"Other"}]}
 }
 ```
 
@@ -147,7 +154,7 @@ Logistics action commits → durable recipient alert → Courier inbox/count
 
 ### Per-endpoint request and response rules
 
-- **List:** GET with no JSON body; `status` defaults to `all`, `limit` defaults to 20, and `cursor` is only accepted with its original filter and Courier scope.
+- **List:** GET with no JSON body; `status` defaults to `all`, category is omitted for `all`, `limit` defaults to 20, and `cursor` is only accepted with its original filters and Courier scope.
 - **List:** each item uses the exact DTO keys shown above; `meta.generated_at` is a server UTC timestamp, not a claim that the task projection is current.
 - **Count:** GET with no query/body; returns a non-negative integer for the same allowed types, regardless of the current list page or status filter.
 - **Detail:** GET by UUID; returns the same safe projection as list even when its destination is no longer available; it never changes `read_at`.
@@ -192,8 +199,10 @@ Logistics action commits → durable recipient alert → Courier inbox/count
 - Manual refresh and app resume fetch authoritative count/list; controller epochs ignore older responses after a newer refresh or account change.
 - Only bounded in-memory items are retained. The dashboard's possible 15-minute encrypted snapshot does not authorize persistent notification or task caches here.
 - The inbox shows unread/read labels with text and semantics, not color alone; it supports large text, 44-pixel touch targets, screen-reader order, light/dark themes, and safe notification previews.
+- The category filter chips use API-provided labels. Changing status or category clears the cursor and old list responses cannot replace results for the new filter. The global unread count/badge remains independent of these list filters.
 - A tap opens detail/current target when available; the explicit mark-read action is separate. A stale or removed target leaves the historical alert readable.
 - **Open related work** requires a successful notification-detail read, a supported resource type, a nonempty single-segment `resource_id`, and an exact matching internal destination. Supported paths are `/pickup-schedules/{id}` and `/delivery-tasks/{id}`; `delivery_task` and `final_mile_task` map only to final-mile work. Missing, mismatched, external, unknown, and linehaul targets remain readable with a safe unavailable message.
+- Support types `support-ticket.created`, `.requester-replied`, `.admin-replied`, and `.status-changed` may target only the matching `/support-tickets/{UUID}` detail. The ticket fetch reauthorizes through the Courier support API; its read marker is independent of notification read state.
 - Pickup entry fetches `GET /api/v1/courier/first-mile-tasks?pickup_schedule_id={id}&per_page=50` even when the schedule is absent from the ordinary dropdown options. Its route-owned filter stays fixed, refresh/retry repeat that read, and it does not load final-mile work or change normal pickup selection. An empty authorized result means no current work, not proof of cancellation or reassignment.
 - Final-mile entry fetches `GET /api/v1/courier/final-mile-tasks/{id}` without depending on a loaded list. `delivery_assigned` uses offer review and existing whole-batch acceptance navigation; `delivery_accepted` uses hub handoff; picked-up/transit/out-for-delivery states use delivery. It never requests accepted-task delivery context for an offer. Terminal/unknown states remain read-only.
 - Owning reads reauthorize every entry/refresh. A missing, reassigned, or foreign target cannot fall back to an old task snapshot. Session loss, disposal, and newer reads invalidate obsolete responses; `401/403`, consent, secure-storage failures, `404`, throttling, timeout, and offline remain distinct safe states.

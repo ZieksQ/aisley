@@ -3,8 +3,8 @@ feature: admin-support-tickets
 title: Admin Support Ticket System
 system: AISLEY
 type: Feature Specification
-version: 2.2
-status: Ticket schema/API, role web screens, and Courier Flutter requester flow implemented; live mobile and production release checks pending
+version: 2.3
+status: Ticket schema/API, role web screens, Courier Flutter requester flow, and in-app support notifications implemented; live/mobile and production release checks pending
 role: Admin
 scope: Laravel API, Admin React dashboard, and role-owned requester interfaces
 ---
@@ -83,9 +83,13 @@ scope: Laravel API, Admin React dashboard, and role-owned requester interfaces
   ticket **and User**, including each individual Admin. Admin A opening a ticket cannot clear
   Admin B's unread count. Requester/Admin markers are separate from notification read state;
   stale reads cannot move a marker backward.
-- A future after-commit in-app notification may link the opposite party to a newly committed reply or
-  relevant status change. Deduplicate by ticket/event and recipient. Notification delivery failure
-  never rolls back the ticket, reply, or event and never becomes the source of truth for history.
+- After commit, ticket creation notifies eligible Admins, requester replies notify the eligible
+  assignee or the eligible Admin team, and Admin replies or explicit public status changes notify
+  the active requester. Automatic requester-reply reopen and assignment changes do not alert.
+- Use deterministic event/recipient/type identity. Alert copy includes only a safe ticket reference;
+  it never includes reply bodies. The link is role-specific and reauthorized by the ticket API.
+  Database inbox delivery failure does not roll back the ticket, reply, or event; email and push are
+  not added.
 - Ticket DTOs expose only safe requester identity, subject/category/status, assignee display
   name where appropriate, timeline, and counts. No linked context is exposed in this release.
   Do not expose emails, phone numbers, addresses, payment secrets, private evidence, raw storage
@@ -144,7 +148,7 @@ scope: Laravel API, Admin React dashboard, and role-owned requester interfaces
   enum-like status/category values as strings with typed PHP enums.
 - Use the existing Sanctum, role middleware, Admin permission seeding, Form Requests, safe DTOs,
   and focused service pattern. The ticket writer owns row locks, transitions, immutable history,
-  and idempotency. Linked-record validation and after-commit notification fanout are deferred.
+  and idempotency. Linked-record validation remains deferred.
 - Implemented Admin routes under `/api/v1/admin/support-tickets`: `GET /`,
   `GET /{ticket}`, `POST /{ticket}/claim`, `POST /{ticket}/assign`,
   `POST /{ticket}/replies`, `POST /{ticket}/status`, and `POST /{ticket}/read`. `GET /assignees`
@@ -161,9 +165,12 @@ scope: Laravel API, Admin React dashboard, and role-owned requester interfaces
   points are implemented. The external Flutter app implements Courier list/create/detail/reply/read
   against `/api/v1/courier/support-tickets`; authenticated live acceptance remains pending and no
   Courier web screen was added here. See the role-owned requester specs for each UI boundary.
-- Use HTTP/polling first. Optional notifications, if added later, must dispatch
-  [after commit](https://laravel.com/docs/12.x/queues#jobs-and-database-transactions).
-  Realtime transport and email ingestion remain separate future choices.
+- Support-ticket alerts are database notifications queued after commit through a dedicated job.
+  The job rechecks the event, active requester/Admin eligibility, and support permissions, then
+  persists deterministic recipient/event/type IDs and a sanitized role-specific destination.
+  WebSocket, email, and push delivery are not included.
+- Role category filters and `category`/`category_label` inbox fields follow the
+  [notification contract](../notification/spec.md); notification reads do not mark ticket history read.
 - SQLite role-scoped feature tests cover ownership, permission gates, per-Admin read markers,
   retries, assignment, and lifecycle transitions. PostgreSQL concurrency, browser/mobile flows,
   accessibility, and timeout interaction checks remain release verification gates.

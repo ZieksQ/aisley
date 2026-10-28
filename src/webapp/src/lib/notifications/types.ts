@@ -3,6 +3,10 @@ export type CustomerNotification = {
   type: string;
   title: string;
   summary: string;
+  category?: string | null;
+  category_label?: string | null;
+  resource_type?: string | null;
+  resource_id?: string | null;
   order_id: string | null;
   order_reference: string | null;
   status: string | null;
@@ -13,5 +17,11 @@ export type CustomerNotification = {
 
 export type NotificationResponse = {
   data: CustomerNotification[];
-  meta: { current_page: number; last_page: number };
+  meta: {
+    current_page: number;
+    last_page: number;
+    per_page?: number;
+    total?: number;
+    categories?: { key: string; label: string }[];
+  };
 };

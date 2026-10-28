@@ -3,9 +3,9 @@ feature: logistics-notification
 title: Logistics Notifications
 system: AISLEY
 type: Feature Specification
-version: 1.4
-status: Inbox, vehicle-update producer, and vehicle destination UI implemented
-implementation_status: Notification list/detail/read/count API, bell/inbox UI, vehicle-update delivery, backend destination projection, and read-only vehicle detail React route implemented
+version: 1.5
+status: Inbox, vehicle-update producer, ticket alerts, and category-filter code implemented; build/type/lint and synthetic browser validation pass; independent UI review pending
+implementation_status: Notification list/detail/read/count API, category metadata/filters, bell/inbox UI, vehicle-update and support-ticket delivery, and vehicle destination projection implemented
 role: Logistics
 scope: Laravel API and Logistics React dashboard
 ---
@@ -59,6 +59,7 @@ source action commits → durable notification work → recipient inbox
 | `logistics-completion.requested`        | New Courier completion intent; owning Logistics account             | Implemented; deduplicate by intent |
 | `logistics-courier.vehicle-updated`      | Committed vehicle field or independent OR/CR replacement; associated Logistics account | Implemented; deduplicate by vehicle revision/recipient; informational, no approval action |
 | `logistics-linehaul.return-scheduled`     | Visiting truck return committed by the receiving Logistics organization; owning Logistics account | Implemented; deduplicate by trip revision; no acceptance action |
+| `support-ticket.created`, `.requester-replied`, `.admin-replied`, `.status-changed` | Ticket source event; eligible Admin recipients or active requester per the [support contract](../admin/support-ticket-system/spec.md) | Implemented after commit; safe reference only; `support` category |
 
 - Do not emit an alert on list reads, QR resolution alone, duplicate retries, or uncommitted source actions.
 - First-mile direct pickup remains its current contract; do not require Logistics review merely to create notifications.
@@ -90,7 +91,7 @@ source action commits → durable notification work → recipient inbox
 - Opening an alert does not approve an application, accept work, validate evidence, or change parcel status.
 - Fetch authoritative details from the owning feature before any operational action; old alerts are not current-state authority.
 - If a target is removed or no longer available, preserve the safe historical alert and show an unavailable destination.
-- Unknown/unapproved types are excluded; malformed legacy payloads must not break the entire inbox or leak raw JSON.
+- Existing Logistics notification visibility rules remain authoritative. An allow-listed but unmapped type is grouped under `other`; category metadata does not expose another role's notification types. Malformed legacy payloads must not break the inbox or leak raw JSON.
 
 ## HOW
 
@@ -98,13 +99,14 @@ source action commits → durable notification work → recipient inbox
 
 | Method/path | Request | Success |
 | --- | --- | --- |
-| `GET /api/v1/logistics/notifications` | `status=all\|unread\|read`, `page>=1`, `per_page=1..50` | `200`, paginated `data`, Laravel `links`/`meta` |
+| `GET /api/v1/logistics/notifications` | `status=all\|unread\|read`, optional `category`, `page>=1`, `per_page=1..50` | `200`, paginated `data`, Laravel `links`/`meta` |
 | `GET /api/v1/logistics/notifications/unread-count` | No body | `200 {data: {unread_count: 3}}` |
 | `GET /api/v1/logistics/notifications/{notification}` | UUID, no body | `200 {data: <notification>}`; no read mutation |
 | `POST /api/v1/logistics/notifications/{notification}/read` | Empty JSON body | `200 {data: <notification>}` with committed `read_at` |
 
 - Register `unread-count` before the UUID route. Reject unsupported query/body fields with `422`.
 - Default list is `status=all`, page 1, 20 rows, ordered by `created_at DESC, id DESC` like Seller/Customer.
+- Omitted `category` or `category=all` leaves the list unfiltered; category and status combine before pagination. The Logistics options are `pickups`, `couriers`, `deliveries`, `linehaul`, `finance`, `support`, and `other`. List metadata returns `{key,label}` options; every notification DTO includes `category` and `category_label`.
 - Unread count uses the identical recipient/type/tenant predicates, independent of current list filters or page size.
 - Polling may observe newer counts than an earlier page; refetch after read success rather than assuming independent requests share a snapshot.
 - Apply `Cache-Control: private, no-store` to all responses. Reads are safely retryable; read-one requires no client idempotency key.
@@ -135,6 +137,7 @@ source action commits → durable notification work → recipient inbox
 - If the backend supplies no destination, the notification remains readable and shows an unavailable target. Direct URL refresh and browser back navigation use the protected Logistics route.
 - A vehicle `404`, lost affiliation, or unavailable document leaves the alert readable and shows a safe unavailable/retry state on the destination. Opening a record does not automatically mark the alert read or reapprove the Courier.
 - Bell preview requests five recent rows and unread count; the full page uses the same API with read/unread filters.
+- The full page also shows the API-provided category labels. Changing status/category resets the page; an obsolete response cannot replace the current filter result. The unread badge/count and per-item read action remain global/unchanged by category selection.
 - Show loading, empty, filtered-empty, loaded, unavailable-target, permission, consent, timeout, offline, and retry states.
 - Mark read only through an explicit action or after successful detail rendering; loading the bell/list never marks read.
 - Disable duplicate read taps, reconcile server results, and retain unread state when a request fails.

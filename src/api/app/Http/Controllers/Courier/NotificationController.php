@@ -20,7 +20,13 @@ class NotificationController extends Controller
         /** @var User $courier */
         $courier = $request->user();
         $this->ensureScope($courier);
-        $result = $this->notifications->list($courier, $request->status(), $request->limit(), $request->cursor());
+        $result = $this->notifications->list(
+            $courier,
+            $request->status(),
+            $request->limit(),
+            $request->cursor(),
+            $request->category(),
+        );
         $result['data'] = collect($result['data'])
             ->map(fn (array $item): array => (new CourierNotificationResource($item))->resolve())
             ->all();

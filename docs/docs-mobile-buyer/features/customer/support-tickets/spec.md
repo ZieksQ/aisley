@@ -6,15 +6,16 @@ phase: 4
 flutter_status: Implemented; acceptance partial
 backend_baseline: 7b1a08a0c89d7983a0e0503c5e8d322d2c2fa2a0
 contract_inspected_checkout: 57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50
-documentation_synced_on: 2026-10-12
+additional_backend_contract: ticket-notifications-category-filters on API v1; current Laravel feature branch is uncommitted
+documentation_synced_on: 2026-10-29
 ---
 
 # Admin support tickets
 
 ## WHAT
 
-Backend: Own-ticket APIs and Admin triage/status lifecycle implemented; linked
-records/attachments/notification fanout deferred.
+Backend: Own-ticket APIs, Admin triage/status lifecycle, and safe in-app ticket notifications
+implemented; linked records and attachments remain deferred.
 
 Flutter: **implemented; acceptance partial**. See [Phase 4 evidence](../../../references/phase-4-verification.md).
 Broad counterpart/device and concurrency criteria remain open.
@@ -59,7 +60,8 @@ Phone/tablet padding, natural content heights and keyboard/text resizing follow 
   text reply.
 - Customer replies automatically reopen waiting_for_requester/resolved tickets; they cannot assign/resolve or execute Order/refund actions.
 - Reply is the supported Customer reopening action; no separate reopen/Admin-action endpoint is available.
-- Foreground polling can refresh detail; native push/fanout notifications are currently deferred.
+- Ticket create/requester reply notifies eligible Admins; Admin reply/explicit public status change notifies the active Customer. Automatic reply reopen and assignment do not alert. Alerts use category `support`, safe ticket reference only, and the server target `/account/support-tickets?ticket=UUID`; no reply body, email, or push is included.
+- Flutter maps only the validated support notification type/resource/UUID/target tuple to `/support-tickets/UUID`, then fetches the ticket from the owning API. The ticket read marker stays separate from notification read state.
 - No Admin blanket transcript access to other channels or linked private business data follows from
   support.
 - Test ownership, category/body/unknown fields, revision conflict, exact UUID replay and monotonic read.
