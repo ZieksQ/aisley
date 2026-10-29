@@ -197,4 +197,10 @@ export async function checkRegistrationSubmissions(browser, modules, compile, ar
     console.log(`B12 ${role}: pending lock, frozen payload, expiry, retry/draft/evidence, obsolete success/error, CSRF and unmount checks pass.`)
   }
   await js('window.unmountRole()')
+  await start('customer')
+  await submit('customer')
+  await js("window.resolveFinal(0,'active')")
+  await browser.until('window.navigations.length===1', 'active buyer sign-in handoff')
+  assert.deepEqual(await js('window.navigations'), [{ path: '/login?registered=1' }])
+
 }

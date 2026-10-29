@@ -10,6 +10,12 @@ class PlatformFeatureControlSeeder extends Seeder
     /** @var array<int, array{key: string, label: string, description: string, enabled: bool}> */
     private const CONTROLS = [
         [
+            'key' => PlatformFeatureControl::CUSTOMER_REGISTRATION_APPROVAL_REQUIRED,
+            'label' => 'Require buyer account approval',
+            'description' => 'When disabled, new verified buyers are automatically approved and active. Existing pending buyers still require review.',
+            'enabled' => true,
+        ],
+        [
             'key' => PlatformFeatureControl::LINEHAUL,
             'label' => 'Linehaul',
             'description' => 'Enable new linehaul routes and departures. Receiving manifests already in transit remains available when disabled.',

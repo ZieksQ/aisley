@@ -15,7 +15,7 @@ scope: Customer storefront and Laravel API
 
 - **Purpose:** Register a Customer for Admin approval and provide role/status-gated sign-in, session restoration, logout, and password recovery.
 - **Canonical identity:** `users.role = customer`; **Buyer** is the customer-facing storefront term and is not an alternate API/database role.
-- **Current implementation:** Customer registration creates a pending User, CustomerProfile, and RegistrationApplication; web session and optional device-token login, `/me`, logout, password reset, throttling, middleware, resources, and storefront pages exist.
+- **Current implementation:** Customer registration creates a CustomerProfile and pending User/Application by default, or an active User/approved Application when buyer approval is disabled; web session and optional device-token login, `/me`, logout, password reset, throttling, middleware, resources, and storefront pages exist.
 - Registration does not authenticate the applicant. Admin Manage Account Registrations remains the authority for approval/rejection; a valid password alone never activates access.
 - **Reference gap:** `docs/references/user-registration-requirements.md` lists a Customer address and ID upload, but the current `RegisterRequest`/RegisterForm do not collect or persist them. Treat those fields as a required follow-up, not as already implemented. When approved, extend registration without weakening the shared file-upload policy.
 - Customer Auth owns identity/session boundaries. Customer Account Management owns profile/photo/password changes after sign-in; Address Book owns reusable addresses; Customer Order Status and Checkout consume the active session.
@@ -23,7 +23,7 @@ scope: Customer storefront and Laravel API
 
 ```text
 register profile + credentials
-→ pending customer User/Application (no session)
+→ pending or automatically active Customer (no session)
 → Admin approves or rejects
 → active Customer may POST /login
 → web session or optional mobile token
@@ -33,9 +33,9 @@ register profile + credentials
 
 ## Registration email verification — 2026-10-14
 
-- Email → six-digit OTP → registration details/evidence → existing pending approval. Require the role/email-bound `email_verification_token` on every registration; consume it atomically and record `email_verified_at`. Existing accounts keep their current login/approval behavior.
+- Email → six-digit OTP → registration details/evidence → configured approval outcome. Require the role/email-bound `email_verification_token` on every registration; consume it atomically and record `email_verified_at`. Existing accounts keep their current login/approval behavior.
 - Use the exact public code/verify routes, limits, error/retry behavior, mail delivery and deployment contract in [registration email verification](../../../references/registration-email-verification.md). Email verification issues no authentication credential and never replaces approval.
-- Web final submission locks the verified identity and details synchronously. Only its current mounted verification attempt may update feedback or navigate to waiting for approval; defer local expiry while pending, retain drafts on failure/reverification, and preserve unconfirmed-result/sign-in guidance. Follow the shared contract's submission lifecycle and obsolete-response rules.
+- Web final submission locks the verified identity and details synchronously. Only its current mounted verification attempt may update feedback or navigate to the status-appropriate login or waiting page; defer local expiry while pending, retain drafts on failure/reverification, and preserve unconfirmed-result/sign-in guidance. Follow the shared contract's submission lifecycle and obsolete-response rules.
 
 ## MUST
 
@@ -45,8 +45,8 @@ register profile + credentials
 - Normalize email to lowercase/trimmed and enforce uniqueness within the Customer role. A same-email Seller/Admin/Courier account is a separate role record and must not authenticate here.
 - Current registration fields are first/last name, optional middle name, contact number, sex, birth date, email, password, and confirmation. Validate Laravel's password rule and `birth_date < today`.
 - Age is derived from the persisted birth date through the shared profile age accessor; never accept or persist a client-supplied age. The current registration form displays/submit birth date only; account resources may expose derived age.
-- Create User (`pending`), CustomerProfile, and pending RegistrationApplication atomically. A duplicate retry must not create another Customer account/application.
-- Return a pending-safe Customer DTO with `201`; do not issue a web session or token and do not expose password/hash/application notes.
+- Create User, CustomerProfile, and RegistrationApplication atomically: pending by default; active User/approved application when Admin disables `customer_registration_approval_required`. Existing pending buyers remain pending. A duplicate retry must not create another Customer account/application.
+- Return a Customer DTO with the persisted pending/active status with `201`; do not issue a web session or token and do not expose password/hash/application notes.
 
 ### Registration address and evidence extension
 
@@ -90,7 +90,7 @@ register profile + credentials
 
 ### Session and error contract
 
-- `201` registration returns `Registration submitted for approval.` with pending Customer data.
+- `201` registration returns `Registration submitted for approval.` for pending Customers, or `Your account is ready. You can now sign in.` for automatically active Customers. Route active results to login and pending results to waiting for approval.
 - `200` web login returns a safe `customer` navigation object; mobile login additionally returns `token` only when `device_name` is requested.
 - `403` account codes are `ACCOUNT_PENDING_APPROVAL`, `ACCOUNT_REJECTED`, `ACCOUNT_SUSPENDED`, or `ACCOUNT_INACTIVE`. `/me` returns `401` with no session and `403` for wrong role/status.
 - Password-reset requests always acknowledge generically. Invalid, expired, reused, or cross-role tokens produce one `INVALID_RESET_TOKEN` validation error.

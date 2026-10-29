@@ -74,7 +74,7 @@ or repository-equivalent routes.
   - seller compliance moderation after onboarding
   - document OCR
   - automated identity verification
-  - automated approval/rejection
+  - automated Seller/Logistics approval/rejection
   - face matching
   - external KYC provider integration unless separately specified
 
@@ -499,3 +499,9 @@ POST /api/admin/account-registrations/{application}/reject
 - Laravel Queues / transaction behavior: https://laravel.com/docs/12.x/queues
 - Laravel File Validation API: https://api.laravel.com/docs/12.x/Illuminate/Validation/Rules/File.html
 - Laravel Filesystem temporary URLs: https://api.laravel.com/docs/12.x/Illuminate/Filesystem/FilesystemAdapter.html
+
+## Buyer registration approval control
+
+Admin → Feature controls exposes `customer_registration_approval_required` (Require buyer account approval), enabled by default. Existing `platform-settings.view`/`platform-settings.manage` permissions, revision conflict handling and before/after audit records apply. A new migration installs the declared control; seeding preserves an existing choice.
+
+Enabled or missing: new Customers and applications are pending. Disabled: after the same email OTP verification and registration validation, new Customers are active and applications approved, with decision time and no Admin reviewer. No manual review is implied. Existing pending applications remain pending; other roles retain their approval rules. No pending-review notification is generated for automatically approved registrations. Registration issues no credential; separate login remains required.

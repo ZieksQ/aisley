@@ -163,3 +163,9 @@ PATCH /feature-controls/{key}
 - [Laravel database locking and transactions](https://laravel.com/framework/docs/13.x/queries)
 - [Laravel queued work after database commit](https://laravel.com/framework/docs/12.x/queues)
 - [OWASP policy change-history guidance](https://owasp.org/www-project-top-10-privacy-risks/OWASP_Top_10_Privacy_Risks_Countermeasures_v2.0.pdf)
+
+## Buyer registration approval control
+
+Admin → Feature controls exposes `customer_registration_approval_required` (Require buyer account approval), enabled by default. Existing `platform-settings.view`/`platform-settings.manage` permissions, revision conflict handling and before/after audit records apply. A new migration installs the declared control; seeding preserves an existing choice.
+
+Enabled or missing: new Customers and applications are pending. Disabled: after the same email OTP verification and registration validation, new Customers are active and applications approved, with decision time and no Admin reviewer. No manual review is implied. Existing pending applications remain pending; other roles retain their approval rules. No pending-review notification is generated for automatically approved registrations. Registration issues no credential; separate login remains required.

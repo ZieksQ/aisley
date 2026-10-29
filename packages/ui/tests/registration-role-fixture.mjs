@@ -96,9 +96,9 @@ export function registrationRoleSource(modules) {
       flushSync(()=>root.render(React.createElement(Component,{key:++window.sequence})));
     };
     window.unmountRole=()=>flushSync(()=>root.render(null));
-    window.resolveFinal=(index=0)=>{
+    window.resolveFinal=(index=0,status='pending')=>{
       const item=window.finalQueue[index];
-      item.resolve({message:'Registration submitted for approval.',seller:{email:item.body.email}});
+      item.resolve({message:'Registration submitted for approval.',seller:{email:item.body.email},customer:{email:item.body.email,status}});
     };
     window.rejectFinal=(kind,index=0)=>{
       const {ApiError}=require('./api');

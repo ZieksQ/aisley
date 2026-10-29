@@ -90,3 +90,7 @@ Short, dated implementation log. Append entries; archive complete logs after 150
 ## 2026-10-29 — Independent nullable-notification retest
 
 - Independent tester confirms Buyer accepts the saved nullable-resource reproduction with no new findings; five contract checks and one redacted list/detail/read widget check pass. No app build, environment access, live API, or device acceptance occurred. Courier retest also passed; see the main progress log for its separate result.
+
+## 2026-10-29 — Configurable buyer approval API contract
+
+- Documented enabled-by-default Admin buyer approval control: new verified Customers may return active/approved without credentials when disabled; existing pending buyers remain pending. Updated auth, registration requirements and operation notes. Clients must route active results to sign-in. Flutter adoption and device/live acceptance of this new outcome remain unverified.

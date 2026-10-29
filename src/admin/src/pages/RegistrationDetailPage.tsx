@@ -276,7 +276,7 @@ export function RegistrationDetailPage() {
             {registration.review && (
               <>
                 <DetailField label="Reviewed" value={formatDate(registration.review.reviewed_at)} />
-                <DetailField label="Reviewed by" value={registration.review.reviewed_by?.name ?? 'Former administrator'} />
+                <DetailField label="Reviewed by" value={registration.review.reviewed_by?.name ?? 'No administrator recorded'} />
                 {registration.review.rejection_reason && (
                   <DetailField label="Rejection reason" value={registration.review.rejection_reason} />
                 )}
