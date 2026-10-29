@@ -21,6 +21,7 @@ class SupportTicketWriter
     public function __construct(
         private readonly SupportTicketReader $reader,
         private readonly SupportTicketView $view,
+        private readonly SupportTicketNotificationService $notifications,
     ) {}
 
     public function create(User $actor, array $input, string $key): array
@@ -41,6 +42,7 @@ class SupportTicketWriter
             $ticket->id = $id;
             $ticket->save();
             $event = $this->append($ticket, $actor, SupportTicketEventType::Reply, $input['body']);
+            $this->notifications->queue($ticket, $event, 'support-ticket.created');
 
             return $this->result($ticket, $event, $actor, 201);
         });
@@ -56,6 +58,11 @@ class SupportTicketWriter
             }
 
             $reply = $this->append($ticket, $actor, SupportTicketEventType::Reply, $input['body']);
+            $this->notifications->queue(
+                $ticket,
+                $reply,
+                $actor->role === UserRole::Admin ? 'support-ticket.admin-replied' : 'support-ticket.requester-replied',
+            );
             if ($actor->role !== UserRole::Admin && in_array($ticket->status, [SupportTicketStatus::WaitingForRequester, SupportTicketStatus::Resolved], true)) {
                 $this->changeStatus($ticket, $actor, SupportTicketStatus::Open);
             }
@@ -108,6 +115,7 @@ class SupportTicketWriter
             }
 
             $event = $this->changeStatus($ticket, $actor, $target, $input['reason'] ?? null);
+            $this->notifications->queue($ticket, $event, 'support-ticket.status-changed');
 
             return $this->result($ticket, $event, $actor);
         });

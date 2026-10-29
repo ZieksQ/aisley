@@ -17,6 +17,10 @@ export type SellerNotification = {
   type: string
   title: string
   summary: string
+  category?: string | null
+  category_label?: string | null
+  resource_type?: string | null
+  resource_id?: string | null
   read_at: string | null
   created_at: string
   destination: string
@@ -29,5 +33,6 @@ export type SellerNotificationResponse = {
     current_page: number
     last_page: number
     total: number
+    categories?: { key: string; label: string }[]
   }
 }

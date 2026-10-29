@@ -2,16 +2,21 @@
 
 namespace App\Http\Controllers\Seller;
 
+use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Seller\ListNotificationsRequest;
 use App\Http\Resources\Seller\SellerNotificationResource;
 use App\Models\User;
+use App\Services\Notifications\NotificationCategoryCatalog;
+use App\Services\Support\SupportTicketNotificationPresenter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Notifications\DatabaseNotification;
 
 class NotificationController extends Controller
 {
+    public function __construct(private readonly NotificationCategoryCatalog $categories) {}
+
     private const TYPES = [
         'seller-order.actionable',
         'seller-order.delivered',
@@ -23,6 +28,7 @@ class NotificationController extends Controller
         'pickup-schedule.reminder',
         'seller-product-qa.question-asked',
         'seller-product-review.published',
+        ...SupportTicketNotificationPresenter::TYPES,
     ];
 
     public function index(ListNotificationsRequest $request): JsonResponse
@@ -33,10 +39,12 @@ class NotificationController extends Controller
             ->when($request->input('status') === 'unread', fn ($query) => $query->whereNull('read_at'))
             ->when($request->input('status') === 'read', fn ($query) => $query->whereNotNull('read_at'))
             ->orderByDesc('created_at')->orderByDesc('id');
+        $this->categories->filter($query, UserRole::Seller, $request->input('category'));
 
         return SellerNotificationResource::collection(
             $query->paginate((int) $request->input('per_page', 20))->withQueryString(),
-        )->response()->header('Cache-Control', 'no-store, private');
+        )->additional(['meta' => ['categories' => $this->categories->options(UserRole::Seller)]])
+            ->response()->header('Cache-Control', 'no-store, private');
     }
 
     public function show(Request $request, string $notification): JsonResponse

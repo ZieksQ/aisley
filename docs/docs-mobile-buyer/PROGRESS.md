@@ -77,3 +77,20 @@ Short, dated implementation log. Append entries; archive complete logs after 150
 
 - Documented `courier-direct-delivery-v2` in the Buyer Order-status contract: Courier proof/intent submission immediately after acceptance leaves the Order unchanged until Logistics approval, which may move `assigned` directly to `delivered` (Completed). Status names and DTO fields are unchanged.
 - Platform API/harness verification is recorded in the main progress log. No Buyer Flutter implementation, tests or adoption status changed; deployed and installed-device acceptance remain open.
+
+## 2026-10-26 — External Flutter platform contract adoption
+
+- Buyer adopts platform `1858785e` JPEG/PNG chat bounds, complete-route checkout eligibility and authoritative direct delivery projections. Synchronized affected contracts and [verification](references/platform-sync-2026-10-26.md), preserving newer Home/marketplace/Messages/configuration work, historical DTOs/replay and all prior evidence.
+- External checks: clean analyzer; 97 focused checks; bounded full suite 945 passes/42 skips with six inherited inbox cases excluded and reproduced on the untouched baseline; isolated web/APK builds and six Chromium layouts/three Messages journeys pass. Bundle checks pass. Live/deployed/provider, installed Android/TalkBack and signing remain open; no device/emulator was attached.
+
+## 2026-10-29 — Nullable notification destination
+
+- Updated the Buyer API field index and DTO schema to mark `Notification.destination` nullable for unavailable/redacted resources, with null remaining non-navigable. The implementation suite (42 tests), analyzer, and diff checks pass per implementor; independent retesting is running. No device, app build, deployed API, or live acceptance is claimed.
+
+## 2026-10-29 — Independent nullable-notification retest
+
+- Independent tester confirms Buyer accepts the saved nullable-resource reproduction with no new findings; five contract checks and one redacted list/detail/read widget check pass. No app build, environment access, live API, or device acceptance occurred. Courier retest also passed; see the main progress log for its separate result.
+
+## 2026-10-29 — Configurable buyer approval API contract
+
+- Documented enabled-by-default Admin buyer approval control: new verified Customers may return active/approved without credentials when disabled; existing pending buyers remain pending. Updated auth, registration requirements and operation notes. Clients must route active results to sign-in. Flutter adoption and device/live acceptance of this new outcome remain unverified.

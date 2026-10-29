@@ -5,6 +5,8 @@ export type LogisticsNotification = {
   type: string
   title: string
   summary: string
+  category?: string | null
+  category_label?: string | null
   read_at: string | null
   created_at: string | null
   resource_type: string | null
@@ -25,6 +27,7 @@ export type NotificationPage = {
     last_page?: number
     per_page?: number
     total?: number
+    categories?: { key: string; label: string }[]
   }
 }
 

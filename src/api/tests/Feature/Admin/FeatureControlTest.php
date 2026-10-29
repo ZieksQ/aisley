@@ -13,6 +13,7 @@ use App\Models\PlatformPolicy;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 class FeatureControlTest extends TestCase
@@ -35,13 +36,35 @@ class FeatureControlTest extends TestCase
         ])->assertForbidden();
     }
 
-    public function test_admin_can_toggle_policy_consent_enforcement_with_revision_and_audit_data(): void
+    public function test_buyer_approval_requires_management_permission(): void
+    {
+        $this->getJson('/api/v1/admin/platform-settings/feature-controls')->assertUnauthorized();
+        $admin = $this->admin();
+        $this->grant($admin, 'platform-settings.view');
+        Sanctum::actingAs($admin);
+        $this->getJson('/api/v1/admin/platform-settings/feature-controls')->assertOk()
+            ->assertJsonFragment(['key' => PlatformFeatureControl::CUSTOMER_REGISTRATION_APPROVAL_REQUIRED, 'enabled' => true]);
+        $this->patchJson('/api/v1/admin/platform-settings/feature-controls/'.PlatformFeatureControl::CUSTOMER_REGISTRATION_APPROVAL_REQUIRED, [
+            'enabled' => false, 'revision' => 1,
+        ])->assertForbidden();
+    }
+
+    public static function controlKeys(): array
+    {
+        return [
+            'consent' => [PlatformFeatureControl::POLICY_CONSENT_ENFORCEMENT],
+            'buyer approval' => [PlatformFeatureControl::CUSTOMER_REGISTRATION_APPROVAL_REQUIRED],
+        ];
+    }
+
+    #[DataProvider('controlKeys')]
+    public function test_admin_can_toggle_controls_with_revision_and_audit_data(string $key): void
     {
         $admin = $this->admin();
         $this->grant($admin, 'platform-settings.view');
         $this->grant($admin, 'platform-settings.manage');
-        $control = PlatformFeatureControl::create([
-            'key' => PlatformFeatureControl::POLICY_CONSENT_ENFORCEMENT,
+        $control = PlatformFeatureControl::updateOrCreate(['key' => $key], [
+            'key' => $key,
             'label' => 'Require Terms & Privacy consent',
             'description' => 'Require current policy acceptance before protected access.',
             'enabled' => true,
@@ -54,9 +77,9 @@ class FeatureControlTest extends TestCase
         $this->postJson('/api/v1/policy-consent/privacy_policy/versions/1/accept', ['confirmation' => true])->assertOk();
         $this->getJson('/api/v1/admin/platform-settings/feature-controls')
             ->assertOk()
-            ->assertJsonFragment(['key' => PlatformFeatureControl::POLICY_CONSENT_ENFORCEMENT, 'enabled' => true, 'revision' => 1]);
+            ->assertJsonFragment(['key' => $key, 'enabled' => true, 'revision' => 1]);
 
-        $this->patchJson('/api/v1/admin/platform-settings/feature-controls/'.PlatformFeatureControl::POLICY_CONSENT_ENFORCEMENT, [
+        $this->patchJson('/api/v1/admin/platform-settings/feature-controls/'.$key, [
             'enabled' => false,
             'revision' => $control->revision,
         ])->assertOk()
@@ -66,7 +89,7 @@ class FeatureControlTest extends TestCase
 
         $this->getJson('/api/v1/admin/dashboard')->assertOk();
 
-        $this->patchJson('/api/v1/admin/platform-settings/feature-controls/'.PlatformFeatureControl::POLICY_CONSENT_ENFORCEMENT, [
+        $this->patchJson('/api/v1/admin/platform-settings/feature-controls/'.$key, [
             'enabled' => true,
             'revision' => 1,
         ])->assertConflict();

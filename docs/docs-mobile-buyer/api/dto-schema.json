@@ -651,7 +651,7 @@
       "resource_type": "string?",
       "resource_id": "string?",
       "product_id": "UUID?",
-      "destination": "URL"
+      "destination": "URL?"
     },
     "ShopConversation": {
       "id": "UUID",

@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\ListNotificationsRequest;
 use App\Http\Resources\Admin\AdminNotificationResource;
 use App\Models\User;
+use App\Services\Notifications\NotificationCategoryCatalog;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -13,6 +15,8 @@ use Illuminate\Notifications\DatabaseNotification;
 
 class NotificationController extends Controller
 {
+    public function __construct(private readonly NotificationCategoryCatalog $categories) {}
+
     public function index(ListNotificationsRequest $request): AnonymousResourceCollection
     {
         /** @var User $admin */
@@ -25,10 +29,11 @@ class NotificationController extends Controller
             ->when($request->filled('type'), fn ($query) => $query->where('type', (string) $request->input('type')))
             ->orderByDesc('created_at')
             ->orderByDesc('id');
+        $this->categories->filter($query, UserRole::Admin, $request->input('category'));
 
         return AdminNotificationResource::collection(
             $query->paginate((int) $request->input('per_page', 20))->withQueryString(),
-        );
+        )->additional(['meta' => ['categories' => $this->categories->options(UserRole::Admin)]]);
     }
 
     public function unreadCount(Request $request): JsonResponse

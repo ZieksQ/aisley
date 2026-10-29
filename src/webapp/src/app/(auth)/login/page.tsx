@@ -20,9 +20,9 @@ export const metadata: Metadata = {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string | string[]; returnTo?: string | string[] }>;
+  searchParams: Promise<{ next?: string | string[]; returnTo?: string | string[]; registered?: string | string[] }>;
 }) {
-  const { next, returnTo } = await searchParams;
+  const { next, returnTo, registered } = await searchParams;
 
   return (
     <section className="w-full max-w-md">
@@ -31,6 +31,7 @@ export default async function LoginPage({
         title="Sign in to Aisley"
         description="Use your approved customer account to pick up where you left off."
       />
+      {registered === "1" ? <p role="status" className="mt-5 text-sm text-[#4C1268]">Your account is ready. You can now sign in.</p> : null}
       <LoginForm returnTo={safeReturnPath(next ?? returnTo)} />
 
       <p className="mt-7 text-center text-sm text-[#746778]">

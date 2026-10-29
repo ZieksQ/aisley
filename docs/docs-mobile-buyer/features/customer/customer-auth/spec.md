@@ -49,6 +49,7 @@ Phone/tablet padding, natural content heights and keyboard/text resizing follow 
   submitting.
 - Normalize email through the request adapter; retain display draft but never store passwords across process
   death.
+- Active registration results proceed to sign-in (no credential); buyer approval defaults on, existing pending buyers remain pending. Flutter adoption of this new toggle outcome is unverified.
 - Pending success shows informational approval instructions and a sign-in return, with no token or protected
   applicant polling.
 - Admin review occurs outside Buyer; pending/rejected accounts cannot open protected support as an approval

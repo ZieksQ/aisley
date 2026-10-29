@@ -3,11 +3,11 @@ feature: admin-notification
 title: Admin Notifications
 system: AISLEY
 type: Feature Specification
-version: 1.1
-status: Admin inbox/count/read/read-all implemented; realtime transport remains deferred
+version: 1.2
+status: Admin inbox/count/read/read-all implemented; category-filter code present; build/type/lint pass; independent UI review pending; realtime deferred
 role: Admin
 scope: Admin Web Application
-implementation_reviewed_on: 2026-10-12
+implementation_reviewed_on: 2026-10-29
 ---
 
 # Admin Notifications
@@ -17,6 +17,27 @@ implementation_reviewed_on: 2026-10-12
 ### Current implementation — 2026-10-12
 
 NotificationController, NotificationsPage and AdminNotificationBell implement list, unread-count, per-notification read and read-all under `/api/v1/admin/notifications`. Notification producers own event behavior; WebSocket/native-push delivery is not established by these endpoints. Source inspection establishes availability; unchecked criteria and live/release gates remain open. No application tests/builds were rerun for this documentation update.
+
+### Support-ticket and category-filter extension — 2026-10-29
+
+- All five role notification list APIs now accept an optional category with their existing status filter. Omitted category or `category=all` means all categories; filters run before pagination. Lists return `meta.categories` entries `{key,label}` and notification DTOs include `category` and `category_label`.
+- The catalog is role-specific; it does not widen existing role/type visibility rules. A notification type that remains visible to a role but has no category mapping is shown under Other.
+
+| Role | Category keys exposed by the API |
+| --- | --- |
+| Customer | `orders`, `support`, `promotions`, `announcements`, `questions-reviews`, `other` |
+| Admin | `registrations`, `support`, `finance`, `other` |
+| Seller | `orders`, `pickups`, `inventory`, `compliance`, `questions-reviews`, `support`, `other` |
+| Logistics | `pickups`, `couriers`, `deliveries`, `linehaul`, `finance`, `support`, `other` |
+| Courier | `pickups`, `deliveries`, `linehaul`, `support`, `other` |
+
+- The API returns human-readable labels with each key (`support` → **Support tickets**,
+  `questions-reviews` → **Questions & reviews**, `other` → **Other**); clients display the
+  returned labels rather than deriving them from type names.
+- Support tickets produce only in-app types `support-ticket.created`, `support-ticket.requester-replied`, `support-ticket.admin-replied`, and `support-ticket.status-changed`. Creation goes to active Admins with both `notifications.view` and `support-tickets.view`; a requester reply goes to its eligible assignee, or that eligible Admin team if no assignee qualifies. Admin replies and explicit public status changes go to the active requester; a Courier must retain approved affiliation to an active Logistics organization and its current hub.
+- Assignment changes, self-notifications, and automatic requester-reply reopen events do not alert. Jobs run after commit and persist deterministic event/recipient/type IDs. Copy contains a safe ticket reference and no reply body; destinations are reauthorized role paths. Database delivery failure does not roll back ticket history. Email, push, and realtime delivery are not added.
+- Ticket destinations are Customer `/account/support-tickets?ticket=UUID`; Seller/Logistics `/support-tickets?ticket=UUID`; Admin/Courier `/support-tickets/UUID`. Ticket read markers remain separate from notification read state.
+- Status/category filtering applies to the paginated list only; it does not alter global unread counts or existing read-all behavior. Corresponding code is present in all four web apps and both Flutter repositories; application validation and mobile/deployed acceptance are tracked separately.
 
 
 - **Purpose:** Provide authenticated Admins with a persistent notification inbox/center for important platform events and pending Admin attention.
@@ -112,7 +133,8 @@ domain event commits
 - Custom Admin permissions should influence notification recipients where applicable.
 - Example:
   - an Admin lacking Seller Compliance permission should not receive sensitive Seller Compliance notifications merely because they have the `admin` role.
-- Exact recipient-routing rules per domain event are Open Questions.
+- Recipient-routing rules remain owned by source features; the support-ticket rules are defined in
+  `docs/features/admin/support-ticket-system/spec.md`.
 
 ### Notification payload
 - Keep persisted payloads compact.
@@ -171,6 +193,8 @@ chat.message-received
 ### Listing
 - Notification center must be paginated.
 - Default ordering: newest first.
+- Current Admin list filters are status, allow-listed type, category, page, and page size.
+- Category is a presentation grouping, never an authorization rule.
 - Recommended filters:
   - unread/read
   - notification type/category

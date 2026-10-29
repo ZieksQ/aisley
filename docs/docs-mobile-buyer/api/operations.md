@@ -13,7 +13,7 @@ Named types define all nested fields locally. Status201 replay semantics vary: S
 
 - Access: Public.
 - Request: Required `email_verification_token` bound to verified Customer/email. Profile fields required: names string≤255, middle_name nullable ≤255, contact_number≤32, sex male|female|non_binary|prefer_not_to_say, birth_date before today; email≤255 normalized lowercase/trim; confirmed password≥8 mixed case + digit. role/status prohibited.
-- Response: HTTP 201; `{message:string,customer:RegistrationCustomer}`.
+- Response: HTTP 201; `{message:string,customer:RegistrationCustomer}`. `customer.status` is pending by default, or active when Admin disables buyer registration approval. No credential; active results proceed to sign-in.
 - Retry: No durable replay key. After uncertainty, try sign-in before deliberately resubmitting; there is no applicant polling API.
 - Notes: Laravel rechecks current ownership and visibility.
 - [Synthetic examples](examples/customer-auth.json).

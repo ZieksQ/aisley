@@ -1,19 +1,20 @@
 {
   "provenance": "Synthetic source-derived examples, not live captures. UUIDs, example.invalid identities and private text are invented. Nullable success fields and empty/replay variants are intentional.",
   "checkout": "57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50",
+  "contract_revision": "ticket-notifications-category-filters on API v1; current Laravel feature branch is uncommitted",
   "operations": [
     {
       "feature": "notifications",
       "method": "GET",
       "path": "/api/v1/customer/notifications",
-      "request_contract": "status nullable all|unread|read; per_page1\u201350 default20; page uses framework paginator.",
-      "response_contract": "{data:Notification[],links:PageLinks,meta:PageMeta}",
+      "request_contract": "status nullable all|unread|read; category optional all|orders|support|promotions|announcements|questions-reviews|other; per_page1\u201350 default20; page uses framework paginator.",
+      "response_contract": "{data:Notification[],links:PageLinks,meta:PageMeta+categories}",
       "status": 200,
       "retry": "Read retry after bounded backoff; reject obsolete session/query generations.",
       "access": "Active Customer + consent",
       "notes": "",
       "request_example": {
-        "query": {},
+          "query": {"status": "all", "category": "support"},
         "headers": {},
         "body": null
       },
@@ -21,18 +22,20 @@
         "data": [
           {
             "id": "11111111-1111-4111-8111-111111111111",
-            "type": "customer-announcement.published",
-            "title": "Synthetic example",
-            "summary": "Synthetic example",
+            "type": "support-ticket.admin-replied",
+            "title": "Support ticket reply",
+            "summary": "Support replied to Ticket SUP-1234.",
+            "category": "support",
+            "category_label": "Support tickets",
             "order_id": null,
             "order_reference": null,
-            "status": "active",
+            "status": null,
             "read_at": null,
             "created_at": null,
-            "resource_type": null,
-            "resource_id": null,
+            "resource_type": "support_ticket",
+            "resource_id": "11111111-1111-4111-8111-111111111112",
             "product_id": null,
-            "destination": "/notifications/11111111-1111-4111-8111-111111111111"
+            "destination": "/account/support-tickets?ticket=11111111-1111-4111-8111-111111111112"
           }
         ],
         "links": {
@@ -55,7 +58,8 @@
           "path": "/synthetic-placeholder",
           "per_page": 1,
           "to": null,
-          "total": 1
+          "total": 1,
+          "categories": [{"key":"orders","label":"Orders"},{"key":"support","label":"Support tickets"},{"key":"promotions","label":"Promotions"},{"key":"announcements","label":"Announcements"},{"key":"questions-reviews","label":"Questions & reviews"},{"key":"other","label":"Other"}]
         }
       },
       "id": "op-054",
@@ -86,7 +90,8 @@
               "path": "/synthetic-placeholder",
               "per_page": 1,
               "to": null,
-              "total": 0
+              "total": 0,
+              "categories": [{"key":"orders","label":"Orders"},{"key":"support","label":"Support tickets"},{"key":"promotions","label":"Promotions"},{"key":"announcements","label":"Announcements"},{"key":"questions-reviews","label":"Questions & reviews"},{"key":"other","label":"Other"}]
             }
           }
         }
@@ -110,18 +115,20 @@
       "response_example": {
         "data": {
           "id": "11111111-1111-4111-8111-111111111111",
-          "type": "customer-announcement.published",
-          "title": "Synthetic example",
-          "summary": "Synthetic example",
+          "type": "support-ticket.admin-replied",
+          "title": "Support ticket reply",
+          "summary": "Support replied to Ticket SUP-1234.",
+          "category": "support",
+          "category_label": "Support tickets",
           "order_id": null,
           "order_reference": null,
-          "status": "active",
+          "status": null,
           "read_at": null,
           "created_at": null,
-          "resource_type": null,
-          "resource_id": null,
+          "resource_type": "support_ticket",
+          "resource_id": "11111111-1111-4111-8111-111111111112",
           "product_id": null,
-          "destination": "/notifications/11111111-1111-4111-8111-111111111111"
+          "destination": "/account/support-tickets?ticket=11111111-1111-4111-8111-111111111112"
         }
       },
       "id": "op-055",
@@ -146,18 +153,20 @@
       "response_example": {
         "data": {
           "id": "11111111-1111-4111-8111-111111111111",
-          "type": "customer-announcement.published",
-          "title": "Synthetic example",
-          "summary": "Synthetic example",
+          "type": "support-ticket.admin-replied",
+          "title": "Support ticket reply",
+          "summary": "Support replied to Ticket SUP-1234.",
+          "category": "support",
+          "category_label": "Support tickets",
           "order_id": null,
           "order_reference": null,
-          "status": "active",
+          "status": null,
           "read_at": null,
           "created_at": null,
-          "resource_type": null,
-          "resource_id": null,
+          "resource_type": "support_ticket",
+          "resource_id": "11111111-1111-4111-8111-111111111112",
           "product_id": null,
-          "destination": "/notifications/11111111-1111-4111-8111-111111111111"
+          "destination": "/account/support-tickets?ticket=11111111-1111-4111-8111-111111111112"
         }
       },
       "id": "op-056",

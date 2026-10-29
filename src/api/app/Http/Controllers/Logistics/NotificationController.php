@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers\Logistics;
 
+use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Logistics\ListNotificationsRequest;
 use App\Http\Requests\Logistics\MarkNotificationReadRequest;
 use App\Http\Resources\Logistics\LogisticsNotificationResource;
 use App\Models\User;
 use App\Services\Logistics\LogisticsNotificationService;
+use App\Services\Notifications\NotificationCategoryCatalog;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Notifications\DatabaseNotification;
@@ -15,7 +17,10 @@ use Illuminate\Support\Facades\DB;
 
 class NotificationController extends Controller
 {
-    public function __construct(private readonly LogisticsNotificationService $notifications) {}
+    public function __construct(
+        private readonly LogisticsNotificationService $notifications,
+        private readonly NotificationCategoryCatalog $categories,
+    ) {}
 
     public function index(ListNotificationsRequest $request): JsonResponse
     {
@@ -27,12 +32,14 @@ class NotificationController extends Controller
             ->when($request->input('status') === 'read', fn ($builder) => $builder->whereNotNull('read_at'))
             ->orderByDesc('created_at')
             ->orderByDesc('id');
+        $this->categories->filter($query, UserRole::Logistics, $request->input('category'));
         $paginator = $query->paginate($request->pageSize())->withQueryString();
         $paginator->setCollection($paginator->getCollection()->map(
             fn (DatabaseNotification $notification): array => $this->notifications->project($notification, $logistics),
         )->values());
 
         return LogisticsNotificationResource::collection($paginator)
+            ->additional(['meta' => ['categories' => $this->categories->options(UserRole::Logistics)]])
             ->response()
             ->header('Cache-Control', 'private, no-store')
             ->header('Pragma', 'no-cache');

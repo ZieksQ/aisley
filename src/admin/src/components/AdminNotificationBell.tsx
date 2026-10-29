@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { FaBell, FaCheck, FaTriangleExclamation } from 'react-icons/fa6'
+import { NotificationCategoryLabel } from '@aisley/ui/notifications'
 import { Link, useNavigate } from 'react-router-dom'
 import { ApiError } from '../lib/api'
 import {
@@ -13,6 +14,14 @@ import {
 import type { AdminNotification } from '../types/notifications'
 
 const POLL_INTERVAL_MS = 30_000
+
+function isUuid(value: string | null): value is string {
+  return Boolean(value && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value))
+}
+
+function safeInternalDestination(value: string | null): string | null {
+  return value?.startsWith('/') && !value.startsWith('//') ? value : null
+}
 
 export function AdminNotificationBell() {
   const navigate = useNavigate()
@@ -89,7 +98,10 @@ export function AdminNotificationBell() {
       }
     }
     setIsOpen(false)
-    navigate(notification.destination ?? '/notifications')
+    const destination = notification.resource_type === 'support_ticket' && isUuid(notification.resource_id)
+      ? `/support-tickets/${notification.resource_id}`
+      : safeInternalDestination(notification.destination)
+    navigate(destination ?? '/notifications')
   }
 
   const status = isLoading
@@ -103,13 +115,13 @@ export function AdminNotificationBell() {
         aria-expanded={isOpen}
         aria-haspopup="dialog"
         aria-label={`Notifications. ${status}.`}
-        className="relative grid size-10 place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-950 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
+        className="relative grid size-11 place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-950 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
         onClick={() => setIsOpen((value) => !value)}
         type="button"
       >
         <FaBell aria-hidden="true" />
         {unreadCount > 0 && (
-          <span className="absolute -right-1.5 -top-1.5 min-w-5 rounded-md bg-[#E6007A] px-1 text-center text-[11px] font-bold leading-5 text-white">
+          <span className="absolute -right-1.5 -top-1.5 min-w-5 rounded-md bg-[#4C1268] px-1 text-center text-[11px] font-bold leading-5 text-white">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
@@ -123,7 +135,7 @@ export function AdminNotificationBell() {
         >
           <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 dark:border-white/10">
             <p className="font-semibold">Notifications</p>
-            <Link className="text-sm font-semibold text-[#b0005d] hover:text-[#E6007A] dark:text-pink-300" onClick={() => setIsOpen(false)} to="/notifications">
+            <Link className="inline-flex min-h-11 items-center text-sm font-semibold text-[#4C1268] hover:text-[#3D0E54] dark:text-[#C4B5FD]" onClick={() => setIsOpen(false)} to="/notifications">
               View all
             </Link>
           </div>
@@ -134,7 +146,7 @@ export function AdminNotificationBell() {
             <div className="px-4 py-6 text-center">
               <FaTriangleExclamation aria-hidden="true" className="mx-auto text-amber-500" />
               <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{error}</p>
-              <button className="mt-3 text-sm font-semibold text-[#b0005d] dark:text-pink-300" onClick={() => void refresh()} type="button">Try again</button>
+              <button className="mt-3 min-h-11 text-sm font-semibold text-[#4C1268] dark:text-[#C4B5FD]" onClick={() => void refresh()} type="button">Try again</button>
             </div>
           ) : notifications.length === 0 ? (
             <div className="px-4 py-8 text-center">
@@ -148,11 +160,11 @@ export function AdminNotificationBell() {
                 <li key={notification.id}>
                   <button className="w-full px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-white/5" onClick={() => void openNotification(notification)} type="button">
                     <span className="flex items-start gap-3">
-                      <span aria-hidden="true" className={`mt-1.5 size-2 shrink-0 rounded-full ${notification.read_at ? 'bg-slate-300 dark:bg-slate-600' : 'bg-[#E6007A]'}`} />
+                      <span aria-hidden="true" className={`mt-1.5 size-2 shrink-0 rounded-full ${notification.read_at ? 'bg-slate-300 dark:bg-slate-600' : 'bg-[#4C1268] dark:bg-[#C4B5FD]'}`} />
                       <span className="min-w-0">
                         <span className="block text-sm font-semibold">{notification.title}</span>
                         <span className="mt-1 block text-sm leading-5 text-slate-500 dark:text-slate-400">{notification.summary}</span>
-                        <span className="mt-1.5 block text-xs text-slate-400">{formatNotificationTime(notification.created_at)}</span>
+                        <span className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs"><NotificationCategoryLabel category={notification.category} categoryLabel={notification.category_label} role="admin" /><span className="text-slate-500 dark:text-slate-400">{formatNotificationTime(notification.created_at)}</span></span>
                       </span>
                     </span>
                   </button>

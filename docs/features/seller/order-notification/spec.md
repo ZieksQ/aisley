@@ -3,11 +3,11 @@ feature: order-notifications
 title: Seller Order Notifications
 system: AISLEY
 type: Feature Specification
-version: 1.0
-status: Seller notification inbox/detail/read and Order entry implemented; realtime transport deferred
+version: 1.1
+status: Seller notification inbox/detail/read and category-filter code implemented; build/type/lint pass; independent UI review pending; realtime deferred
 role: Seller
 scope: Seller Web Application
-implementation_reviewed_on: 2026-10-12
+implementation_reviewed_on: 2026-10-29
 ---
 
 # Seller Order Notifications
@@ -16,6 +16,13 @@ implementation_reviewed_on: 2026-10-12
 ### Current implementation — 2026-10-12
 
 Seller NotificationController, NotificationBell and Notifications/NotificationDetail pages implement `/api/v1/seller/notifications` list/detail/read with links to owned Orders. Bounded HTTP reads do not establish WebSockets or native push. Source inspection establishes availability; unchecked criteria and live/release gates remain open. No application tests/builds were rerun for this documentation update.
+
+### Category-filter and support-ticket extension — 2026-10-29
+
+- Seller notification lists accept `status` plus optional `category` before pagination; omitted category or `category=all` means all. List metadata supplies `{key,label}` options, and DTOs add `category`/`category_label`.
+- Seller options are `orders`, `pickups`, `inventory`, `compliance`, `questions-reviews`, `support`, and `other`. Existing Seller notification type visibility remains the server boundary; visible unmapped types use Other.
+- Ticket create/requester-reply alerts go to eligible Admins. Admin reply and explicit public status-change alerts go to the active requester. Ticket alerts use safe reference-only copy and the `Support tickets` label; the Seller link is `/support-tickets?ticket=UUID`. Ticket reads do not change notification read state. Push/email are not added for support tickets.
+- Category and status filters do not change the existing unread preview/badge or per-item read behavior. The Seller page uses the API's labels, resets page when filters change, and discards stale responses; app verification remains pending.
 
 - **Purpose:** Alert a Seller when a new Seller-scoped Order becomes valid/actionable and provide the details needed to begin fulfillment.
 - **Canonical role:** `SELLER`.

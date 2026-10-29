@@ -115,7 +115,7 @@ approved Courier session
 - [x] The current Flutter handoff records partial task-bound hub pickup/photo POD adoption; installed-device and end-to-end Logistics validation remain unverified.
 - [x] Flutter shows read-only first-/final-mile previews from their separate authorized list APIs, each with source labels, independent states, and safe navigation/refetch.
 - [x] Imported Flutter progress reports preview tests covering page-limited first-mile reads, unpaginated final-mile reads, unknown-status handling, partial failure, logout clearing, and no action or fabricated count.
-- [x] Flutter locally adopts the documented empty-body, state-idempotent final-mile batch action and reconciliation; live acceptance remains open. This is historical client adoption; the 2026-10-22 per-parcel contract awaits Flutter adoption. Never loop task calls without individual decisions.
+- [x] Flutter locally adopts the documented empty-body, state-idempotent final-mile batch action and reconciliation; live acceptance remains open. This is historical client adoption; Flutter now adopts the 2026-10-22 per-parcel contract locally. Never loop task calls without individual decisions.
 - [x] V2 returns safe available/active summaries with explicit request timestamps, per-section states and has_more without invented totals.
 - [x] Partial preview rows identify their explicit leg/status and show only authorized list fields; distance/ETA is displayed only if the source DTO includes it.
 - [x] Rejected offers remain visible with safe reason/time; Logistics can re-offer the same task from the dedicated Dispatch page without changing the Order or duplicating task/waybill history.

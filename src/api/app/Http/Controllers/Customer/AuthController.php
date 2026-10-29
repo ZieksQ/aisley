@@ -15,6 +15,7 @@ use App\Http\Resources\Customer\CustomerUserResource;
 use App\Models\PersonalAccessToken;
 use App\Models\User;
 use App\Services\Auth\RegistrationEmailVerification;
+use App\Services\Customer\CustomerRegistrationService;
 use App\Services\Mail\PasswordResetDeliveryService;
 use App\Services\Notifications\AdminNotificationService;
 use Illuminate\Database\QueryException;
@@ -35,7 +36,7 @@ class AuthController extends Controller
 
     public function __construct(private readonly AdminNotificationService $adminNotifications) {}
 
-    public function register(RegisterRequest $request, RegistrationEmailVerification $verification): JsonResponse
+    public function register(RegisterRequest $request, RegistrationEmailVerification $verification, CustomerRegistrationService $registration): JsonResponse
     {
         $email = (string) $request->input('email');
 
@@ -44,30 +45,8 @@ class AuthController extends Controller
         }
 
         try {
-            $user = $verification->complete(UserRole::Customer, $email, (string) $request->input('email_verification_token'), function () use ($request, $email): User {
-                $user = User::create([
-                    'email' => $email,
-                    'password' => (string) $request->input('password'),
-                    'role' => UserRole::Customer,
-                    'status' => UserStatus::Pending,
-                ]);
-
-                $user->customerProfile()->create($request->safe()->only([
-                    'first_name',
-                    'last_name',
-                    'middle_name',
-                    'contact_number',
-                    'sex',
-                    'birth_date',
-                ]));
-
-                $user->registrationApplications()->create([
-                    'application_type' => UserRole::Customer,
-                    'status' => ApplicationStatus::Pending,
-                    'submitted_at' => now(),
-                ]);
-
-                return $user;
+            $user = $verification->complete(UserRole::Customer, $email, (string) $request->input('email_verification_token'), function () use ($request, $registration): User {
+                return $registration->create($request->safe()->all());
             });
         } catch (QueryException $exception) {
             if ($this->customerExists($email)) {
@@ -79,13 +58,17 @@ class AuthController extends Controller
 
         $application = $user->registrationApplications()->latest('submitted_at')->firstOrFail();
         try {
-            $this->adminNotifications->registrationSubmitted($application);
+            if ($application->status === ApplicationStatus::Pending) {
+                $this->adminNotifications->registrationSubmitted($application);
+            }
         } catch (\Throwable $exception) {
             report($exception);
         }
 
         return response()->json([
-            'message' => 'Registration submitted for approval.',
+            'message' => $user->status === UserStatus::Active
+                ? 'Your account is ready. You can now sign in.'
+                : 'Registration submitted for approval.',
             'customer' => new CustomerUserResource($this->loadCustomer($user)),
         ], 201);
     }

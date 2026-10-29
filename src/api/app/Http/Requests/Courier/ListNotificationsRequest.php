@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Courier;
 
+use App\Enums\UserRole;
+use App\Services\Notifications\NotificationCategoryCatalog;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
@@ -17,6 +19,7 @@ class ListNotificationsRequest extends FormRequest
     {
         return [
             'status' => ['sometimes', 'in:all,unread,read'],
+            'category' => ['sometimes', 'in:all,'.implode(',', app(NotificationCategoryCatalog::class)->keys(UserRole::Courier))],
             'limit' => ['sometimes', 'integer', 'min:1', 'max:20'],
             'cursor' => ['sometimes', 'string', 'max:1024'],
         ];
@@ -26,7 +29,7 @@ class ListNotificationsRequest extends FormRequest
     public function after(): array
     {
         return [function (Validator $validator): void {
-            foreach (array_diff(array_keys($this->query()), ['status', 'limit', 'cursor']) as $field) {
+            foreach (array_diff(array_keys($this->query()), ['status', 'category', 'limit', 'cursor']) as $field) {
                 $validator->errors()->add($field, "The {$field} notification filter is not supported.");
             }
             foreach (array_keys($this->request->all()) as $field) {
@@ -50,5 +53,12 @@ class ListNotificationsRequest extends FormRequest
         $cursor = $this->validated('cursor');
 
         return is_string($cursor) && $cursor !== '' ? $cursor : null;
+    }
+
+    public function category(): ?string
+    {
+        $category = $this->validated('category');
+
+        return is_string($category) ? $category : null;
     }
 }

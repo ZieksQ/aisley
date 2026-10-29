@@ -6,7 +6,8 @@ phase: 4
 flutter_status: Implemented; acceptance partial
 backend_baseline: 7b1a08a0c89d7983a0e0503c5e8d322d2c2fa2a0
 contract_inspected_checkout: 57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50
-documentation_synced_on: 2026-10-12
+additional_backend_contract: ticket-notifications-category-filters on API v1; current Laravel feature branch is uncommitted
+documentation_synced_on: 2026-10-29
 ---
 
 # Inbox notifications and preference
@@ -19,11 +20,11 @@ unread-count/read-all/native push absent.
 Flutter: **implemented; acceptance partial**. See [Phase 4 evidence](../../../references/phase-4-verification.md).
 Broad counterpart/device and concurrency criteria remain open.
 
-Account Notifications → all/read/unread page → allowed target → mark read; settings controls in-app promotions.
+Notifications shell tab or Account Notifications shortcut → status/category page → allowed target → mark read; settings control in-app promotions.
 
-- List status all/read/unread, per_page 1–50/default 20 and Laravel data/links/meta pagination. Mark read is idempotent and never advances Order/chat/ticket state. No dedicated unread-count/read-all; page unread is not global total.
-- Allowed records cover announcements, important Order decisions/outcomes, ongoing promos/campaigns, Q&A answered and Seller Review response; routine movement/first-mile schedules are filtered out.
-- Map destinations to allow-listed native Product/Q&A/Review/Shop/Order/Notification routes; never treat arbitrary web path as external navigation authority. Preference is default-off boolean, independent of consent. Device registration/FCM/APNs/native push/background sync are deferred.
+- List status all/read/unread plus optional category, per_page 1–50/default 20 and Laravel data/links/meta pagination. Category and status combine before paging; omit category or use `all` for all categories. Mark read is idempotent and never advances Order/chat/ticket state. No dedicated unread-count/read-all; page unread is not global total.
+- Allowed records cover announcements, important Order decisions/outcomes, ongoing promos/campaigns, Q&A answered, Seller Review responses, and Admin support-ticket replies/explicit public status changes; routine movement/first-mile schedules are filtered out. Ticket alerts contain a safe reference, not reply text.
+- Map destinations to allow-listed native Product/Q&A/Review/Shop/Order/support-ticket/Notification routes; never treat arbitrary web path as external navigation authority. Preference is default-off boolean, independent of consent. Device registration/FCM/APNs/native push/background sync are deferred.
 
 The local bundle supplies the implementation contract. Upstream paths are optional provenance only.
 Use this feature with its prerequisite session/consent boundary and the related shopping or
@@ -40,13 +41,17 @@ Phone/tablet padding, natural content heights and keyboard/text resizing follow 
 ### Feature behavior and boundaries
 
 - General notification inbox is separate from chat unread counts and ticket read markers.
+- Notifications is a persistent shell destination after verified active Customer identity and required consent; it has no invented global unread-count badge.
 - List uses Laravel page data/links/meta, default 20/per_page1–50 and status all|unread|read.
+- `GET /api/v1/customer/notifications` also accepts Customer category keys `orders`, `support`, `promotions`, `announcements`, `questions-reviews`, and `other`; the list returns role-specific `meta.categories` `{key,label}` values and each DTO's `category`/`category_label`.
 - Only current allow-listed own types are returned; private user IDs/order snapshots are not exposed.
 - Notification destination is server-sanitized but still validated and mapped to supported Flutter
   routes.
 - Order destinations open owned Order read; Product Q&A/review anchors map to corresponding sections.
 - Campaign Product UUID/Shop slug routes open public content; unknown destination falls back to
   notification detail.
+- Support notifications require a supported type, `resource_type=support_ticket`, UUID, and server destination `/account/support-tickets?ticket=UUID`; Flutter maps that exact tuple to its `/support-tickets/UUID` detail route. The ticket API reauthorizes access.
+- An allow-listed type without a known category is displayed as Other; this fallback never widens the server's notification type allow-list. Category changes reset page and obsolete results are discarded.
 - Detail/read require owned UUID and never accept arbitrary resource/user IDs.
 - read_at nullable means unread; POST read is state-idempotent and returns updated data Notification.
 - Tapping a notification marks it only when appropriate display completes; never marks unrelated
@@ -75,8 +80,8 @@ Private calls use Bearer only for the configured API origin. Public reads need n
 A path UUID or slug is encoded before use; do not submit owner, status, financial or recipient
 authority.
 
-- `GET /api/v1/customer/notifications` → HTTP 200; `{data:Notification[],links:PageLinks,meta:PageMeta}`.
-  Request: status nullable all|unread|read; per_page1–50 default 20; page uses framework paginator.
+- `GET /api/v1/customer/notifications` → HTTP 200; `{data:Notification[],links:PageLinks,meta:PageMeta+categories}`.
+  Request: status nullable all|unread|read, category optional all|Customer key; per_page1–50 default 20; page uses framework paginator.
   Replay: Read retry after bounded backoff; reject obsolete session/query generations.
 - `GET /api/v1/customer/notifications/{notification}` → HTTP 200; `{data:Notification}`.
   Request: Owned notification UUID; no body.
@@ -112,7 +117,7 @@ unsupported actions.
 
 | DTO | Wire fields and types |
 | --- | --- |
-| `Notification` | `id: UUID`, `type: string`, `title: string`, `summary: string`, `order_id: UUID?`, `order_reference: string?`, `status: string?`, `read_at: timestamp?`, `created_at: timestamp?`, `resource_type: string?`, `resource_id: string?`, `product_id: UUID?`, `destination: URL` |
+| `Notification` | `id: UUID`, `type: string`, `title: string`, `summary: string`, `category: string`, `category_label: string`, `order_id: UUID?`, `order_reference: string?`, `status: string?`, `read_at: timestamp?`, `created_at: timestamp?`, `resource_type: string?`, `resource_id: string?`, `product_id: UUID?`, `destination: URL?` |
 | `Preference` | `promotional_in_app_opted_in: bool`, `promotional_in_app_opted_in_at: timestamp?` |
 
 ### Errors, ownership and recovery
@@ -181,7 +186,7 @@ a universal error envelope.
 
 ### Verification scenarios
 
-- [ ] Own allow-listed notifications/filters/reads/destinations work without invented global badge.
+- [ ] Own allow-listed notifications, combined status/category filters, labels, reads, and safe destinations work without an invented global badge; support links do not alter ticket read state.
 - [ ] Promotion remains default off and neither consent nor read changes grant push/commerce actions.
 - [ ] Android and fixed-origin local browser verify loading/empty/errors, keyboard/back/focus,
   supported permission/retry states and cleanup after identity loss.
@@ -205,7 +210,8 @@ a universal error envelope.
 ### Handoff and provenance
 
 Historical backend baseline: 7b1a08a; newly inspected checkout:
-`57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50`.
+`57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50`. The additive category/ticket contract is implemented
+in the current uncommitted Laravel feature branch; deployed API adoption remains unverified.
 Source locators/hashes are optional audit evidence in
 [provenance](../../../references/source-provenance.md).
 No Flutter implementation checkbox is completed by documentation authoring or route/source
@@ -214,3 +220,6 @@ Append actual implementation/test outcomes to [Progress](../../../PROGRESS.md) a
 history.
 Follow [architecture](../../../architecture.md), [setup](../../../setup.md) and
 [verification](../../../verification.md).
+
+Presentation adoption (2026-10-28): the existing inbox occupies the Notifications shell tab; API,
+pagination, per-row read state, and the no-global-count boundary are unchanged.

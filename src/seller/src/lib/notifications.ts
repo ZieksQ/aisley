@@ -1,8 +1,10 @@
 import { apiRequest, initializeCsrf } from './api'
 import type { SellerNotification, SellerNotificationResponse } from '../types/notifications'
 
-export function listNotifications(status: 'all' | 'unread' | 'read', perPage = 20, page = 1) {
-  return apiRequest<SellerNotificationResponse>(`/api/v1/seller/notifications?status=${status}&per_page=${perPage}&page=${page}`)
+export function listNotifications(status: 'all' | 'unread' | 'read', perPage = 20, page = 1, category = 'all') {
+  const query = new URLSearchParams({ status, per_page: String(perPage), page: String(page) })
+  if (category !== 'all') query.set('category', category)
+  return apiRequest<SellerNotificationResponse>(`/api/v1/seller/notifications?${query.toString()}`)
 }
 
 export function getNotification(id: string) {

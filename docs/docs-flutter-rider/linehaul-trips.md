@@ -1,6 +1,6 @@
 # Courier linehaul operations — API contract v1
 
-Added 2026-10-22 in Laravel and its development-only React harness. This document supplies the external Flutter contract; Flutter linehaul screens remain unadopted and no mobile verification is claimed.
+Added 2026-10-22 in Laravel and its development-only React harness. This document supplies the external Flutter contract; Flutter linehaul screens, hub-route presentation, and driver confirmations are implemented locally against platform `1858785e`; deployed API and installed-device acceptance remain unverified.
 
 ## Sequence and authority
 

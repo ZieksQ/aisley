@@ -39,7 +39,7 @@ function RegistrationDetails({ verification }: { verification: VerifiedRegistrat
     setError(null);
 
     try {
-      await registerCustomer({
+      const { customer } = await registerCustomer({
         birth_date: value(form, "birth_date"),
         contact_number: value(form, "contact_number"),
         email: attempt.email,
@@ -51,7 +51,7 @@ function RegistrationDetails({ verification }: { verification: VerifiedRegistrat
         password_confirmation: value(form, "password_confirmation"),
         sex: value(form, "sex"),
       }, attempt.signal);
-      if (attempt.complete()) router.push("/waiting-for-approval?registered=1");
+      if (attempt.complete()) router.push(customer.status === "active" ? "/login?registered=1" : "/waiting-for-approval?registered=1");
     } catch (caught) {
       if (!attempt.isCurrent()) return;
       const failure = caught instanceof ApiError && caught.status > 0 && caught.status < 500 && caught.status !== 408

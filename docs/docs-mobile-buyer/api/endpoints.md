@@ -119,6 +119,12 @@ Customer feature routes generally include `throttle:120,1`; focused throttles ar
 | `GET` | `/api/v1/customer/notifications/{notification}` | Active Customer + consent | 120,1 | `Customer\NotificationController@show` |
 | `POST` | `/api/v1/customer/notifications/{notification}/read` | Active Customer + consent | 120,1 | `Customer\NotificationController@markRead` |
 
+The list accepts status (`all|unread|read`), optional Customer category (`orders`, `support`,
+`promotions`, `announcements`, `questions-reviews`, `other`), page, and per_page. Omitted or `all`
+category means unfiltered results; status/category are applied before pagination. List metadata includes
+the role's `{key,label}` category options and each notification DTO includes `category` and
+`category_label`.
+
 ## Customer / order-items
 
 | Method | Existing path | Access | Throttle | Controller/action |
