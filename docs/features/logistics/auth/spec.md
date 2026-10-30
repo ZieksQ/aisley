@@ -111,3 +111,7 @@ multipart register
 - Subscription enforcement, online billing, staff accounts, alternate hubs, and operational records require separate approved specs/migrations. Do not add them to Auth as hidden assumptions.
 
 **References:** `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, `docs/domains/Logistics.md`, `docs/features/logistics/dashboard/specs.md`, `docs/features/courier/auth/spec.md`, `docs/references/user-registration-requirements.md`, and the shared file-upload policy.
+
+## Registration OTP switch — 2026-10-30
+
+The Admin `registration_email_verification_required` control is enabled by default for all four public registration roles. Its disabled state explicitly overrides mandatory registration OTP statements above: registration skips proof, leaves `email_verified_at` null, and retains account/evidence approval and validation. See the [canonical registration contract](../../../references/registration-email-verification.md#admin-registration-otp-control--2026-10-30) for public configuration discovery, late setting changes, audit/permission rules, and mobile compatibility. Password and authenticated account email verification remain required.

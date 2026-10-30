@@ -52,7 +52,7 @@ class AuthController extends Controller
         if (User::query()->where('email', $email)->where('role', UserRole::Courier)->exists()) {
             return $this->duplicate();
         } try {
-            $user = $verification->complete(UserRole::Courier, $email, (string) $request->input('email_verification_token'), function () use ($request, $email, &$stored) {
+            $user = $verification->completeRegistration(UserRole::Courier, $email, (string) $request->input('email_verification_token'), function () use ($request, $email, &$stored) {
                 $org = LogisticsOrganization::query()->with('hub')->whereKey($request->input('logistics_organization_id'))->whereHas('user', fn ($q) => $q->where('status', UserStatus::Active))->lockForUpdate()->first();
                 if (! $org?->hub) {
                     abort(422, 'The selected Logistics organization is unavailable.');

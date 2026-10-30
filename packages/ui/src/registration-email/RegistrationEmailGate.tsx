@@ -19,7 +19,7 @@ export function RegistrationEmailGate({ client, children, accent = "purple" }: {
     <div className="space-y-6 text-zinc-900 dark:text-zinc-100">
       <div aria-busy={state.submitting}>
         <fieldset disabled={state.busy || state.submitting || state.completed}>
-          {children({ email: state.email, token: state.proof?.email_verification_token ?? "", submitting: state.submitting,
+          {children({ ready: state.required === false || !!state.proof, email: state.email, token: state.proof?.email_verification_token ?? "", submitting: state.submitting,
             beginSubmission: state.beginSubmission,
             setEmail: (email) => {
               if (state.submitting || state.completed) return;
@@ -27,13 +27,16 @@ export function RegistrationEmailGate({ client, children, accent = "purple" }: {
               state.setEmail(email);
             },
             continueToVerification: () => {
-              if (state.proof) return false;
+              if (state.required === null) return true;
+              if (!state.required || state.proof) return false;
               if (!state.challenge) void state.perform(false);
               return true;
             },
           })}
         </fieldset>
       </div>
+      {state.configLoading && <p role="status" className="text-sm">Loading registration settings…</p>}
+      {state.required === null && !state.configLoading && <button type="button" className={`${buttonClass} ${primary}`} onClick={() => void state.loadConfig()}>Retry registration settings</button>}
       {!state.completed && (state.challenge || state.proof) && <div className="space-y-2">
         <h2 className="text-xl font-semibold tracking-tight">{state.proof ? "Your email is verified" : "Verify your email"}</h2>
         <p className="text-sm leading-6 text-zinc-600 dark:text-zinc-300">

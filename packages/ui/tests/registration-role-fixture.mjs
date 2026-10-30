@@ -33,6 +33,7 @@ export function registrationRoleModules(compile) {
     '@/lib/api': "module.exports=require('./api')",
     '../lib/api': "module.exports=require('./api')",
     '../lib/registration-email': `module.exports={registrationEmailClient:{
+      getConfig:(...args)=>require('./email-'+window.role).registrationEmailClient.getConfig(...args),
       requestCode:(...args)=>require('./email-'+window.role).registrationEmailClient.requestCode(...args),
       verifyCode:(...args)=>require('./email-'+window.role).registrationEmailClient.verifyCode(...args)}};`,
     '@/lib/registration-email': "module.exports=require('../lib/registration-email')",
@@ -81,6 +82,7 @@ export function registrationRoleSource(modules) {
     window.transport=async(path,options={})=>{
       if(path.endsWith('/registration-options'))return {shop_categories:[{id:'category',name:'Fixture category'}]};
       const body=options.body instanceof FormData?Object.fromEntries(options.body):JSON.parse(options.body||'{}');
+      if(path.endsWith('/registration/config')) {if(window.configFailure)throw Error('Settings unavailable');return {email_verification_required:window.otpRequired!==false};}
       if(path.endsWith('/verification-code'))return {challenge_id:'11111111-1111-4111-8111-111111111111',
         expires_at:new Date(Date.now()+600000).toISOString(),resend_available_at:new Date(Date.now()+60000).toISOString()};
       if(path.endsWith('/verify-email'))return {email_verification_token:(body.email.startsWith('first')?'a':'b').repeat(64),

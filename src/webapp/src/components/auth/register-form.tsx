@@ -195,7 +195,7 @@ function RegistrationDetails({ verification }: { verification: VerifiedRegistrat
         isLoading={submitting}
         loadingLabel="Creating account"
       >
-        {verification.token ? "Submit registration" : "Continue to email verification"}
+        {verification.ready ? "Submit registration" : "Continue to email verification"}
         <FiArrowRight aria-hidden="true" />
       </Button>
     </form>

@@ -4,6 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import type { RegistrationEmailChallenge, RegistrationEmailClient, RegistrationEmailProof, RegistrationSubmission } from "./types";
 
 export function useRegistrationEmail(client: RegistrationEmailClient) {
+  const [required, setRequired] = useState<boolean | null>(null);
+  const [configLoading, setConfigLoading] = useState(true);
+  const configRequest = useRef<AbortController | null>(null);
   const [email, setEmail] = useState("");
   const [verifiedEmail, setVerifiedEmail] = useState("");
   const [code, setCode] = useState("");
@@ -27,9 +30,11 @@ export function useRegistrationEmail(client: RegistrationEmailClient) {
 
   useEffect(() => {
     mounted.current = true;
+    void loadConfig();
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => {
       mounted.current = false;
+      configRequest.current?.abort();
       window.clearInterval(timer);
       serial.current++;
       pending.current?.abort();
@@ -47,6 +52,30 @@ export function useRegistrationEmail(client: RegistrationEmailClient) {
       setMessage("Email verification expired. Verify again to keep completing your form.");
     }
   }, [now, proof, submitting]);
+
+  async function loadConfig() {
+    configRequest.current?.abort();
+    const controller = new AbortController();
+    configRequest.current = controller;
+    setConfigLoading(true);
+    const timeout = window.setTimeout(() => controller.abort(), 15000);
+    try {
+      const config = await client.getConfig(controller.signal);
+      if (!mounted.current || configRequest.current !== controller) return;
+      if (typeof config.email_verification_required !== "boolean") throw new Error("Invalid configuration");
+      setRequired(config.email_verification_required);
+      setMessage("");
+      setError(false);
+    } catch {
+      if (!mounted.current || configRequest.current !== controller) return;
+      setRequired(null);
+      setError(true);
+      setMessage("Unable to load registration settings. Retry to continue.");
+    } finally {
+      window.clearTimeout(timeout);
+      if (mounted.current && configRequest.current === controller) setConfigLoading(false);
+    }
+  }
 
   function resetVerification(message = "") {
     serial.current++;
@@ -67,9 +96,9 @@ export function useRegistrationEmail(client: RegistrationEmailClient) {
 
   function beginSubmission(): RegistrationSubmission | null {
     // The ref locks synchronously, including two submissions before React renders.
-    if (!mounted.current || busy || completed || registration.current || !proof
-      || verified.current?.proof !== proof || verified.current.generation !== serial.current) return null;
-    if (Date.parse(proof.expires_at) <= Date.now()) {
+    if (!mounted.current || busy || completed || registration.current || required === null
+      || (required && (!proof || verified.current?.proof !== proof || verified.current.generation !== serial.current))) return null;
+    if (required && proof && Date.parse(proof.expires_at) <= Date.now()) {
       resetVerification("Email verification expired. Verify again to keep completing your form.");
       return null;
     }
@@ -85,8 +114,8 @@ export function useRegistrationEmail(client: RegistrationEmailClient) {
       setSubmitting(false);
     }
     return {
-      email: verifiedEmail,
-      token: proof.email_verification_token,
+      email: required ? verifiedEmail : email.trim().toLowerCase(),
+      token: required && proof ? proof.email_verification_token : "",
       signal: controller.signal,
       isCurrent,
       complete() {
@@ -99,9 +128,10 @@ export function useRegistrationEmail(client: RegistrationEmailClient) {
       finish(failure) {
         if (!isCurrent()) return;
         release();
-        if (failure?.reverify || Date.parse(proof.expires_at) <= Date.now()) {
+        if (failure?.reverify || (required && proof && Date.parse(proof.expires_at) <= Date.now())) {
           const prompt = failure?.reverify ? "Verify your email again to continue your application."
             : "Email verification expired. Verify again to keep completing your form.";
+          if (failure?.reverify) setRequired(true);
           resetVerification([failure?.message, prompt].filter(Boolean).join(" "));
         }
       },
@@ -164,7 +194,7 @@ export function useRegistrationEmail(client: RegistrationEmailClient) {
   }
 
   const resendAt = Math.max(retryAt, challenge ? Date.parse(challenge.resend_available_at) : 0);
-  return { email, setEmail, verifiedEmail, code, setCode, challenge, proof, busy, submitting, message, error,
+  return { required, configLoading, loadConfig, email, setEmail, verifiedEmail, code, setCode, challenge, proof, busy, submitting, message, error,
     feedback, codeInput, started, completed, reverify, beginSubmission, perform, coolingDown: retryAt > now,
     resendSeconds: Math.max(0, Math.ceil((resendAt - now) / 1000)),
     expired: !!challenge && Date.parse(challenge.expires_at) <= now };

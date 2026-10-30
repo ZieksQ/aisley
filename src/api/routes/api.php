@@ -311,6 +311,7 @@ Route::prefix('v1/admin')->name('admin.')->middleware(['auth:sanctum', 'admin.ac
 });
 
 Route::prefix('v1/customer/auth')->name('customer.auth.')->group(function () {
+    Route::get('/registration/config', [RegistrationEmailController::class, 'config'])->name('registration.config');
     Route::post('/registration/verification-code', [RegistrationEmailController::class, 'requestCode'])
         ->defaults('registration_role', 'customer')->middleware('throttle:registration-email-code')->name('registration.code');
     Route::post('/registration/verify-email', [RegistrationEmailController::class, 'verify'])
@@ -336,6 +337,7 @@ Route::prefix('v1/seller/auth')->name('seller.auth.')->group(function () {
     Route::get('/registration-options', [SellerAuthController::class, 'registrationOptions'])
         ->middleware('throttle:60,1')
         ->name('registration-options');
+    Route::get('/registration/config', [RegistrationEmailController::class, 'config'])->name('registration.config');
     Route::post('/registration/verification-code', [RegistrationEmailController::class, 'requestCode'])
         ->defaults('registration_role', 'seller')->middleware('throttle:registration-email-code')->name('registration.code');
     Route::post('/registration/verify-email', [RegistrationEmailController::class, 'verify'])
@@ -499,6 +501,7 @@ Route::prefix('v1/seller')->name('seller.')->middleware(['auth:sanctum', 'seller
 });
 
 Route::prefix('v1/logistics/auth')->name('logistics.auth.')->group(function () {
+    Route::get('/registration/config', [RegistrationEmailController::class, 'config'])->name('registration.config');
     Route::post('/registration/verification-code', [RegistrationEmailController::class, 'requestCode'])
         ->defaults('registration_role', 'logistics')->middleware('throttle:registration-email-code')->name('registration.code');
     Route::post('/registration/verify-email', [RegistrationEmailController::class, 'verify'])
@@ -676,6 +679,7 @@ Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', '
 
 Route::prefix('v1/courier/auth')->name('courier.auth.')->group(function () {
     Route::get('/logistics-options', [CourierAuthController::class, 'options'])->middleware('throttle:60,1')->name('logistics-options');
+    Route::get('/registration/config', [RegistrationEmailController::class, 'config'])->name('registration.config');
     Route::post('/registration/verification-code', [RegistrationEmailController::class, 'requestCode'])
         ->defaults('registration_role', 'courier')->middleware('throttle:registration-email-code')->name('registration.code');
     Route::post('/registration/verify-email', [RegistrationEmailController::class, 'verify'])

@@ -10,6 +10,7 @@ export type RegistrationEmailProof = {
 };
 
 export type RegistrationEmailClient = {
+  getConfig: (signal: AbortSignal) => Promise<{ email_verification_required: boolean }>;
   requestCode: (email: string, signal: AbortSignal) => Promise<RegistrationEmailChallenge>;
   verifyCode: (email: string, challengeId: string, code: string, signal: AbortSignal) => Promise<RegistrationEmailProof>;
 };
@@ -24,6 +25,7 @@ export type RegistrationSubmission = {
 };
 
 export type VerifiedRegistrationEmail = {
+  ready: boolean;
   email: string;
   token: string;
   submitting: boolean;

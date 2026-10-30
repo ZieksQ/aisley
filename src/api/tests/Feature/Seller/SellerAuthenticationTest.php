@@ -12,6 +12,7 @@ use App\Models\AdminPermission;
 use App\Models\Category;
 use App\Models\Document;
 use App\Models\Permission;
+use App\Models\PlatformFeatureControl;
 use App\Models\RegistrationApplication;
 use App\Models\SellerProfile;
 use App\Models\Shop;
@@ -52,6 +53,18 @@ class SellerAuthenticationTest extends TestCase
         RateLimiter::clear('seller-login|seller@example.com|127.0.0.1');
 
         parent::tearDown();
+    }
+
+    public function test_registration_can_skip_otp_without_claiming_inbox_verification(): void
+    {
+        PlatformFeatureControl::where('key', 'registration_email_verification_required')->update(['enabled' => false]);
+        $payload = $this->registrationPayload();
+        unset($payload['email_verification_token']);
+        $this->postRegistration($payload)->assertCreated()->assertJsonMissingPath('token');
+        $user = User::where('role', UserRole::Seller)->sole();
+        $this->assertNull($user->email_verified_at);
+        $this->assertSame(UserStatus::Pending, $user->status);
+        $this->assertGuest();
     }
 
     public function test_registration_creates_one_pending_seller_profile_and_application_without_a_shop_or_session(): void

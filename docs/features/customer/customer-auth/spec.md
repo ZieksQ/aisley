@@ -102,3 +102,7 @@ register profile + credentials
 - Frontend tests cover registration/login/recovery states, pending/rejected messages, generic errors, CSRF, protected redirects, and accessible form errors.
 - Before adding registration address/evidence, agree on required fields, evidence types, Admin review semantics, age presentation, email acknowledgement, retention, and resubmission in the reference and schema docs.
 - References: `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, `docs/domains/Buyer.md`, `docs/features/customer/address-book/spec.md`, `docs/features/customer/customer_verify_auth/spec.md`, and the two shared registration/file-upload references.
+
+## Registration OTP switch — 2026-10-30
+
+The Admin `registration_email_verification_required` control is enabled by default for all four public registration roles. Its disabled state explicitly overrides mandatory registration OTP statements above: registration skips proof, leaves `email_verified_at` null, and retains account/evidence approval and validation. See the [canonical registration contract](../../../references/registration-email-verification.md#admin-registration-otp-control--2026-10-30) for public configuration discovery, late setting changes, audit/permission rules, and mobile compatibility. Password and authenticated account email verification remain required.

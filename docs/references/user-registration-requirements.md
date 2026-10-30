@@ -104,3 +104,7 @@ All Customer, Seller, Logistics, and Courier applicants complete their existing 
 - Upload business/DTI permit
 
 > Note: After submiting your registration, please wait for the administrator's approval, which will be sent to your email.
+
+## Optional registration OTP — 2026-10-30
+
+Admin may disable `registration_email_verification_required` for all public registration roles. Disabled registration skips inbox proof and leaves the email unverified; all evidence and approval requirements remain. See [registration verification](registration-email-verification.md#admin-registration-otp-control--2026-10-30).

@@ -3,10 +3,12 @@
 namespace App\Services\Auth;
 
 use App\Enums\UserRole;
+use App\Models\PlatformFeatureControl;
 use App\Models\RegistrationEmailChallenge;
 use App\Models\RegistrationEmailIdentity;
 use App\Models\User;
 use App\Services\Mail\TransactionalEmailOutbox;
+use App\Services\PlatformFeatureControlService;
 use Closure;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -16,6 +18,27 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 class RegistrationEmailVerification
 {
     public function __construct(private readonly TransactionalEmailOutbox $outbox) {}
+
+    public function isRequired(): bool
+    {
+        return app(PlatformFeatureControlService::class)->isEnabled(
+            PlatformFeatureControl::REGISTRATION_EMAIL_VERIFICATION_REQUIRED,
+        );
+    }
+
+    public function completeRegistration(UserRole $role, string $email, string $token, Closure $registration): User
+    {
+        return DB::transaction(function () use ($role, $email, $token, $registration): User {
+            if ($this->isRequired()) {
+                return $this->complete($role, $email, $token, $registration);
+            }
+
+            $user = $registration();
+            $user->forceFill(['email_verified_at' => null])->save();
+
+            return $user;
+        });
+    }
 
     public function request(UserRole $role, string $email): array
     {

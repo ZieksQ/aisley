@@ -14,6 +14,8 @@ class PlatformFeatureControl extends Model
 
     public const CUSTOMER_REGISTRATION_APPROVAL_REQUIRED = 'customer_registration_approval_required';
 
+    public const REGISTRATION_EMAIL_VERIFICATION_REQUIRED = 'registration_email_verification_required';
+
     public const LINEHAUL = 'linehaul';
 
     protected $fillable = [

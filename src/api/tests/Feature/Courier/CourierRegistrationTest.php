@@ -6,6 +6,7 @@ use App\Enums\UserRole;
 use App\Enums\UserStatus;
 use App\Jobs\Logistics\DeliverLogisticsNotification;
 use App\Models\Document;
+use App\Models\PlatformFeatureControl;
 use App\Models\User;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Database\QueryException;
@@ -33,6 +34,18 @@ class CourierRegistrationTest extends TestCase
         config(['courier.registration.evidence_disk' => 'courier-registration-test']);
         Storage::fake('courier-registration-test');
         Bus::fake([DeliverLogisticsNotification::class]);
+    }
+
+    public function test_registration_can_skip_otp_without_claiming_inbox_verification(): void
+    {
+        PlatformFeatureControl::where('key', 'registration_email_verification_required')->update(['enabled' => false]);
+        $payload = $this->registrationPayload($this->registrationOrganization()->id);
+        unset($payload['email_verification_token']);
+        $this->postJson('/api/v1/courier/auth/register', $payload)->assertCreated()->assertJsonMissingPath('token');
+        $user = User::where('role', UserRole::Courier)->sole();
+        $this->assertNull($user->email_verified_at);
+        $this->assertSame(UserStatus::Pending, $user->status);
+        $this->assertGuest();
     }
 
     public function test_registration_creates_one_complete_pending_foundation_and_no_token(): void

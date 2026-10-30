@@ -5,6 +5,7 @@ namespace Tests\Feature\Logistics;
 use App\Enums\AddressType;
 use App\Enums\UserRole;
 use App\Enums\UserStatus;
+use App\Models\PlatformFeatureControl;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -22,6 +23,18 @@ class LogisticsAuthenticationTest extends TestCase
         parent::setUp();
         Storage::fake('logistics-registration-test');
         config()->set('logistics.registration.evidence_disk', 'logistics-registration-test');
+    }
+
+    public function test_registration_can_skip_otp_without_claiming_inbox_verification(): void
+    {
+        PlatformFeatureControl::where('key', 'registration_email_verification_required')->update(['enabled' => false]);
+        $payload = $this->payload();
+        unset($payload['email_verification_token']);
+        $this->post('/api/v1/logistics/auth/register', $payload)->assertCreated()->assertJsonMissingPath('token');
+        $user = User::where('role', UserRole::Logistics)->sole();
+        $this->assertNull($user->email_verified_at);
+        $this->assertSame(UserStatus::Pending, $user->status);
+        $this->assertGuest();
     }
 
     public function test_registration_creates_one_pending_logistics_account_organization_hub_and_evidence(): void

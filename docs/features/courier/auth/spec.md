@@ -228,3 +228,7 @@ The supplied snapshot identifies the foundation baseline as commit `d1abeee73d01
 - Backend review confirms that every new Auth mutation remains server-owned, transactional, scoped, and covered by API tests.
 
 **References:** `docs/features/courier/rules.md`, `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, `docs/domain/Courier.md`, `docs/domain/Logistics.md`, [`user-registration-requirements.md`](../../../references/user-registration-requirements.md), [`file-upload-requirements.md`](../../../references/file-upload-requirements.md), and [Laravel Sanctum token abilities](https://laravel.com/docs/sanctum#token-abilities).
+
+## Registration OTP switch — 2026-10-30
+
+The Admin `registration_email_verification_required` control is enabled by default for all four public registration roles. Its disabled state explicitly overrides mandatory registration OTP statements above: registration skips proof, leaves `email_verified_at` null, and retains account/evidence approval and validation. See the [canonical registration contract](../../../references/registration-email-verification.md#admin-registration-otp-control--2026-10-30) for public configuration discovery, late setting changes, audit/permission rules, and mobile compatibility. Password and authenticated account email verification remain required.

@@ -50,7 +50,7 @@ try {
     }
     if(role!=='customer') {
       await fill('business_name','Retained business')
-      if(role==='seller') await js("const el=document.querySelector('[name=shop_category_id]');el.value='category';el.dispatchEvent(new Event('change',{bubbles:true}))")
+      if(role==='seller') await js("(() => {const el=document.querySelector('[name=shop_category_id]');el.value='category';el.dispatchEvent(new Event('change',{bubbles:true}));})()")
       await js("for(const name of ['government_id','business_permit']) {const dt=new DataTransfer();dt.items.add(new File(['fixture'],name+'.png',{type:'image/png'}));document.querySelector('[name='+name+']').files=dt.files;}")
     }
     await click('Continue to email verification')
@@ -76,7 +76,37 @@ try {
     await js('window.resolveFinal()')
     await browser.until(role==='seller'?"document.body.textContent.includes('Waiting for Admin approval')":'window.navigations.length===1','completion')
   }
-  await js('window.unmountRole()')
+  // Disabled registration skips OTP; re-enabling at final submission preserves drafts.
+  for (const role of ['customer','seller','logistics']) {
+    await js(`window.otpRequired=false;window.configFailure=true;window.mountRole('${role}')`)
+    await browser.until("document.body.textContent.includes('Retry registration settings')", 'configuration failure')
+    for (const [name,value] of Object.entries({email:'first@example.invalid',first_name:'Retained',last_name:'Fixture',contact_number:'09170000000',birth_date:'2000-01-01',sex:'male',password:'Synthetic123',password_confirmation:'Synthetic123'})) {
+      await js(`(() => {const el=document.querySelector('[name="${name}"]');Object.getOwnPropertyDescriptor(el.tagName==='SELECT'?HTMLSelectElement.prototype:HTMLInputElement.prototype,'value').set.call(el,${JSON.stringify(value)});el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));})()`)
+    }
+    if (role!=='customer') {
+      await fill('business_name','Retained business')
+      if(role==='seller') await js("(() => {const el=document.querySelector('[name=shop_category_id]');el.value='category';el.dispatchEvent(new Event('change',{bubbles:true}));})()")
+      await js("for(const name of ['government_id','business_permit']) {const dt=new DataTransfer();dt.items.add(new File(['fixture'],name+'.png',{type:'image/png'}));document.querySelector('[name='+name+']').files=dt.files;}")
+    }
+    await click('Continue to email verification')
+    assert.equal(await js('window.finalQueue.length'),0,'settings failure blocks registration')
+    await js('window.configFailure=false')
+    await click('Retry registration settings')
+    await browser.until('window.verification.ready', 'bypass ready')
+    assert.equal(await js("document.querySelector('[name=password]').value"),'Synthetic123')
+    assert.equal(await js("!!document.querySelector('[name=verification_code]')"),false)
+    await click('Submit registration')
+    await browser.until('window.finalQueue.length===1', 'bypassed submission')
+    assert.equal(await js('window.finalQueue[0].body.email_verification_token'),'')
+    await js("window.rejectFinal('proof')")
+    await browser.until('!window.verification.ready', 'server requires verification again')
+    assert.equal(await js("document.querySelector('[name=password]').value"),'Synthetic123')
+    if(role!=='customer') assert.equal(await js("document.querySelector('[name=government_id]').files[0].name"),'government_id.png')
+    await click('Continue to email verification')
+    await browser.until("!!document.querySelector('[name=verification_code]')", 're-enabled OTP')
+    assert.equal(await js('window.finalQueue.length'),1,'no automatic submission retry')
+  }
+  await js('window.otpRequired=true;window.unmountRole()')
   await checkRegistrationSubmissions(browser, modules, compile, artifacts)
   assert.equal(browser.errors.length,0,JSON.stringify(browser.errors))
   console.log('All three role forms pass details-first, tab events, password/file retention, OTP and explicit submission checks.')

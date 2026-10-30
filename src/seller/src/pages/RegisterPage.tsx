@@ -173,7 +173,7 @@ function RegistrationDetails({ verification }: { verification: VerifiedRegistrat
         {formError ? <div className="flex gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-400/20 dark:bg-red-400/10 dark:text-red-300" role="alert"><FaCircleExclamation aria-hidden="true" className="mt-0.5 shrink-0" /><p>{formError}</p></div> : null}
 
         <button className="h-11 w-full rounded-lg bg-[#4C1268] px-4 text-sm font-semibold text-white hover:bg-[#3D0E54] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4C1268] disabled:opacity-60" disabled={isSubmitting || isLoadingOptions || Boolean(optionsError)} type="submit">
-          {isSubmitting ? 'Submitting application…' : verification.token ? 'Submit registration' : 'Continue to email verification'}
+          {isSubmitting ? 'Submitting application…' : verification.ready ? 'Submit registration' : 'Continue to email verification'}
         </button>
       </form>
     </section>

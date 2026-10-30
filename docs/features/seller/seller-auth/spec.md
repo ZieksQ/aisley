@@ -134,3 +134,7 @@ register → pending User/Application/Shop/evidence
 - Admin review remains the only authority that changes pending Seller approval; Seller Account Management cannot activate itself or its Shop.
 
 **References:** `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, `docs/domains/Seller.md`, and `docs/references/user-registration-requirements.md`.
+
+## Registration OTP switch — 2026-10-30
+
+The Admin `registration_email_verification_required` control is enabled by default for all four public registration roles. Its disabled state explicitly overrides mandatory registration OTP statements above: registration skips proof, leaves `email_verified_at` null, and retains account/evidence approval and validation. See the [canonical registration contract](../../../references/registration-email-verification.md#admin-registration-otp-control--2026-10-30) for public configuration discovery, late setting changes, audit/permission rules, and mobile compatibility. Password and authenticated account email verification remain required.
