@@ -11,6 +11,7 @@ use App\Models\Permission;
 use App\Models\PlatformFeatureControl;
 use App\Models\PlatformPolicy;
 use App\Models\User;
+use Database\Seeders\PlatformFeatureControlSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -49,11 +50,28 @@ class FeatureControlTest extends TestCase
         ])->assertForbidden();
     }
 
+    public function test_registration_otp_management_is_permission_gated_and_seeding_preserves_choice(): void
+    {
+        $key = PlatformFeatureControl::REGISTRATION_EMAIL_VERIFICATION_REQUIRED;
+        $admin = $this->admin();
+        $this->grant($admin, 'platform-settings.view');
+        Sanctum::actingAs($admin);
+        $this->getJson('/api/v1/admin/platform-settings/feature-controls')->assertOk()
+            ->assertJsonFragment(['key' => $key, 'enabled' => true]);
+        $this->patchJson('/api/v1/admin/platform-settings/feature-controls/'.$key, [
+            'enabled' => false, 'revision' => 1,
+        ])->assertForbidden();
+        PlatformFeatureControl::where('key', $key)->update(['enabled' => false]);
+        $this->seed(PlatformFeatureControlSeeder::class);
+        $this->assertFalse(PlatformFeatureControl::where('key', $key)->sole()->enabled);
+    }
+
     public static function controlKeys(): array
     {
         return [
             'consent' => [PlatformFeatureControl::POLICY_CONSENT_ENFORCEMENT],
             'buyer approval' => [PlatformFeatureControl::CUSTOMER_REGISTRATION_APPROVAL_REQUIRED],
+            'registration OTP' => [PlatformFeatureControl::REGISTRATION_EMAIL_VERIFICATION_REQUIRED],
         ];
     }
 

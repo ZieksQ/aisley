@@ -12,6 +12,6 @@ There is no authenticated pending-applicant status API, rejected resubmission co
 
 Future evidence must follow [upload policy](file-upload-requirements.md), attach privately to the pending application, maintain transaction failure cleanup, and expose no raw paths or self-approval. Approved address changes would follow [PSGC/maps](../maps-location-api.md). [Integration gaps](integration-gaps.md) tracks these decisions.
 
-## Email verification before registration
+## Registration details before email verification
 
 All new applicants must verify their email with a six-digit OTP before completing registration. Existing approval and existing-account behavior remain unchanged. See [registration email contract](../registration-email.md).

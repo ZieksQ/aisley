@@ -17,17 +17,37 @@ export function RegistrationEmailGate({ client, children, accent = "purple" }: {
   const primary = accent === "blue" ? "bg-[#2563EB] text-white hover:bg-[#1D4ED8]" : "bg-[#4C1268] text-white hover:bg-[#3D0E54]";
   return (
     <div className="space-y-6 text-zinc-900 dark:text-zinc-100">
-      {!state.completed && <div className="space-y-2">
+      <div aria-busy={state.submitting}>
+        <fieldset disabled={state.busy || state.submitting || state.completed}>
+          {children({ ready: state.required === false || !!state.proof, email: state.email, token: state.proof?.email_verification_token ?? "", submitting: state.submitting,
+            beginSubmission: state.beginSubmission,
+            setEmail: (email) => {
+              if (state.submitting || state.completed) return;
+              if (email.trim().toLowerCase() !== state.email.trim().toLowerCase()) state.reverify();
+              state.setEmail(email);
+            },
+            continueToVerification: () => {
+              if (state.required === null) return true;
+              if (!state.required || state.proof) return false;
+              if (!state.challenge) void state.perform(false);
+              return true;
+            },
+          })}
+        </fieldset>
+      </div>
+      {state.configLoading && <p role="status" className="text-sm">Loading registration settings…</p>}
+      {state.required === null && !state.configLoading && <button type="button" className={`${buttonClass} ${primary}`} onClick={() => void state.loadConfig()}>Retry registration settings</button>}
+      {!state.completed && (state.challenge || state.proof) && <div className="space-y-2">
         <h2 className="text-xl font-semibold tracking-tight">{state.proof ? "Your email is verified" : "Verify your email"}</h2>
         <p className="text-sm leading-6 text-zinc-600 dark:text-zinc-300">
-          {state.proof ? state.verifiedEmail : "First, confirm your email with a six-digit code. Your application will still need approval."}
+          {state.proof ? state.verifiedEmail : "Your details are kept here while you check your email for the six-digit code."}
         </p>
       </div>}
       {state.message && <p ref={feedback} tabIndex={-1} role={state.error ? "alert" : "status"}
         className={`text-sm leading-6 focus:outline-none ${state.error ? "text-red-700 dark:text-red-300" : "text-zinc-600 dark:text-zinc-300"}`}>{state.message}</p>}
       {state.proof ? (
         <button type="button" className={`${buttonClass} border border-zinc-300 dark:border-white/20`} disabled={state.submitting} onClick={state.reverify}>Change email</button>
-      ) : !state.completed && (
+      ) : !state.completed && state.challenge && (
         <form className="space-y-4" onSubmit={(event) => { event.preventDefault(); void state.perform(!!state.challenge); }}>
           <label className="block text-sm font-medium" htmlFor={`${id}-email`}>Email address
             <input id={`${id}-email`} name="email" type="email" autoComplete="email" maxLength={255} required className={inputClass}
@@ -55,11 +75,7 @@ export function RegistrationEmailGate({ client, children, accent = "purple" }: {
         </form>
       )}
       {state.submitting && <p role="status" className="text-sm text-zinc-600 dark:text-zinc-300">Submitting your application. Please wait before changing your email.</p>}
-      {state.started && <div hidden={!state.proof && !state.completed} aria-busy={state.submitting}>
-        <fieldset disabled={!state.proof || state.busy || state.submitting}>
-          {children({ email: state.verifiedEmail, token: state.proof?.email_verification_token ?? "", submitting: state.submitting, beginSubmission: state.beginSubmission })}
-        </fieldset>
-      </div>}
+
     </div>
   );
 }

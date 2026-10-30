@@ -7,6 +7,7 @@ async function send<T>(action: string, body: Record<string, string>, signal: Abo
 }
 
 export const registrationEmailClient: RegistrationEmailClient = {
+  getConfig: (signal) => apiRequest<{ email_verification_required: boolean }>(`/api/v1/customer/auth/registration/config`, { signal }),
   requestCode: (email, signal) => send<RegistrationEmailChallenge>('verification-code', { email }, signal),
   verifyCode: (email, challenge_id, verification_code, signal) => send<RegistrationEmailProof>('verify-email', { email, challenge_id, verification_code }, signal),
 };

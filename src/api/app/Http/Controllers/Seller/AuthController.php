@@ -79,7 +79,7 @@ class AuthController extends Controller
         }
 
         try {
-            $user = $verification->complete(UserRole::Seller, $email, (string) $request->input('email_verification_token'), function () use ($request, $email, &$storedEvidence): User {
+            $user = $verification->completeRegistration(UserRole::Seller, $email, (string) $request->input('email_verification_token'), function () use ($request, $email, &$storedEvidence): User {
                 $user = User::create([
                     'email' => $email,
                     'password' => (string) $request->input('password'),

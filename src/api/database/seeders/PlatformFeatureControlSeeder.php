@@ -10,6 +10,12 @@ class PlatformFeatureControlSeeder extends Seeder
     /** @var array<int, array{key: string, label: string, description: string, enabled: bool}> */
     private const CONTROLS = [
         [
+            'key' => PlatformFeatureControl::REGISTRATION_EMAIL_VERIFICATION_REQUIRED,
+            'label' => 'Require email OTP for registration',
+            'description' => 'When disabled, Customer, Seller, Logistics, and Courier registration skips inbox verification. Account approval rules still apply.',
+            'enabled' => true,
+        ],
+        [
             'key' => PlatformFeatureControl::CUSTOMER_REGISTRATION_APPROVAL_REQUIRED,
             'label' => 'Require buyer account approval',
             'description' => 'When disabled, new verified buyers are automatically approved and active. Existing pending buyers still require review.',

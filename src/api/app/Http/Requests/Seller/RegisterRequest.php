@@ -4,6 +4,7 @@ namespace App\Http\Requests\Seller;
 
 use App\Enums\CategoryStatus;
 use App\Enums\UserSex;
+use App\Services\Auth\RegistrationEmailVerification;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Str;
@@ -46,7 +47,8 @@ class RegisterRequest extends FormRequest
             'address.longitude' => ['prohibited'],
             'government_id' => $this->evidenceRules(),
             'business_permit' => $this->evidenceRules(),
-            'email_verification_token' => ['required', 'string', 'size:64'],
+            'email_verification_token' => app(RegistrationEmailVerification::class)->isRequired()
+                ? ['required', 'string', 'size:64'] : ['exclude'],
             'email_verified_at' => ['prohibited'],
             'email' => ['required', 'string', 'email', 'max:255'],
             'password' => [

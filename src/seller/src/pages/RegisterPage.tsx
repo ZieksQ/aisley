@@ -55,6 +55,7 @@ function RegistrationDetails({ verification }: { verification: VerifiedRegistrat
     event.preventDefault()
     if (isSubmitting) return
     const formData = new FormData(event.currentTarget)
+    if (verification.continueToVerification()) return
     const attempt = verification.beginSubmission()
     if (!attempt) return
     formData.set('email', attempt.email)
@@ -160,7 +161,7 @@ function RegistrationDetails({ verification }: { verification: VerifiedRegistrat
         <fieldset className="border-t border-zinc-200 pt-6 dark:border-white/10">
           <legend className="mb-4 font-semibold">Sign-in details</legend>
           <div className="space-y-4">
-            <FormField autoComplete="email" error={errors.email?.[0]} id="register_email" label="Email address *" name="email" readOnly value={verification.email} required type="email" />
+            <FormField autoComplete="email" error={errors.email?.[0]} id="register_email" label="Email address *" name="email" onChange={(event) => verification.setEmail(event.target.value)} value={verification.email} required type="email" />
             <div className="grid gap-4 sm:grid-cols-2">
               <FormField autoComplete="new-password" error={errors.password?.[0]} id="register_password" label="Password *" minLength={8} name="password" required type="password" />
               <FormField autoComplete="new-password" id="password_confirmation" label="Confirm password *" minLength={8} name="password_confirmation" required type="password" />
@@ -172,7 +173,7 @@ function RegistrationDetails({ verification }: { verification: VerifiedRegistrat
         {formError ? <div className="flex gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-400/20 dark:bg-red-400/10 dark:text-red-300" role="alert"><FaCircleExclamation aria-hidden="true" className="mt-0.5 shrink-0" /><p>{formError}</p></div> : null}
 
         <button className="h-11 w-full rounded-lg bg-[#4C1268] px-4 text-sm font-semibold text-white hover:bg-[#3D0E54] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4C1268] disabled:opacity-60" disabled={isSubmitting || isLoadingOptions || Boolean(optionsError)} type="submit">
-          {isSubmitting ? 'Submitting application…' : 'Submit application'}
+          {isSubmitting ? 'Submitting application…' : verification.ready ? 'Submit registration' : 'Continue to email verification'}
         </button>
       </form>
     </section>
@@ -183,7 +184,7 @@ export function RegisterPage() {
   const { seller, isLoading } = useAuth()
   if (isLoading) return null
   if (seller) return <Navigate replace to="/dashboard" />
-  return <AuthShell title="Apply for a Seller account" description="Verify your email before completing your application." footer={<Link to="/login">Already registered? Sign in</Link>} wide>
+  return <AuthShell title="Apply for a Seller account" description="Complete your details, then verify your email and submit your application." footer={<Link to="/login">Already registered? Sign in</Link>} wide>
     <RegistrationEmailGate client={registrationEmailClient}>{(verification) => <RegistrationDetails verification={verification} />}</RegistrationEmailGate>
   </AuthShell>
 }

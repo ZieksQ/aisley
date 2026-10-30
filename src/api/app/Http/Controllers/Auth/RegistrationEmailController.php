@@ -10,6 +10,12 @@ use Illuminate\Http\JsonResponse;
 
 class RegistrationEmailController extends Controller
 {
+    public function config(RegistrationEmailVerification $verification): JsonResponse
+    {
+        return response()->json(['email_verification_required' => $verification->isRequired()])
+            ->header('Cache-Control', 'no-store');
+    }
+
     public function requestCode(RegistrationEmailRequest $request, RegistrationEmailVerification $verification): JsonResponse
     {
         return response()->json($verification->request(

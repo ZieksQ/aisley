@@ -1,4 +1,4 @@
-# Email verification before registration
+# Registration details before email verification
 
 Contract adopted on 2026-10-14 for Customer, Seller, Logistics, and Courier. Existing accounts keep their login and approval behavior. Admin has no public registration. Email verification proves access to the inbox; it does not replace account or evidence approval.
 
@@ -20,7 +20,7 @@ Use `/api/v1/{role}/auth/registration`, where the route selects `customer`, `sel
 
 ## Completing registration
 
-Every existing `POST /api/v1/{role}/auth/register` requires `email_verification_token`, alongside the existing fields and content type. Customer remains JSON; Seller/Logistics/Courier retain multipart evidence. Registration validates the role/email-bound proof before permanent evidence storage, and consumes it in the same database transaction as the complete registration. `users.email_verified_at` records the actual verification time.
+When registration OTP is enabled (the default), every existing `POST /api/v1/{role}/auth/register` requires `email_verification_token`, alongside the existing fields and content type. Customer remains JSON; Seller/Logistics/Courier retain multipart evidence. Registration validates the role/email-bound proof before permanent evidence storage, and consumes it in the same database transaction as the complete registration. `users.email_verified_at` records the actual verification time.
 
 Missing, invalid, consumed, expired, or wrong-email/wrong-role proofs return `422` with `errors.email_verification_token`; no registration side effects occur. A failed persistence transaction preserves a valid proof and removes losing evidence using the existing role workflow. Concurrent duplicate submissions create at most one role-account. Successful registration returns `201` and no credential. Customers return `customer.status=pending` by default; when Admin disables `customer_registration_approval_required`, new Customers return `active` with `Your account is ready. You can now sign in.` and an approved application. Existing pending Customers and other roles retain approval requirements. Clients route active results to sign-in rather than waiting for approval.
 
@@ -40,7 +40,7 @@ This backend contract does not indicate that the external Courier Flutter app im
 
 ## Client flow
 
-Email entry → code entry/resend → registration details → existing approval destination. Keep proofs/codes in memory only. Changing email invalidates local verification and requires another code; expiry returns to verification while preserving draft details and selected evidence. Protect existing unsaved work; preserve each client's password-clearing and upload-cancellation behavior. Ignore late responses after reset, route exit, disposal, or a newer attempt.
+Complete registration details/evidence and email → code entry/resend → explicit registration submission → existing approval or account-ready destination. Keep proofs/codes in memory only. Changing email invalidates local verification and requires another code; expiry returns to verification while preserving draft details and selected evidence. Protect existing unsaved work; preserve each client's password-clearing and upload-cancellation behavior. Ignore late responses after reset, route exit, disposal, or a newer attempt.
 
 Customer, Seller, and Logistics web registration use the shared gate's submission lifecycle. Capture the form/evidence and begin an attempt synchronously before awaiting CSRF; freeze its email/proof and disable email changes, verification controls, details, and duplicate submission until it settles. Only the originating live verification generation may complete, show errors, reset verification, or navigate. Route exit aborts the client request and invalidates callbacks; check again after CSRF before sending registration. Client cancellation cannot reverse a server commit.
 
@@ -48,12 +48,26 @@ Defer local proof-expiry reset while final submission is pending and honor a cur
 
 Use one accessible code field with paste, one-time-code autofill, a numeric keyboard, six-digit validation, and leading-zero preservation. Explain expiry and spam-folder checks; respect reduced motion. Existing role palettes/native themes apply. Verification failure, offline/timeout, throttling, and final approval are distinct states.
 
+Keep registration drafts, passwords and selected evidence in memory through verification, Back/edit navigation, browser tab switching and mobile background/resume. Email changes invalidate the challenge/proof without discarding other fields. Recompute expiry on return; never clear draft data on focus or visibility changes. Refresh, process termination and page closure recovery are outside this guarantee; do not persist passwords, OTPs, proofs or evidence in ordinary storage.
+
 ## Persistence, delivery, and release
 
 The additive migration creates `registration_email_identities` and `registration_email_challenges` and makes transactional email User ownership nullable. Only `registration_code` delivery accepts no User; existing kinds still require the matching User/role/email. Enum values remain DB strings with PHP casts. Proof recovery is encrypted; token lookup uses a hash.
 
 Challenge and encrypted mail intent commit together. Existing database jobs, claim leases, SMTP timeout, retries, and recovery scheduler deliver to the pre-account email. Expired, verified, consumed, or superseded challenges are skipped. SMTP acceptance is not evidence of inbox delivery; delivery failure never creates a pending account. Operators should request a fresh code rather than retrying an expired message.
 
-`auth:cleanup-registration-codes` runs hourly, clears obsolete challenge secrets, and removes obsolete challenge history after 24 hours without resetting the hourly quota. Apply migrations and restart workers/scheduler before releasing updated web and mobile clients. Enforcement is mandatory; older clients cannot complete new registration without verification. Existing accounts are not backfilled or newly gated.
+`auth:cleanup-registration-codes` runs hourly, clears obsolete challenge secrets, and removes obsolete challenge history after 24 hours without resetting the hourly quota. Apply migrations and restart workers/scheduler before releasing updated web and mobile clients. Enforcement follows the Admin registration OTP control below; older clients cannot complete new registration without verification. Existing accounts are not backfilled or newly gated.
 
 Local acceptance must cover all role routes, no pre-verification side effects, normalization, hashing/encryption, leading zeros, wrong attempts, resend/expiry, correct retry, proof binding/single use, registration rollback, evidence cleanup, duplicate races, mail delivery/obsolete skipping, client cancellation, draft preservation, and accessible responsive states. Record PostgreSQL process concurrency, deployed API/worker behavior, real SMTP inbox delivery, and installed-device checks separately from local mocks/builds.
+
+## Admin registration OTP control — 2026-10-30
+
+`registration_email_verification_required` is a platform-wide Admin feature control, enabled by default (including when its row is missing), for Customer, Seller, Logistics, and Courier public registration. Authorized Admins use Feature controls; updates require `platform-settings.manage`, a current revision, and the existing before/after audit record. Reads require `platform-settings.view`.
+
+Public `GET /api/v1/{role}/auth/registration/config` returns `{ "email_verification_required": true }` (or `false`) with `Cache-Control: no-store`. This endpoint requires no authentication and exposes only the registration requirement.
+
+When enabled, the OTP and single-use proof contract above applies. When disabled, clients skip code entry and explicitly submit their existing details/evidence without `email_verification_token`; supplied proofs are ignored, and `email_verified_at` stays null. Skipped verification never claims inbox ownership. Existing account approval, validation, duplicate-email, authentication, and evidence requirements still apply. Disabling OTP does not automatically approve an account or change existing accounts.
+
+The API checks the switch again during registration. If re-enabled after a client read, missing proof returns `422` with `errors.email_verification_token`; clients enter verification with drafts/files intact. Settings-read failure blocks submission with explicit retry. No automatic final-registration retry is permitted. Existing code-request/verify endpoints continue requiring real codes even while the switch is off; older clients can retain their OTP flow until updated.
+
+This switch affects public registration only. Password changes/recovery and authenticated Courier account email changes retain verification. Web clients implement configuration discovery; portable Flutter contracts describe the same endpoint and bypass, but this backend/web change does not establish external Flutter adoption or device acceptance.

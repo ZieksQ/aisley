@@ -6,6 +6,7 @@ use App\Enums\EmailDeliveryStatus;
 use App\Enums\TransactionalEmailKind;
 use App\Enums\UserRole;
 use App\Enums\UserStatus;
+use App\Models\PlatformFeatureControl;
 use App\Models\RegistrationEmailChallenge;
 use App\Models\TransactionalEmail;
 use App\Models\User;
@@ -165,6 +166,26 @@ class RegistrationEmailVerificationTest extends TestCase
         $this->artisan('auth:cleanup-registration-codes')->assertSuccessful();
         $this->assertNull(RegistrationEmailChallenge::findOrFail($id)->code_hash);
         $this->assertDatabaseCount('registration_email_challenges', 1);
+    }
+
+    #[DataProvider('roles')]
+    public function test_configuration_and_validation_follow_the_switch(string $role): void
+    {
+        $path = '/api/v1/'.$role.'/auth/registration/config';
+        $this->getJson($path)->assertOk()->assertJsonPath('email_verification_required', true)->assertHeader('Cache-Control', 'no-store, private');
+        PlatformFeatureControl::where('key', 'registration_email_verification_required')->update(['enabled' => false]);
+        $this->getJson($path)->assertOk()->assertJsonPath('email_verification_required', false);
+        $this->postJson('/api/v1/'.$role.'/auth/register', [])->assertUnprocessable()->assertJsonMissingValidationErrors('email_verification_token');
+        PlatformFeatureControl::where('key', 'registration_email_verification_required')->delete();
+        $this->getJson($path)->assertOk()->assertJsonPath('email_verification_required', true);
+        $this->postJson('/api/v1/'.$role.'/auth/register', [])->assertUnprocessable()->assertJsonValidationErrors('email_verification_token');
+    }
+
+    public function test_registration_bypass_does_not_bypass_authenticated_email_verification(): void
+    {
+        PlatformFeatureControl::where('key', 'registration_email_verification_required')->update(['enabled' => false]);
+        $this->expectException(ValidationException::class);
+        app(RegistrationEmailVerification::class)->complete(UserRole::Courier, 'new@example.com', '', fn () => $this->fail('Bypassed email change'));
     }
 
     private function challenge(): array

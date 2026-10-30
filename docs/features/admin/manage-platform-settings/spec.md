@@ -169,3 +169,7 @@ PATCH /feature-controls/{key}
 Admin → Feature controls exposes `customer_registration_approval_required` (Require buyer account approval), enabled by default. Existing `platform-settings.view`/`platform-settings.manage` permissions, revision conflict handling and before/after audit records apply. A new migration installs the declared control; seeding preserves an existing choice.
 
 Enabled or missing: new Customers and applications are pending. Disabled: after the same email OTP verification and registration validation, new Customers are active and applications approved, with decision time and no Admin reviewer. No manual review is implied. Existing pending applications remain pending; other roles retain their approval rules. No pending-review notification is generated for automatically approved registrations. Registration issues no credential; separate login remains required.
+
+## Registration OTP switch — 2026-10-30
+
+The Admin `registration_email_verification_required` control is enabled by default for all four public registration roles. Its disabled state explicitly overrides mandatory registration OTP statements above: registration skips proof, leaves `email_verified_at` null, and retains account/evidence approval and validation. See the [canonical registration contract](../../../references/registration-email-verification.md#admin-registration-otp-control--2026-10-30) for public configuration discovery, late setting changes, audit/permission rules, and mobile compatibility. Password and authenticated account email verification remain required.

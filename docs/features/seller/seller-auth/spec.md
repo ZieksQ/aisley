@@ -31,7 +31,7 @@ register → pending User/Application/Shop/evidence
 
 ## Registration email verification — 2026-10-14
 
-- Email → six-digit OTP → registration details/evidence → existing pending approval. Require the role/email-bound `email_verification_token` on every registration; consume it atomically and record `email_verified_at`. Existing accounts keep their current login/approval behavior.
+- Registration details/evidence → six-digit email OTP → explicit registration submission → existing pending approval. Require the role/email-bound `email_verification_token` on every registration; consume it atomically and record `email_verified_at`. Existing accounts keep their current login/approval behavior.
 - Use the exact public code/verify routes, limits, error/retry behavior, mail delivery and deployment contract in [registration email verification](../../../references/registration-email-verification.md). Email verification issues no authentication credential and never replaces approval.
 - Web final submission locks the verified identity, details, and evidence synchronously. Only its current mounted verification attempt may show errors or the pending-approval result; defer local expiry while pending, retain drafts/selected files on failure/reverification, and preserve unconfirmed-result/sign-in guidance. Follow the shared contract's submission lifecycle and obsolete-response rules.
 
@@ -134,3 +134,7 @@ register → pending User/Application/Shop/evidence
 - Admin review remains the only authority that changes pending Seller approval; Seller Account Management cannot activate itself or its Shop.
 
 **References:** `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, `docs/domains/Seller.md`, and `docs/references/user-registration-requirements.md`.
+
+## Registration OTP switch — 2026-10-30
+
+The Admin `registration_email_verification_required` control is enabled by default for all four public registration roles. Its disabled state explicitly overrides mandatory registration OTP statements above: registration skips proof, leaves `email_verified_at` null, and retains account/evidence approval and validation. See the [canonical registration contract](../../../references/registration-email-verification.md#admin-registration-otp-control--2026-10-30) for public configuration discovery, late setting changes, audit/permission rules, and mobile compatibility. Password and authenticated account email verification remain required.

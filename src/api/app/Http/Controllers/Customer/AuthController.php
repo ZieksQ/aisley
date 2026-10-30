@@ -45,7 +45,7 @@ class AuthController extends Controller
         }
 
         try {
-            $user = $verification->complete(UserRole::Customer, $email, (string) $request->input('email_verification_token'), function () use ($request, $registration): User {
+            $user = $verification->completeRegistration(UserRole::Customer, $email, (string) $request->input('email_verification_token'), function () use ($request, $registration): User {
                 return $registration->create($request->safe()->all());
             });
         } catch (QueryException $exception) {

@@ -46,7 +46,7 @@ class AuthController extends Controller
             return $this->duplicateResponse();
         }
         try {
-            $user = $verification->complete(UserRole::Logistics, $email, (string) $request->input('email_verification_token'), function () use ($request, $email, &$storedEvidence): User {
+            $user = $verification->completeRegistration(UserRole::Logistics, $email, (string) $request->input('email_verification_token'), function () use ($request, $email, &$storedEvidence): User {
                 $user = User::create(['email' => $email, 'password' => (string) $request->input('password'), 'role' => UserRole::Logistics, 'status' => UserStatus::Pending]);
                 $user->logisticsProfile()->create($request->safe()->only(['first_name', 'last_name', 'middle_name', 'contact_number', 'sex', 'birth_date']));
                 $application = $user->registrationApplications()->create(['application_type' => UserRole::Logistics, 'status' => ApplicationStatus::Pending, 'submitted_at' => now()]);

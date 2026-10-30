@@ -35,7 +35,7 @@ screen; public backend methods/envelopes remain unchanged. Auth/recovery/Terms/P
 Phone/tablet padding, natural content heights and keyboard/text resizing follow [Buyer design](../../../design-buyer.md).
 
 ## MUST
-- Registration now requires email-first OTP and `email_verification_token`; see [registration email contract](../../../registration-email.md) for exact endpoints, limits, errors, retry, proof expiry, and client behavior. Adopted locally on 2026-10-14; deployed/device acceptance remains open.
+- Registration now collects details first, then requires email OTP and `email_verification_token`; see [registration email contract](../../../registration-email.md) for exact endpoints, limits, errors, retry, proof expiry, and client behavior. Adopted locally on 2026-10-14; deployed/device acceptance remains open.
 
 ### Feature behavior and boundaries
 

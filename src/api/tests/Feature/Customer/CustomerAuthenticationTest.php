@@ -7,6 +7,7 @@ use App\Enums\UserRole;
 use App\Enums\UserSex;
 use App\Enums\UserStatus;
 use App\Models\CustomerProfile;
+use App\Models\PlatformFeatureControl;
 use App\Models\User;
 use App\Notifications\Customer\ResetPasswordNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -23,6 +24,31 @@ class CustomerAuthenticationTest extends TestCase
     use DeliversTransactionalEmails;
     use RefreshDatabase;
     use VerifiedRegistrationEmail;
+
+    public function test_registration_can_skip_otp_without_claiming_inbox_verification(): void
+    {
+        PlatformFeatureControl::where('key', 'registration_email_verification_required')->update(['enabled' => false]);
+        $payload = $this->registrationPayload();
+        unset($payload['email_verification_token']);
+        $this->postJson('/api/v1/customer/auth/register', $payload)->assertCreated()->assertJsonMissingPath('token');
+        $user = User::where('role', UserRole::Customer)->sole();
+        $this->assertNull($user->email_verified_at);
+        $this->assertSame(UserStatus::Pending, $user->status);
+        $this->assertGuest();
+    }
+
+    public function test_otp_and_buyer_approval_can_be_disabled_independently(): void
+    {
+        PlatformFeatureControl::whereIn('key', ['registration_email_verification_required', 'customer_registration_approval_required'])->update(['enabled' => false]);
+        $payload = $this->registrationPayload();
+        unset($payload['email_verification_token']);
+        $this->postJson('/api/v1/customer/auth/register', $payload)->assertCreated()
+            ->assertJsonPath('customer.status', 'active')->assertJsonMissingPath('token');
+        $user = User::where('role', UserRole::Customer)->sole();
+        $this->assertNull($user->email_verified_at);
+        $this->assertSame(ApplicationStatus::Approved, $user->registrationApplications()->sole()->status);
+        $this->assertGuest();
+    }
 
     public function test_customer_registration_creates_a_pending_account_profile_and_application_without_authenticating(): void
     {
