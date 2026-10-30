@@ -28,4 +28,6 @@ export type VerifiedRegistrationEmail = {
   token: string;
   submitting: boolean;
   beginSubmission: () => RegistrationSubmission | null;
+  setEmail: (email: string) => void;
+  continueToVerification: () => boolean;
 };

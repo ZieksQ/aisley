@@ -35,7 +35,7 @@ GET active Logistics options
 ↘ pending/rejected/suspended/deactivated/invalid affiliation → 403
 ```
 ## Registration email verification — 2026-10-14
-- Email → six-digit OTP → registration details/evidence → existing pending approval. Require the role/email-bound `email_verification_token` on every registration; consume it atomically and record `email_verified_at`. Existing accounts keep their current login/approval behavior.
+- Registration details/evidence → six-digit email OTP → explicit registration submission → existing pending approval. Require the role/email-bound `email_verification_token` on every registration; consume it atomically and record `email_verified_at`. Existing accounts keep their current login/approval behavior.
 - Use the exact public code/verify routes, limits, error/retry behavior, mail delivery and deployment contract in [registration email verification](../../../references/registration-email-verification.md). Email verification issues no authentication credential and never replaces approval.
 ## MUST
 ### Identity and relationship rules

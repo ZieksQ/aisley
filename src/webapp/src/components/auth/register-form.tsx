@@ -34,6 +34,7 @@ function RegistrationDetails({ verification }: { verification: VerifiedRegistrat
     event.preventDefault();
     if (submitting) return;
     const form = new FormData(event.currentTarget);
+    if (verification.continueToVerification()) return
     const attempt = verification.beginSubmission();
     if (!attempt) return;
     setError(null);
@@ -151,7 +152,7 @@ function RegistrationDetails({ verification }: { verification: VerifiedRegistrat
           id="email"
           name="email"
           value={verification.email}
-          readOnly
+          onChange={(event) => verification.setEmail(event.target.value)}
           type="email"
           label="Email address"
           placeholder="you@example.com"
@@ -194,7 +195,7 @@ function RegistrationDetails({ verification }: { verification: VerifiedRegistrat
         isLoading={submitting}
         loadingLabel="Creating account"
       >
-        Create account
+        {verification.token ? "Submit registration" : "Continue to email verification"}
         <FiArrowRight aria-hidden="true" />
       </Button>
     </form>

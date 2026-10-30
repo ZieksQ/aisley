@@ -4,8 +4,8 @@ import { registrationRoleModules, registrationRoleSource } from './registration-
 
 export async function checkRegistrationSubmissions(browser, modules, compile, artifacts) {
   const js = browser.evaluate
-  const submitLabel = role => role === 'customer' ? 'Create account' : role === 'seller' ? 'Submit application' : 'Submit for approval'
-  await js("document.getElementById('root').remove();const main=document.createElement('main');main.id='role-root';main.className='mx-auto max-w-3xl p-5';document.body.append(main)")
+  const submitLabel = () => 'Submit registration'
+  await js("document.getElementById('role-root').remove();const main=document.createElement('main');main.id='role-root';main.className='mx-auto max-w-3xl p-5';document.body.append(main)")
   await js(registrationRoleSource({ ...modules, ...registrationRoleModules(compile) }))
   async function fill(name, value) {
     await js(`(() => {
@@ -23,7 +23,7 @@ export async function checkRegistrationSubmissions(browser, modules, compile, ar
   }
   async function verify(email) {
     await fill('email', email)
-    await click('Send verification code')
+    await click('Continue to email verification')
     await browser.until("!!document.querySelector('[name=verification_code]')", 'code entry')
     await fill('verification_code', '012345')
     await click('Verify email')
@@ -32,7 +32,6 @@ export async function checkRegistrationSubmissions(browser, modules, compile, ar
   async function start(role) {
     await js(`window.mountRole('${role}')`)
     await browser.until("!!document.querySelector('[name=email]')", 'new role registration')
-    await verify('first@example.invalid')
     for (const [name, value] of Object.entries({ first_name: 'Retained', last_name: 'Fixture', contact_number: '09170000000', birth_date: '2000-01-01', sex: 'male', password: 'Synthetic123', password_confirmation: 'Synthetic123' })) {
       await fill(name, value)
     }
@@ -44,6 +43,7 @@ export async function checkRegistrationSubmissions(browser, modules, compile, ar
         const el=document.querySelector('[name='+name+']');el.files=transfer.files;el.dispatchEvent(new Event('change',{bubbles:true}));
       }`)
     }
+    await verify('first@example.invalid')
   }
   async function submit(role, duplicate = false) {
     if (duplicate) {
@@ -185,6 +185,8 @@ export async function checkRegistrationSubmissions(browser, modules, compile, ar
       await js('window.oldRequest=window.finalQueue[0];window.savedAttempt=window.attempts[0];window.unmountRole()')
       assert.equal(await js('window.oldRequest.signal.aborted'), true)
       await js(`window.mountRole('${role}')`)
+      await start(role)
+      await click('Change email')
       await verify('second@example.invalid')
       await js(outcome === 'success' ? "window.oldRequest.resolve({message:'Old success.',seller:{email:'first@example.invalid'}})"
         : "window.oldRequest.reject(new Error('Old failure'))")

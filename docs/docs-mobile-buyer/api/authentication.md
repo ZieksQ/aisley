@@ -50,4 +50,4 @@ New source inspection at57e9eb2 confirmed these auth/session/consent/token effec
 
 ## Registration email OTP
 
-Registration now begins with [email verification](../registration-email.md). Public code and verify operations precede the registration payload, which requires `email_verification_token`; the proof is kept only in memory and is not a Sanctum bearer. Email verification creates no account/session and preserves Admin approval. Existing users keep their authentication behavior.
+Registration collects all supported details first, then requires [email verification](../registration-email.md). Public code and verify operations precede the registration payload, which requires `email_verification_token`; the proof is kept only in memory and is not a Sanctum bearer. Email verification creates no account/session and preserves Admin approval. Existing users keep their authentication behavior.

@@ -33,7 +33,7 @@ register profile + credentials
 
 ## Registration email verification — 2026-10-14
 
-- Email → six-digit OTP → registration details/evidence → configured approval outcome. Require the role/email-bound `email_verification_token` on every registration; consume it atomically and record `email_verified_at`. Existing accounts keep their current login/approval behavior.
+- Registration details/evidence → six-digit email OTP → explicit registration submission → configured approval outcome. Require the role/email-bound `email_verification_token` on every registration; consume it atomically and record `email_verified_at`. Existing accounts keep their current login/approval behavior.
 - Use the exact public code/verify routes, limits, error/retry behavior, mail delivery and deployment contract in [registration email verification](../../../references/registration-email-verification.md). Email verification issues no authentication credential and never replaces approval.
 - Web final submission locks the verified identity and details synchronously. Only its current mounted verification attempt may update feedback or navigate to the status-appropriate login or waiting page; defer local expiry while pending, retain drafts on failure/reverification, and preserve unconfirmed-result/sign-in guidance. Follow the shared contract's submission lifecycle and obsolete-response rules.
 

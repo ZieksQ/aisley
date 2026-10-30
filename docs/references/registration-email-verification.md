@@ -1,4 +1,4 @@
-# Email verification before registration
+# Registration details before email verification
 
 Contract adopted on 2026-10-14 for Customer, Seller, Logistics, and Courier. Existing accounts keep their login and approval behavior. Admin has no public registration. Email verification proves access to the inbox; it does not replace account or evidence approval.
 
@@ -40,13 +40,15 @@ This backend contract does not indicate that the external Courier Flutter app im
 
 ## Client flow
 
-Email entry → code entry/resend → registration details → existing approval destination. Keep proofs/codes in memory only. Changing email invalidates local verification and requires another code; expiry returns to verification while preserving draft details and selected evidence. Protect existing unsaved work; preserve each client's password-clearing and upload-cancellation behavior. Ignore late responses after reset, route exit, disposal, or a newer attempt.
+Complete registration details/evidence and email → code entry/resend → explicit registration submission → existing approval or account-ready destination. Keep proofs/codes in memory only. Changing email invalidates local verification and requires another code; expiry returns to verification while preserving draft details and selected evidence. Protect existing unsaved work; preserve each client's password-clearing and upload-cancellation behavior. Ignore late responses after reset, route exit, disposal, or a newer attempt.
 
 Customer, Seller, and Logistics web registration use the shared gate's submission lifecycle. Capture the form/evidence and begin an attempt synchronously before awaiting CSRF; freeze its email/proof and disable email changes, verification controls, details, and duplicate submission until it settles. Only the originating live verification generation may complete, show errors, reset verification, or navigate. Route exit aborts the client request and invalidates callbacks; check again after CSRF before sending registration. Client cancellation cannot reverse a server commit.
 
 Defer local proof-expiry reset while final submission is pending and honor a current successful server response. A failed submission with an expired or rejected proof returns to verification with drafts/evidence intact and visible recovery feedback, including unconfirmed-result/sign-in guidance for ambiguous failures. A recoverable validation failure may reuse an unexpired proof for an explicit retry. Old success, error, or cleanup callbacks cannot affect a newer attempt, even when it uses the same email/token.
 
 Use one accessible code field with paste, one-time-code autofill, a numeric keyboard, six-digit validation, and leading-zero preservation. Explain expiry and spam-folder checks; respect reduced motion. Existing role palettes/native themes apply. Verification failure, offline/timeout, throttling, and final approval are distinct states.
+
+Keep registration drafts, passwords and selected evidence in memory through verification, Back/edit navigation, browser tab switching and mobile background/resume. Email changes invalidate the challenge/proof without discarding other fields. Recompute expiry on return; never clear draft data on focus or visibility changes. Refresh, process termination and page closure recovery are outside this guarantee; do not persist passwords, OTPs, proofs or evidence in ordinary storage.
 
 ## Persistence, delivery, and release
 

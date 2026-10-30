@@ -1,4 +1,4 @@
-# Email verification before registration
+# Registration details before email verification
 
 Contract adopted on 2026-10-14 for Customer, Seller, Logistics, and Courier. Existing accounts keep their login and approval behavior. Admin has no public registration. Email verification proves access to the inbox; it does not replace account or evidence approval.
 
@@ -32,9 +32,11 @@ The backend exposes a distinct email-change flow only for active company-created
 
 ## Client flow
 
-Email entry → code entry/resend → registration details → existing approval destination. Keep proofs/codes in memory only. Changing email invalidates local verification and requires another code; expiry returns to verification while preserving draft details and selected evidence. Protect existing unsaved work; preserve each client's password-clearing and upload-cancellation behavior. Ignore late responses after reset, route exit, disposal, or a newer attempt.
+Complete registration details/evidence and email → code entry/resend → explicit registration submission → existing approval or account-ready destination. Keep proofs/codes in memory only. Changing email invalidates local verification and requires another code; expiry returns to verification while preserving draft details and selected evidence. Protect existing unsaved work; preserve each client's password-clearing and upload-cancellation behavior. Ignore late responses after reset, route exit, disposal, or a newer attempt.
 
 Use one accessible code field with paste, one-time-code autofill, a numeric keyboard, six-digit validation, and leading-zero preservation. Explain expiry and spam-folder checks; respect reduced motion. Existing role palettes/native themes apply. Verification failure, offline/timeout, throttling, and final approval are distinct states.
+
+Keep registration drafts, passwords and selected evidence in memory through verification, Back/edit navigation, browser tab switching and mobile background/resume. Email changes invalidate the challenge/proof without discarding other fields. Recompute expiry on return; never clear draft data on focus or visibility changes. Refresh, process termination and page closure recovery are outside this guarantee; do not persist passwords, OTPs, proofs or evidence in ordinary storage.
 
 ## Persistence, delivery, and release
 

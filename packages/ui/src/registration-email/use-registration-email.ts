@@ -131,7 +131,7 @@ export function useRegistrationEmail(client: RegistrationEmailClient) {
         setProof(result);
         setStarted(true);
         setCode("");
-        setMessage("Email verified. Complete your registration below.");
+        setMessage("Email verified. Review your details and submit your registration.");
       } else {
         const result = await client.requestCode(normalized, controller.signal);
         if (current !== serial.current || controller.signal.aborted) return;
