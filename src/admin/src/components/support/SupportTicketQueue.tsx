@@ -15,10 +15,10 @@ type Props = {
 const selectClass = 'min-h-10 rounded-md border border-slate-300 bg-white px-2.5 text-sm dark:border-white/20 dark:bg-[#19151e]'
 
 export function SupportTicketQueue({ tickets, selectedId, filters, loading, hasMore, onFilters, onSelect, onMore }: Props) {
-  return <section aria-label="Support queue" className="min-w-0 border border-slate-200 bg-white dark:border-white/10 dark:bg-[#17141b]">
+  return <section aria-label="Support queue" className="min-w-0 h-[clamp(540px,calc(100dvh-200px),900px)] overflow-y-auto border-r border-slate-200 bg-white dark:border-white/10 dark:bg-slate-800">
     <div className="border-b border-slate-200 p-4 dark:border-white/10">
       <h2 className="text-base font-semibold">Support queue</h2>
-      <div className="mt-3 grid gap-2 sm:grid-cols-3">
+      <div className="mt-3 grid gap-2 grid-cols-1">
         <label className="grid gap-1 text-xs">Status
           <select className={selectClass} onChange={(event) => onFilters({ ...filters, status: event.target.value as TicketStatus || undefined })} value={filters.status ?? ''}>
             <option value="">All</option><option value="open">Open</option><option value="in_progress">In progress</option><option value="waiting_for_requester">Waiting</option><option value="resolved">Resolved</option>
@@ -42,7 +42,7 @@ export function SupportTicketQueue({ tickets, selectedId, filters, loading, hasM
       {tickets.map((ticket) => <li className="border-b border-slate-200 last:border-0 dark:border-white/10" key={ticket.id}>
         <button
           aria-current={selectedId === ticket.id ? 'true' : undefined}
-          className="w-full px-4 py-3 text-left hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-[#4C1268] aria-[current=true]:bg-purple-50 dark:focus-visible:outline-[#E6007A] dark:hover:bg-white/5 dark:aria-[current=true]:bg-white/10"
+          className="w-full px-4 py-3 text-left hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-[#4C1268] aria-[current=true]:bg-purple-50 dark:focus-visible:outline-[#C4B5FD] dark:hover:bg-white/5 dark:aria-[current=true]:bg-white/10"
           onClick={() => onSelect(ticket.id)}
           type="button"
         >

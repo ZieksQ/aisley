@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '@aisley/ui'
+import { TicketViewport } from '@aisley/ui/chat'
 import { NewTicketForm, TicketDetailView, type TicketClient, type TicketDraftState } from '@aisley/support-tickets'
 import { FaArrowLeft, FaPlus, FaRotate } from 'react-icons/fa6'
 import { useBlocker } from 'react-router-dom'
@@ -101,7 +102,7 @@ export function SupportWorkspace({
         </Button>
       </div>
     </header>
-    <div className={`support-inbox ${showingContent ? 'support-content-open' : ''}`}>
+    <TicketViewport className={`support-inbox ${showingContent ? 'support-content-open' : ''}`}>
       <section aria-label="Your tickets" className="support-ticket-list">
         <h3>Your tickets</h3>
         {tickets.error && <div className="support-ticket-error" role="alert">
@@ -167,6 +168,6 @@ export function SupportWorkspace({
           <h3>Select a ticket</h3><p>View the conversation or create a new request.</p>
         </div>}
       </div>
-    </div>
+    </TicketViewport>
   </section>
 }

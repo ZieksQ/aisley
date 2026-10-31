@@ -175,3 +175,10 @@ scope: Laravel API, Admin React dashboard, and role-owned requester interfaces
   retries, assignment, and lifecycle transitions. PostgreSQL concurrency, browser/mobile flows,
   accessibility, and timeout interaction checks remain release verification gates.
 - Open decision: define retention and support/appeal access for ineligible accounts before launch.
+
+## Admin web presentation — 2026-10-31
+
+- Use a compact filtered queue beside the selected ticket; narrow layouts show either queue or conversation with All tickets navigation. Preserve URL filters, per-Admin unread state, permissions, and role-safe identity.
+- Group requester, category, and assignment metadata beneath the subject/status header. Use the shared `@aisley/ui/chat` ticket history for reply bubbles, Manila dates/times, distinct lifecycle events, older-history anchoring and new-activity navigation.
+- Keep public reply composition beneath history. Place assignment and status controls in a separate management panel, alongside the conversation on wide desktops and below it on smaller screens. View-only users see no mutation controls; resolved tickets explain the need to reopen before replying.
+- Protect unsaved changes during navigation and preserve uncertain retries. No API, lifecycle, data-access, ordinary-chat, or Flutter contract changes. Controlled component verification is documented in `packages/support-tickets/tests/README.md`; live mutations and authenticated role-shell acceptance remain separate checks.

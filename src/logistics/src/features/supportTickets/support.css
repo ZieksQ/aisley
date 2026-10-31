@@ -98,3 +98,30 @@
   .logistics-support .support-content { display: block; }
   .logistics-support .support-back { display: none; }
 }
+
+.logistics-support { --ticket-accent: #2563eb; --ticket-tint: #eff6ff; --ticket-canvas: #f8fafc; --ticket-border: #cbd5e1; --ticket-surface: #fff; --ticket-muted: #475569; }
+.dark .logistics-support { --ticket-accent: #93c5fd; --ticket-tint: #172f54; --ticket-canvas: #0f172a; --ticket-border: #475569; --ticket-surface: #1e293b; --ticket-muted: #cbd5e1; --support-surface: #1e293b; --support-border: #475569; }
+.logistics-support .support-inbox { height: clamp(480px, calc(100dvh - 230px), 900px); }
+.logistics-support .support-ticket-list { overflow-y: auto; }
+.logistics-support .support-content, .logistics-support .support-content-open .support-content { flex-direction: column; min-height: 0; padding: 0; overflow-y: auto; }
+.logistics-support .support-content-open .support-content { display: flex; }
+.logistics-support .support-content > .support-ticket-form { padding: 20px; }
+.logistics-support .support-ticket-detail .support-ticket-form { padding: 12px 20px; }
+.logistics-support .support-ticket-detail .support-ticket-form textarea { min-height: 64px; }
+.logistics-support .support-back { margin: 8px 12px; }
+.logistics-support .support-ticket-list-item[aria-current="true"] { box-shadow: none; background: var(--ticket-tint); }
+.logistics-support .support-ticket-list-item em { color: var(--ticket-accent); }
+.logistics-support button:focus-visible, .logistics-support h2:focus-visible,
+.logistics-support .support-ticket-form input:focus-visible, .logistics-support .support-ticket-form select:focus-visible,
+.logistics-support .support-ticket-form textarea:focus-visible { outline-color: var(--ticket-accent); }
+.logistics-support .ticket-history-wrap { --ticket-accent: #2563eb; --ticket-tint: #eff6ff; --ticket-canvas: #f8fafc; }
+.dark .logistics-support .ticket-history-wrap { --ticket-accent: #93c5fd; --ticket-tint: #172f54; --ticket-canvas: #0f172a; }
+@media (min-width: 800px) {
+  .logistics-support .support-inbox { grid-template-columns: 300px minmax(0,1fr); align-items: stretch; }
+  .logistics-support .support-content-open .support-ticket-list { display: block; }
+  .logistics-support .support-ticket-list { border-right: 1px solid var(--ticket-border); }
+  .logistics-support .support-content { display: flex; }
+  .logistics-support .support-back { display: none; }
+}
+.logistics-support { --ticket-button: #2563eb; --ticket-button-hover: #1d4ed8; }
+.logistics-support .support-inbox { height: var(--ticket-height, calc(100dvh - 230px)); }

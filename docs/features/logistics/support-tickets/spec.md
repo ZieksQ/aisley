@@ -24,3 +24,10 @@ An active, Admin-approved Logistics account uses its own dashboard's `/support-t
 - Ignore obsolete detail responses after selection changes. Poll visible views, refetch on focus/reconnect, and keep the original UUID key and reply body/revision after timeout or server failure, even if background refresh updates the ticket.
 - Reuse shared ticket forms/timeline and `@aisley/ui`; Logistics owns its responsive layout and scoped theme styles. No attachments, new statuses, search API or Admin actions are added.
 - Repeatable controlled browser checks are documented in `src/logistics/tests/README-settings-support.md`; live API integration and external client status remain separate.
+
+## Web conversation presentation — 2026-10-31
+
+- Match the existing messaging hierarchy: ticket inbox, subject/status header, scrollable public history, and visible reply composer. At narrow widths, show one pane with All tickets navigation and restore focus on return.
+- Present replies as incoming/outgoing bubbles with sender labels, Manila date separators and timestamps. Keep public status/assignment events visually distinct, including their reasons and actor/time history. Older history preserves reading position; new activity offers a Latest action when reading earlier entries.
+- New ticket opens the existing form on demand. Keep drafts in memory, protect unsent/uncertain submissions, and retain exact idempotent retries. Ticket selection, unread state, privacy, and lifecycle remain separate from ordinary chat.
+- Follow `docs/design.md` and the consuming role's theme; reuse ticket history/viewport presentation through `@aisley/ui/chat`. No attachment or API contract changes. Controlled presentation checks: `packages/support-tickets/tests/README.md`; live integration and external client status remain separate.

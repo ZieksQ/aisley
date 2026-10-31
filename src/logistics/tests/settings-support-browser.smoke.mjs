@@ -245,7 +245,7 @@ try {
   await click('Retry submission')
   await until('document.querySelector(".support-ticket-detail h2")?.textContent === "New delivery request"')
   assert.deepEqual(await js('window.uiFixture.writes.at(-2)'), await js('window.uiFixture.writes.at(-1)'), 'Create exact retry')
-  assert.equal(await js('document.querySelector(".support-ticket-message").textContent.includes("<script>")'), true, 'Plain text rendering')
+  assert.equal(await js('document.querySelector(".ticket-bubble p").textContent.includes("<script>")'), true, 'Plain text rendering')
 
   for (const mode of ['loading', 'empty', 'error', 'detail-error']) {
     await navigate('/support-tickets', mode)

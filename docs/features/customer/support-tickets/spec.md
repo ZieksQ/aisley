@@ -15,3 +15,10 @@ The authenticated, active Customer uses `/account/support-tickets` to create and
 - The UI preserves the draft and key after an uncertain write, retries the same mutation, polls visible history, and refetches on focus/reconnect. Text renders as text. Unread tickets remain separate from chat and notification read state.
 - Admin replies and explicit public status changes create an in-app `support` notification with a safe ticket reference and authorized `/account/support-tickets?ticket=UUID` destination; ticket content is never copied into notification text. Notification state does not change the ticket read marker.
 - Pending, rejected, suspended, and deactivated Customer accounts have no in-app support exception in this release. Attachments, linked Orders, and exceptional appeal access are deferred.
+
+## Web conversation presentation — 2026-10-31
+
+- Match the existing messaging hierarchy: ticket inbox, subject/status header, scrollable public history, and visible reply composer. At narrow widths, show one pane with All tickets navigation and restore focus on return.
+- Present replies as incoming/outgoing bubbles with sender labels, Manila date separators and timestamps. Keep public status/assignment events visually distinct, including their reasons and actor/time history. Older history preserves reading position; new activity offers a Latest action when reading earlier entries.
+- New ticket opens the existing form on demand. Keep drafts in memory, protect unsent/uncertain submissions, and retain exact idempotent retries. Ticket selection, unread state, privacy, and lifecycle remain separate from ordinary chat.
+- Follow `docs/design.md` and the consuming role's theme; reuse ticket history/viewport presentation through `@aisley/ui/chat`. No attachment or API contract changes. Controlled presentation checks: `packages/support-tickets/tests/README.md`; live integration and external client status remain separate.
