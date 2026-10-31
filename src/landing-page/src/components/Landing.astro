@@ -1,0 +1,121 @@
+---
+import Hero from './stitch/Hero.astro';
+import Buyers from './stitch/Buyers.astro';
+import Sellers from './stitch/Sellers.astro';
+import Logistics from './stitch/Logistics.astro';
+import Workflow from './stitch/Workflow.astro';
+import Apps from './stitch/Apps.astro';
+import Faq from './stitch/Faq.astro';
+import Portals from './stitch/Portals.astro';
+---
+<header class="sticky top-0 z-50 w-full bg-surface border-b border-borderPurple">
+  <div class="header-inner max-w-[1240px] mx-auto px-8 h-20 flex items-center justify-between">
+
+    <div class="flex items-baseline gap-3">
+      <a href="#hero" class="text-2xl font-bold tracking-tight text-ink hover:text-primaryPurple transition-colors" aria-label="AISLEY Home">
+        AISLEY
+      </a>
+      <span class="text-sm font-medium text-muted tracking-normal">
+        Early access
+      </span>
+    </div>
+
+    <nav class="site-nav hidden lg:flex items-center gap-7 text-[15px] font-medium text-muted" aria-label="Main Navigation">
+      <a href="#buyers" class="hover:text-ink transition-colors py-2">Buyers</a>
+      <a href="#sellers" class="hover:text-ink transition-colors py-2">Sellers</a>
+      <a href="#logistics" class="hover:text-ink transition-colors py-2">Logistics</a>
+      <a href="#workflow" class="hover:text-ink transition-colors py-2">Workflow</a>
+      <a href="#apps" class="hover:text-ink transition-colors py-2">Apps</a>
+      <a href="#faq" class="hover:text-ink transition-colors py-2">FAQ</a>
+    </nav>
+
+    <div class="flex items-center">
+      <a href="https://aisley.app"
+         class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] px-5 py-2.5 bg-primaryPurple hover:bg-primaryHover text-surface text-sm font-semibold rounded-[8px] transition-colors shadow-sm"
+         target="_blank" rel="noopener noreferrer">
+        Start shopping
+      </a>
+    </div>
+  </div>
+</header>
+<main id="main" tabindex="-1" class="max-w-[1240px] mx-auto px-8 space-y-16 md:space-y-24 py-12 md:py-16">
+  <Hero />
+  <Buyers />
+  <Sellers />
+  <Logistics />
+  <Workflow />
+  <Apps />
+  <Faq />
+  <Portals />
+</main>
+<footer class="w-full bg-surface border-t border-borderPurple mt-16 sm:mt-24 pt-12 pb-16">
+  <div class="max-w-[1240px] mx-auto px-8">
+    <div class="grid grid-cols-1 md:grid-cols-12 gap-8 lg:gap-12 mb-12">
+
+      <div class="md:col-span-4">
+        <div class="flex items-baseline gap-2 mb-3">
+          <span class="text-2xl font-bold tracking-tight text-ink">AISLEY</span>
+          <span class="text-xs font-medium text-muted">Early access</span>
+        </div>
+        <p class="text-xs sm:text-sm text-muted leading-relaxed mb-4 max-w-sm">
+          A Philippine marketplace built for independent shops and customers, featuring Cash on Delivery and recorded order milestones.
+        </p>
+        <p class="text-xs text-muted font-mono">info.aisley.app</p>
+      </div>
+
+      <div class="md:col-span-3">
+        <h3 class="text-xs font-bold uppercase tracking-wider text-ink mb-4">Commerce Portals</h3>
+        <ul class="space-y-2.5 text-xs sm:text-sm text-muted" role="list">
+          <li>
+            <a href="https://aisley.app" class="hover:text-primaryPurple transition-colors" target="_blank" rel="noopener noreferrer">
+              Storefront (aisley.app)
+            </a>
+          </li>
+          <li>
+            <a href="https://seller.aisley.app" class="hover:text-primaryPurple transition-colors" target="_blank" rel="noopener noreferrer">
+              Seller Portal (seller.aisley.app)
+            </a>
+          </li>
+          <li>
+            <a href="https://logistics.aisley.app" class="hover:text-logisticsBlue transition-colors" target="_blank" rel="noopener noreferrer">
+              Logistics Portal (logistics.aisley.app)
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <div class="md:col-span-3">
+        <h3 class="text-xs font-bold uppercase tracking-wider text-ink mb-4">Mobile Releases</h3>
+        <ul class="space-y-2.5 text-xs sm:text-sm text-muted" role="list">
+          <li>
+            <a href="https://github.com/ApueXI/aisley-app-customer/releases" class="hover:text-primaryPurple transition-colors" target="_blank" rel="noopener noreferrer">
+              Buyer App (GitHub Releases)
+            </a>
+          </li>
+          <li>
+            <a href="https://github.com/ApueXI/aisley-app-rider/releases" class="hover:text-primaryPurple transition-colors" target="_blank" rel="noopener noreferrer">
+              Rider App (GitHub Releases)
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <div class="md:col-span-2">
+        <h3 class="text-xs font-bold uppercase tracking-wider text-ink mb-4">Access &amp; Coverage</h3>
+        <p class="text-xs text-muted leading-relaxed">
+          Admin approval required for merchant and logistics hub operations. Products, delivery options, and payment methods depend on active shop participation.
+        </p>
+      </div>
+    </div>
+
+    <div class="pt-8 border-t border-borderPurple/60 flex flex-col sm:flex-row items-center justify-between text-xs text-muted gap-4">
+      <div>
+        © {new Date().getFullYear()} AISLEY · Early access
+      </div>
+      <div class="flex items-center gap-6">
+        <span>info.aisley.app</span>
+        <span>Philippine Multi-Vendor Marketplace</span>
+      </div>
+    </div>
+  </div>
+</footer>

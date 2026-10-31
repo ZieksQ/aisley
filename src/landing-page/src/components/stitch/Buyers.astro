@@ -1,0 +1,52 @@
+---
+import Preview from '../Preview.astro';
+---
+<section id="buyers" class="pt-10 border-t border-borderPurple">
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+
+    <div class="lg:col-span-6">
+      <div class="inline-flex items-center gap-2 mb-3">
+        <span class="text-xs font-semibold uppercase tracking-wider text-primaryPurple px-2.5 py-0.5 bg-tintPurple rounded-[6px] border border-borderPurple">
+          Participant 01 · Buyers
+        </span>
+      </div>
+
+      <h2 class="text-3xl sm:text-4xl font-bold tracking-tight text-ink leading-tight mb-4">
+        Find products. Follow your orders.
+      </h2>
+
+      <p class="text-base sm:text-lg text-muted mb-8 leading-relaxed">
+        Explore independent shops, find products, and place orders with Cash on Delivery. Follow order milestones from preparation through delivery.
+      </p>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+        <div class="p-4 bg-surface rounded-[8px] border border-borderPurple">
+          <h3 class="text-sm font-bold text-ink mb-1">Products and shops</h3>
+          <p class="text-xs text-muted leading-relaxed">Browse curated independent merchant catalogs in one connected Philippine marketplace.</p>
+        </div>
+        <div class="p-4 bg-surface rounded-[8px] border border-borderPurple">
+          <h3 class="text-sm font-bold text-ink mb-1">Cash on Delivery</h3>
+          <p class="text-xs text-muted leading-relaxed">Pay upon arrival with available checkout options tailored to Philippine shoppers.</p>
+        </div>
+        <div class="p-4 bg-surface rounded-[8px] border border-borderPurple">
+          <h3 class="text-sm font-bold text-ink mb-1">Order updates</h3>
+          <p class="text-xs text-muted leading-relaxed">Recorded shipment milestones from merchant packing to courier handoff.</p>
+        </div>
+        <div class="p-4 bg-surface rounded-[8px] border border-borderPurple">
+          <h3 class="text-sm font-bold text-ink mb-1">Shop in your browser</h3>
+          <p class="text-xs text-muted leading-relaxed">Fully responsive web application ready on any modern desktop or mobile browser.</p>
+        </div>
+      </div>
+
+      <a href="https://aisley.app"
+         class="inline-flex items-center justify-center min-h-[44px] px-6 py-2.5 bg-primaryPurple hover:bg-primaryHover text-surface text-sm font-semibold rounded-[8px] transition-colors shadow-sm"
+         target="_blank" rel="noopener noreferrer">
+        Start shopping
+      </a>
+    </div>
+
+    <div class="lg:col-span-6">
+      <Preview src="/screens/buyer.webp" title="AISLEY buyer storefront" channel="aisley.app · buyer workspace" width={1280} height={850} />
+    </div>
+  </div>
+</section>

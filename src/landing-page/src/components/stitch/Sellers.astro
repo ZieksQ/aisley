@@ -1,0 +1,59 @@
+---
+import Preview from '../Preview.astro';
+---
+<section id="sellers" class="pt-10 border-t border-borderPurple">
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+
+    <div class="lg:col-span-6 order-2 lg:order-1">
+      <Preview src="/screens/seller.webp" title="AISLEY seller workspace" channel="seller.aisley.app · workspace" width={779} height={437} />
+    </div>
+
+    <div class="lg:col-span-6 order-1 lg:order-2">
+      <div class="inline-flex items-center gap-2 mb-3">
+        <span class="text-xs font-semibold uppercase tracking-wider text-primaryPurple px-2.5 py-0.5 bg-tintPurple rounded-[6px] border border-borderPurple">
+          Participant 02 · Sellers
+        </span>
+      </div>
+
+      <h2 class="text-3xl sm:text-4xl font-bold tracking-tight text-ink leading-tight mb-3">
+        Run your shop.
+      </h2>
+
+      <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-tintPurple/70 border border-borderPurple rounded-[6px] mb-4">
+        <svg class="w-3.5 h-3.5 text-primaryPurple" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+          <path fill-rule="evenodd" d="M10 1.944A11.954 11.954 0 012.166 5C2.056 5.649 2 6.319 2 7c0 5.225 3.34 9.67 8 11.317C14.66 16.67 18 12.225 18 7c0-.682-.057-1.35-.166-2.001A11.954 11.954 0 0110 1.944zM11 14a1 1 0 11-2 0 1 1 0 012 0zm0-7a1 1 0 10-2 0v3a1 1 0 102 0V7z" clip-rule="evenodd" />
+        </svg>
+        <span class="text-xs font-semibold text-primaryPurple">Admin approval required</span>
+      </div>
+
+      <p class="text-base sm:text-lg text-muted mb-6 leading-relaxed">
+        Manage your catalog and inventory, process incoming orders, prepare parcels with printed waybills, and request pickup from your selected logistics provider.
+      </p>
+
+      <ul class="space-y-3 mb-8 text-sm text-ink" role="list">
+        <li class="flex items-start gap-3">
+          <div class="w-5 h-5 rounded-full bg-tintPurple flex items-center justify-center text-primaryPurple font-bold text-xs mt-0.5 flex-shrink-0">✓</div>
+          <span><strong>Catalog and inventory:</strong> Publish product listings, update stock levels, and organize shop categories.</span>
+        </li>
+        <li class="flex items-start gap-3">
+          <div class="w-5 h-5 rounded-full bg-tintPurple flex items-center justify-center text-primaryPurple font-bold text-xs mt-0.5 flex-shrink-0">✓</div>
+          <span><strong>Incoming orders:</strong> Receive buyer requests, verify buyer details, and acknowledge orders directly.</span>
+        </li>
+        <li class="flex items-start gap-3">
+          <div class="w-5 h-5 rounded-full bg-tintPurple flex items-center justify-center text-primaryPurple font-bold text-xs mt-0.5 flex-shrink-0">✓</div>
+          <span><strong>Parcel prep & printed waybills:</strong> Generate standard shipping documentation and pack securely.</span>
+        </li>
+        <li class="flex items-start gap-3">
+          <div class="w-5 h-5 rounded-full bg-tintPurple flex items-center justify-center text-primaryPurple font-bold text-xs mt-0.5 flex-shrink-0">✓</div>
+          <span><strong>Pickup requests:</strong> Hand off packages cleanly to approved partner logistics hubs.</span>
+        </li>
+      </ul>
+
+      <a href="https://seller.aisley.app"
+         class="inline-flex items-center justify-center min-h-[44px] px-6 py-2.5 bg-primaryPurple hover:bg-primaryHover text-surface text-sm font-semibold rounded-[8px] transition-colors shadow-sm"
+         target="_blank" rel="noopener noreferrer">
+        Open seller portal
+      </a>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,19 @@
+{
+  "name": "landing-page",
+  "type": "module",
+  "version": "0.0.1",
+  "engines": {
+    "node": ">=22.23.4"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "build:production": "INDEXABLE=true astro build",
+    "styles": "node scripts/compile-stitch.mjs"
+  },
+  "dependencies": {
+    "astro": "^7.4.4"
+  }
+}

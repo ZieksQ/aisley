@@ -1,0 +1,48 @@
+---
+import Preview from '../Preview.astro';
+---
+<section id="logistics" class="pt-10 border-t border-borderPurple">
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+
+    <div class="lg:col-span-6">
+      <div class="inline-flex items-center gap-2 mb-3">
+        <span class="text-xs font-semibold uppercase tracking-wider text-logisticsBlue px-2.5 py-0.5 bg-logisticsTint rounded-[6px] border border-logisticsBorder">
+          Participant 03 · Logistics Hubs
+        </span>
+      </div>
+
+      <h2 class="text-3xl sm:text-4xl font-bold tracking-tight text-ink leading-tight mb-4">
+        Plan pickups and deliveries
+      </h2>
+
+      <p class="text-base sm:text-lg text-muted mb-6 leading-relaxed">
+        Coordinate parcel receiving, sorting, pickup and dispatch; approved affiliated couriers execute route deliveries using the Rider mobile app.
+      </p>
+
+      <div class="p-4 bg-logisticsTint rounded-[8px] border border-logisticsBorder mb-8">
+        <h3 class="text-xs font-bold uppercase tracking-wider text-logisticsBlue mb-1.5 flex items-center gap-1.5">
+          <svg class="w-4 h-4 text-logisticsBlue" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+          </svg>
+          Access Qualifications
+        </h3>
+        <p class="text-xs sm:text-sm text-ink leading-relaxed">
+          Logistics access requires Admin approval. Couriers require approval by their associated Logistics organization.
+        </p>
+        <p class="text-[11px] text-muted mt-2">
+          Note: Couriers operate exclusively via the Rider mobile app; there is no separate courier web UI.
+        </p>
+      </div>
+
+      <a href="https://logistics.aisley.app"
+         class="inline-flex items-center justify-center min-h-[44px] px-6 py-2.5 bg-logisticsBlue hover:bg-logisticsHover text-surface text-sm font-semibold rounded-[8px] transition-colors shadow-sm focus-blue"
+         target="_blank" rel="noopener noreferrer">
+        Open logistics portal
+      </a>
+    </div>
+
+    <div class="lg:col-span-6">
+      <Preview src="/screens/logistics.webp" title="AISLEY logistics hub console" channel="logistics.aisley.app · hub console" width={780} height={437} blue />
+    </div>
+  </div>
+</section>

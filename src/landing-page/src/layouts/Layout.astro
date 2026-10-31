@@ -1,0 +1,36 @@
+---
+import '../styles/global.css';
+const {title='AISLEY | Shopping, Selling & Delivery in the Philippines',noindex=false}=Astro.props;
+const indexable=import.meta.env.INDEXABLE==='true'&&!import.meta.env.DEV&&!noindex;
+const description='Shop independent sellers on AISLEY, a Philippine marketplace with Cash on Delivery and order updates. Explore seller and logistics portals.';
+const canonical='https://info.aisley.app/';
+const schema={'@context':'https://schema.org','@graph':[{'@type':'Organization','@id':'https://aisley.app/#organization',name:'AISLEY',url:'https://aisley.app',logo:new URL('/logo.svg',canonical).href},{'@type':'WebSite','@id':canonical+'#website',url:canonical,name:'AISLEY',inLanguage:'en-PH',publisher:{'@id':'https://aisley.app/#organization'}}]};
+---
+<!doctype html>
+<html lang="en-PH">
+<head>
+<meta charset="utf-8"/>
+<link rel="preload" href="/fonts/geist.woff2" as="font" type="font/woff2" crossorigin/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>{title}</title>
+<meta name="description" content={description}/>
+<meta name="robots" content={indexable?'index,follow':'noindex,follow'}/>{!noindex&&<link rel="canonical" href={canonical}/>}<link rel="icon" href="/favicon.svg" type="image/svg+xml"/>
+<meta property="og:type" content="website"/>
+<meta property="og:title" content={title}/>
+<meta property="og:description" content={description}/>
+<meta property="og:url" content={canonical}/>
+<meta property="og:image" content={new URL('/social.png',canonical).href}/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
+<meta property="og:image:alt" content="AISLEY — Shopping, selling and delivery"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:title" content={title}/>
+<meta name="twitter:description" content={description}/>
+<meta name="twitter:image" content={new URL('/social.png',canonical).href}/>
+<script type="application/ld+json" set:html={JSON.stringify(schema)}/>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<slot/>
+</body>
+</html>
