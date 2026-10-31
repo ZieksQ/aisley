@@ -21,3 +21,8 @@ Short, dated log of what has been implemented across the whole app. Append new e
 
 - Tightened hero and role sections, moved feature lists alongside role descriptions, alternated Seller media, consolidated downloads/footer, and added accessible native screenshot dialogs with direct-image fallbacks. Retained exact portal/release links, early-access copy, branding and SEO.
 - Production build and generated SEO/link assertions passed. Chromium measured no overflow at 320/390/768/1024/1440px; desktop height fell from 5666px to about 4020px. Escape/focus restoration passed; all final viewport screenshot sheets reviewed. Taste flags for contract-permitted boundaries and restrained typography/motion remain documented in the feature spec; Lighthouse/deployed acceptance remains open.
+
+## 2026-10-31 — Landing page left-to-right composition
+
+- Refined the marketing page with left branding/right shopping action at all widths, desktop navigation between them, wider uncropped screenshots, primary/secondary hero actions, alternating role sections, side-by-side app introduction/downloads, and grouped brand/links in the footer. Preserved existing content, destinations, preview dialogs and SEO; consolidated the affected CSS cascade.
+- Verification: preview and production Astro builds, generated production SEO/JSON-LD/sitemap/noindex-404 assertions, and diff whitespace checks passed. Chromium passed 320/390/640/768/1024/1440px overflow, image, heading and alignment/destination checks, plus preview Escape/focus restoration, FAQ and reduced-motion checks. Desktop/tablet/mobile screenshots reviewed; Taste style exceptions remain documented in the feature spec. Lighthouse and deployed-domain acceptance remain open.

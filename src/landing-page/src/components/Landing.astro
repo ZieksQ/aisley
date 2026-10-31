@@ -15,6 +15,7 @@ const faq=[['What is AISLEY?','AISLEY is a Philippine multi-vendor marketplace c
 <nav aria-label="Main navigation">{portals.map(p=>
 <a href={'#'+p.id}>{p.name}</a>)}<a href="#apps">Apps</a>
 </nav>
+<a class="button header-action" href="https://aisley.app">Start shopping <span aria-hidden="true">↗</span></a>
 </header>
 <main id="main">
 <section class="shell hero">
@@ -22,7 +23,7 @@ const faq=[['What is AISLEY?','AISLEY is a Philippine multi-vendor marketplace c
 <h1>Shop. Sell. Deliver.</h1>
 <p class="lead">Explore AISLEY: a Philippine marketplace connecting buyers, independent sellers, and delivery teams. Now in early access.</p>
 <div class="actions">{portals.map(p=>
-<a class:list={['button',p.id==='logistics'&&'blue']} href={p.url}>{p.name==='Buyers'?'Buyer':p.name==='Sellers'?'Seller':'Logistics'} portal <span aria-hidden="true">↗</span>
+<a class:list={['button',p.id!=='buyers'&&'secondary',p.id==='logistics'&&'blue']} href={p.url}>{p.id==='buyers'?'Start shopping':p.id==='sellers'?'Seller portal':'Logistics portal'} <span aria-hidden="true">↗</span>
 </a>)}</div>
 </div>
 <Preview src="/screens/buyer.webp" width={1280} height={850} title="AISLEY storefront" eager />
@@ -50,9 +51,12 @@ const faq=[['What is AISLEY?','AISLEY is a Philippine multi-vendor marketplace c
 </li>)}</ol>
 </section>
 <section id="apps" class="apps">
-<div class="shell">
+<div class="shell apps-layout">
+<div>
 <h2>AISLEY on the go.</h2>
 <p>Two mobile apps, with a purpose for each participant.</p>
+<p class="small">Downloads open GitHub Releases. Check available packages and installation instructions.</p>
+</div>
 <div class="app-grid">{apps.map(([title,text,url])=>
 <article>
 <h3>{title}</h3>
@@ -60,7 +64,6 @@ const faq=[['What is AISLEY?','AISLEY is a Philippine multi-vendor marketplace c
 <a class="button" href={url}>View releases ↗</a>
 
 </article>)}</div>
-<p class="small">Downloads open GitHub Releases. Check available packages and installation instructions.</p>
 </div>
 </section>
 <section class="shell faq">
@@ -74,8 +77,10 @@ const faq=[['What is AISLEY?','AISLEY is a Philippine multi-vendor marketplace c
 
 </main>
 <footer class="shell">
+<div class="footer-brand">
 <img src="/logo.svg" alt="AISLEY" width="142" height="44"/>
 <p>Find your place in AISLEY.</p>
+</div>
 <nav aria-label="Footer">{portals.map(p=>
 <a href={p.url}>{p.name}</a>)}{apps.map(([title,_,url])=>
 <a href={url}>{title}</a>)}</nav>
