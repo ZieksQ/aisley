@@ -1,0 +1,2736 @@
+{
+ "url": "http://127.0.0.1:4322",
+ "at": "2026-10-31T03:45:42.025Z",
+ "allow": [],
+ "viewports": [
+  {
+   "width": 1280,
+   "height": 800,
+   "load": "load",
+   "screens": 8,
+   "filled": [
+    0.49,
+    0.58,
+    0.58,
+    0.42,
+    0.57,
+    0.51,
+    0.78,
+    0.78
+   ],
+   "motion": {
+    "elements": 0,
+    "css": 0,
+    "transitions": 0,
+    "scripted": 0,
+    "videos": 0,
+    "playingVideos": 0
+   },
+   "metrics": {
+    "viewport": {
+     "w": 1280,
+     "h": 800
+    },
+    "page": {
+     "height": 5664,
+     "screens": 7.1,
+     "words": 804,
+     "img": 5,
+     "video": 0,
+     "canvas": 0,
+     "svg": 14,
+     "sections": 8,
+     "horizontalOverflow": 0,
+     "overflowCulprits": [],
+     "uiFragments": 0,
+     "uiAbuse": false,
+     "realPictures": 4,
+     "videoCount": 0,
+     "uiPictures": 0,
+     "pictureSamples": [
+      "buyer-960.webp",
+      "buyer-960.webp",
+      "seller.webp",
+      "logistics.webp"
+     ],
+     "blendText": 0,
+     "sideScrollers": 0,
+     "brokenImages": [],
+     "emoji": [
+      "✓"
+     ],
+     "videosNoPoster": 0
+    },
+    "hero": {
+     "text": "Shop independent sellers.",
+     "words": 3,
+     "chars": 25,
+     "lines": 2,
+     "size": 56,
+     "vw": 4.4,
+     "font": "Geist",
+     "weight": 700,
+     "tracking": -0.025,
+     "leading": 1.12,
+     "upper": false,
+     "italic": false,
+     "mono": false,
+     "align": "left",
+     "position": "left",
+     "widthRatio": 0.52,
+     "top": 197,
+     "tag": "h1",
+     "kind": "heading"
+    },
+    "h1": {
+     "text": "Shop independent sellers.",
+     "words": 3,
+     "lines": 2,
+     "size": 56,
+     "font": "Geist"
+    },
+    "headings": [
+     {
+      "text": "Shop independent sellers.",
+      "words": 3,
+      "chars": 25,
+      "lines": 2,
+      "size": 56,
+      "vw": 4.4,
+      "font": "Geist",
+      "weight": 700,
+      "tracking": -0.025,
+      "leading": 1.12,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.52,
+      "top": 197,
+      "tag": "h1",
+      "kind": "heading"
+     },
+     {
+      "text": "Find products. Follow your orders.",
+      "words": 5,
+      "chars": 34,
+      "lines": 1,
+      "size": 36,
+      "vw": 2.8,
+      "font": "Geist",
+      "weight": 700,
+      "tracking": -0.025,
+      "leading": 1.25,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.44,
+      "top": 753,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Run your shop.",
+      "words": 3,
+      "chars": 14,
+      "lines": 1,
+      "size": 36,
+      "vw": 2.8,
+      "font": "Geist",
+      "weight": 700,
+      "tracking": -0.025,
+      "leading": 1.25,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "right",
+      "widthRatio": 0.44,
+      "top": 1413,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Plan pickups and deliveries",
+      "words": 4,
+      "chars": 27,
+      "lines": 1,
+      "size": 36,
+      "vw": 2.8,
+      "font": "Geist",
+      "weight": 700,
+      "tracking": -0.025,
+      "leading": 1.25,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.44,
+      "top": 2066,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "From shop to doorstep",
+      "words": 4,
+      "chars": 21,
+      "lines": 1,
+      "size": 36,
+      "vw": 2.8,
+      "font": "Geist",
+      "weight": 700,
+      "tracking": -0.025,
+      "leading": 1.11,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "center",
+      "position": "center",
+      "widthRatio": 0.53,
+      "top": 2630,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Shop or deliver on mobile",
+      "words": 5,
+      "chars": 25,
+      "lines": 1,
+      "size": 36,
+      "vw": 2.8,
+      "font": "Geist",
+      "weight": 700,
+      "tracking": -0.025,
+      "leading": 1.11,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.53,
+      "top": 3266,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Questions & answers",
+      "words": 3,
+      "chars": 19,
+      "lines": 1,
+      "size": 36,
+      "vw": 2.8,
+      "font": "Geist",
+      "weight": 700,
+      "tracking": -0.025,
+      "leading": 1.11,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "center",
+      "position": "center",
+      "widthRatio": 0.6,
+      "top": 3919,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Choose your AISLEY workspace",
+      "words": 4,
+      "chars": 28,
+      "lines": 1,
+      "size": 30,
+      "vw": 2.3,
+      "font": "Geist",
+      "weight": 700,
+      "tracking": -0.025,
+      "leading": 1.2,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "center",
+      "position": "center",
+      "widthRatio": 0.53,
+      "top": 4777,
+      "tag": "h2",
+      "kind": "heading"
+     }
+    ],
+    "headingSummary": {
+     "count": 8,
+     "maxLines": 2,
+     "over2Lines": 0,
+     "statements": 0,
+     "centered": 3,
+     "medianWords": 4,
+     "mixedFontHeadings": 0
+    },
+    "type": {
+     "families": [
+      {
+       "family": "Geist",
+       "share": 0.96,
+       "mono": false
+      },
+      {
+       "family": "ui-monospace",
+       "share": 0.04,
+       "mono": false
+      }
+     ],
+     "familyCount": 2,
+     "sizes": [
+      10,
+      11,
+      12,
+      14,
+      15,
+      16,
+      18,
+      20,
+      24,
+      30,
+      36,
+      56
+     ],
+     "sizeCount": 12,
+     "notLoaded": [],
+     "body": {
+      "font": "Geist",
+      "size": 16,
+      "leading": 1.5,
+      "weight": 400,
+      "tracking": 0,
+      "contrast": 7.4
+     },
+     "measureChars": 96,
+     "max": {
+      "size": 56,
+      "vw": 4.4,
+      "font": "Geist",
+      "text": "Shop independent sellers."
+     },
+     "monoShare": 0.04,
+     "monoProseShare": 0.04,
+     "monoFamilies": [
+      "ui-monospace"
+     ],
+     "monoSamples": [
+      "aisley.app · storefront",
+      "aisley.app · buyer workspace",
+      "seller.aisley.app · workspace",
+      "logistics.aisley.app · hub console",
+      "aisley.app",
+      "seller.aisley.app"
+     ],
+     "microLabels": 14,
+     "microLabelShare": 0.04,
+     "microSamples": [
+      "Philippine Marketplace",
+      "Participant 01 · Buyers",
+      "Participant 02 · Sellers",
+      "Participant 03 · Logistics Hubs",
+      "Access Qualifications",
+      "The Marketplace Cycle"
+     ],
+     "upperShare": 0.04,
+     "centerShare": 0.06,
+     "smallText": 62
+    },
+    "eyebrows": [
+     {
+      "text": "Philippine Marketplace",
+      "above": "Shop independent sellers.",
+      "upper": true,
+      "tracked": true,
+      "mono": false,
+      "pill": false,
+      "size": 12,
+      "top": 155
+     },
+     {
+      "text": "Participant 01 · Buyers",
+      "above": "Find products. Follow your orders.",
+      "upper": true,
+      "tracked": true,
+      "mono": false,
+      "pill": false,
+      "size": 12,
+      "top": 719
+     },
+     {
+      "text": "Participant 02 · Sellers",
+      "above": "Run your shop.",
+      "upper": true,
+      "tracked": true,
+      "mono": false,
+      "pill": false,
+      "size": 12,
+      "top": 1379
+     },
+     {
+      "text": "Participant 03 · Logistics Hubs",
+      "above": "Plan pickups and deliveries",
+      "upper": true,
+      "tracked": true,
+      "mono": false,
+      "pill": false,
+      "size": 12,
+      "top": 2032
+     },
+     {
+      "text": "The Marketplace Cycle",
+      "above": "From shop to doorstep",
+      "upper": true,
+      "tracked": true,
+      "mono": false,
+      "pill": false,
+      "size": 12,
+      "top": 2594
+     },
+     {
+      "text": "Mobile Releases",
+      "above": "Shop or deliver on mobile",
+      "upper": true,
+      "tracked": true,
+      "mono": false,
+      "pill": false,
+      "size": 12,
+      "top": 3229
+     },
+     {
+      "text": "Frequently Asked Questions",
+      "above": "Questions & answers",
+      "upper": true,
+      "tracked": true,
+      "mono": false,
+      "pill": false,
+      "size": 12,
+      "top": 3882
+     }
+    ],
+    "numbered": [
+     {
+      "text": "01",
+      "size": 12,
+      "top": 2803
+     },
+     {
+      "text": "02",
+      "size": 12,
+      "top": 2803
+     },
+     {
+      "text": "03",
+      "size": 12,
+      "top": 2803
+     },
+     {
+      "text": "04",
+      "size": 12,
+      "top": 2803
+     }
+    ],
+    "color": {
+     "bodyBg": "#f7f5f7",
+     "bodyBgHsl": {
+      "h": 300,
+      "s": 0.11,
+      "l": 0.96
+     },
+     "dark": false,
+     "sectionBgs": [
+      {
+       "color": "#ffffff",
+       "top": 5305,
+       "hsl": {
+        "h": 0,
+        "s": 0,
+        "l": 1
+       }
+      }
+     ],
+     "textColors": [
+      {
+       "color": "#594c5e",
+       "share": 0.72
+      },
+      {
+       "color": "#231429",
+       "share": 0.2
+      },
+      {
+       "color": "#4c1268",
+       "share": 0.04
+      },
+      {
+       "color": "#ffffff",
+       "share": 0.02
+      },
+      {
+       "color": "#2563eb",
+       "share": 0.02
+      }
+     ],
+     "button": {
+      "bg": "#4c1268",
+      "hsl": {
+       "h": 280,
+       "s": 0.7,
+       "l": 0.24
+      },
+      "fg": "#ffffff"
+     },
+     "lowContrast": []
+    },
+    "buttons": {
+     "count": 13,
+     "inHero": 3,
+     "radius": 8,
+     "height": 44,
+     "withShadow": 0,
+     "withGradient": 0,
+     "mono": 0,
+     "upper": 0,
+     "heroLabels": [
+      "Skip to content",
+      "Start shopping",
+      "Start shopping"
+     ]
+    },
+    "surfaces": {
+     "shadowStatic": 12,
+     "shadowOverlay": 1,
+     "shadowSamples": [
+      "a.inline-flex.items-center → rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0",
+      "figure.product-shot → rgba(0, 0, 0, 0.05) 0px 1px 2px 0px",
+      "a.inline-flex.items-center → rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0",
+      "figure.product-shot → rgba(0, 0, 0, 0.05) 0px 1px 2px 0px"
+     ],
+     "gradients": 0,
+     "scrims": 0,
+     "gradientSamples": [],
+     "gradientText": 0,
+     "hairlines": 24,
+     "hairlineSamples": [
+      "header.sticky.top-0 1280px",
+      "div.flex.items-start 512px",
+      "div.preview-chrome 460px",
+      "a.preview-image 460px",
+      "section#buyers.pt-10.border-t 1176px"
+     ],
+     "outlinedBoxes": 23,
+     "dashed": 0,
+     "blurred": 0,
+     "roundedBoxes": 19,
+     "boxRadius": 8,
+     "squareMedia": 0,
+     "roundedMedia": 4,
+     "mediaRadius": 6,
+     "textShadow": 0,
+     "cardRows": [
+      {
+       "count": 4,
+       "iconTopped": false,
+       "rounded": true,
+       "top": 934
+      },
+      {
+       "count": 4,
+       "iconTopped": false,
+       "rounded": true,
+       "top": 2782
+      },
+      {
+       "count": 3,
+       "iconTopped": false,
+       "rounded": true,
+       "top": 4889
+      }
+     ]
+    },
+    "heroMedia": [
+     {
+      "type": "img",
+      "ratio": 0.11
+     }
+    ],
+    "nav": {
+     "links": 8,
+     "fixed": true,
+     "height": 81,
+     "floatingPill": false,
+     "blur": false
+    },
+    "fontsLoaded": [
+     "geist"
+    ]
+   },
+   "layout": {
+    "viewport": {
+     "w": 1280,
+     "h": 800
+    },
+    "pageH": 5664,
+    "margins": {
+     "left": 52,
+     "right": 63
+    },
+    "sections": [
+     {
+      "sel": "section#hero.grid.grid-cols-1",
+      "tag": "section",
+      "top": 145,
+      "height": 434,
+      "words": 60,
+      "media": 1,
+      "middle": 161,
+      "heading": {
+       "text": "Shop independent sellers.",
+       "size": 56,
+       "tag": "h1"
+      },
+      "left": 52,
+      "right": 73,
+      "textLeft": 52,
+      "textRight": 73,
+      "fullBleed": false,
+      "footer": false,
+      "hero": true,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#buyers.pt-10.border-t",
+      "tag": "section",
+      "top": 675,
+      "height": 564,
+      "words": 109,
+      "media": 1,
+      "middle": 62,
+      "heading": {
+       "text": "Find products. Follow your orders.",
+       "size": 36,
+       "tag": "h2"
+      },
+      "left": 52,
+      "right": 73,
+      "textLeft": 52,
+      "textRight": 73,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#sellers.pt-10.border-t",
+      "tag": "section",
+      "top": 1335,
+      "height": 543,
+      "words": 108,
+      "media": 1,
+      "middle": 69,
+      "heading": {
+       "text": "Run your shop.",
+       "size": 36,
+       "tag": "h2"
+      },
+      "left": 65,
+      "right": 56,
+      "textLeft": 65,
+      "textRight": 56,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#logistics.pt-10.border-t",
+      "tag": "section",
+      "top": 1974,
+      "height": 481,
+      "words": 84,
+      "media": 1,
+      "middle": 73,
+      "heading": {
+       "text": "Plan pickups and deliveries",
+       "size": 36,
+       "tag": "h2"
+      },
+      "left": 52,
+      "right": 73,
+      "textLeft": 52,
+      "textRight": 73,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#workflow.pt-10.border-t",
+      "tag": "section",
+      "top": 2552,
+      "height": 540,
+      "words": 134,
+      "media": 0,
+      "middle": 6,
+      "heading": {
+       "text": "From shop to doorstep",
+       "size": 36,
+       "tag": "h2"
+      },
+      "left": 73,
+      "right": 73,
+      "textLeft": 73,
+      "textRight": 73,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#apps.pt-10.border-t",
+      "tag": "section",
+      "top": 3187,
+      "height": 557,
+      "words": 119,
+      "media": 0,
+      "middle": 0,
+      "heading": {
+       "text": "Shop or deliver on mobile",
+       "size": 36,
+       "tag": "h2"
+      },
+      "left": 52,
+      "right": 85,
+      "textLeft": 52,
+      "textRight": 85,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#faq.pt-10.border-t",
+      "tag": "section",
+      "top": 3840,
+      "height": 800,
+      "words": 218,
+      "media": 0,
+      "middle": 0,
+      "heading": {
+       "text": "Questions & answers",
+       "size": 36,
+       "tag": "h2"
+      },
+      "left": 277,
+      "right": 282,
+      "textLeft": 277,
+      "textRight": 282,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section.pt-10.border-t",
+      "tag": "section",
+      "top": 4736,
+      "height": 410,
+      "words": 87,
+      "media": 0,
+      "middle": 0,
+      "heading": {
+       "text": "Choose your AISLEY workspace",
+       "size": 30,
+       "tag": "h2"
+      },
+      "left": 77,
+      "right": 78,
+      "textLeft": 77,
+      "textRight": 78,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "footer.w-full.bg-surface",
+      "tag": "footer",
+      "top": 5305,
+      "height": 359,
+      "words": 81,
+      "media": 0,
+      "middle": 77,
+      "heading": {
+       "text": "AISLEY",
+       "size": 24,
+       "tag": "span"
+      },
+      "left": 52,
+      "right": 52,
+      "textLeft": 52,
+      "textRight": 52,
+      "fullBleed": false,
+      "footer": true,
+      "hero": false,
+      "continues": false,
+      "pinned": false
+     }
+    ],
+    "gaps": [],
+    "h1s": [
+     {
+      "text": "Shop independent sellers.",
+      "size": 56,
+      "top": 197,
+      "firstScreen": true
+     }
+    ],
+    "edgeText": [],
+    "edges": [
+     {
+      "x": 52,
+      "n": 8
+     },
+     {
+      "x": 69,
+      "n": 5
+     },
+     {
+      "x": 664,
+      "n": 3
+     },
+     {
+      "x": 85,
+      "n": 2
+     },
+     {
+      "x": 359,
+      "n": 2
+     },
+     {
+      "x": 689,
+      "n": 2
+     },
+     {
+      "x": 373,
+      "n": 1
+     },
+     {
+      "x": 477,
+      "n": 1
+     },
+     {
+      "x": 877,
+      "n": 1
+     },
+     {
+      "x": 973,
+      "n": 1
+     }
+    ],
+    "leftBlocks": 26,
+    "bodySize": 16,
+    "stage": false,
+    "explains": true,
+    "slivers": [],
+    "voidShare": 0.13,
+    "voidBox": {
+     "x": 0,
+     "y": 587,
+     "w": 1280,
+     "h": 107
+    }
+   },
+   "app": null,
+   "consoleErrors": []
+  },
+  {
+   "width": 768,
+   "height": 1024,
+   "load": "load",
+   "screens": 9,
+   "filled": [
+    0.57,
+    0.72,
+    0.6,
+    0.59,
+    0.65,
+    0.61,
+    0.69,
+    0.69,
+    0.76
+   ],
+   "motion": {
+    "elements": 0,
+    "css": 0,
+    "transitions": 0,
+    "scripted": 0,
+    "videos": 0,
+    "playingVideos": 0
+   },
+   "metrics": {
+    "viewport": {
+     "w": 768,
+     "h": 1024
+    },
+    "page": {
+     "height": 8266,
+     "screens": 8.1,
+     "words": 804,
+     "img": 5,
+     "video": 0,
+     "canvas": 0,
+     "svg": 14,
+     "sections": 8,
+     "horizontalOverflow": 0,
+     "overflowCulprits": [],
+     "uiFragments": 0,
+     "uiAbuse": false,
+     "realPictures": 4,
+     "videoCount": 0,
+     "uiPictures": 0,
+     "pictureSamples": [
+      "buyer-960.webp",
+      "buyer-960.webp",
+      "seller.webp",
+      "logistics.webp"
+     ],
+     "blendText": 0,
+     "sideScrollers": 0,
+     "brokenImages": [],
+     "emoji": [
+      "✓"
+     ],
+     "videosNoPoster": 0
+    },
+    "hero": {
+     "text": "Shop independent sellers.",
+     "words": 3,
+     "chars": 25,
+     "lines": 1,
+     "size": 48,
+     "vw": 6.3,
+     "font": "Geist",
+     "weight": 700,
+     "tracking": -0.025,
+     "leading": 1.12,
+     "upper": false,
+     "italic": false,
+     "mono": false,
+     "align": "left",
+     "position": "center",
+     "widthRatio": 0.92,
+     "top": 215,
+     "tag": "h1",
+     "kind": "heading"
+    },
+    "h1": {
+     "text": "Shop independent sellers.",
+     "words": 3,
+     "lines": 1,
+     "size": 48,
+     "font": "Geist"
+    },
+    "headings": [
+     {
+      "text": "Shop independent sellers.",
+      "words": 3,
+      "chars": 25,
+      "lines": 1,
+      "size": 48,
+      "vw": 6.3,
+      "font": "Geist",
+      "weight": 700,
+      "tracking": -0.025,
+      "leading": 1.12,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.92,
+      "top": 215,
+      "tag": "h1",
+      "kind": "heading"
+     },
+     {
+      "text": "Find products. Follow your orders.",
+      "words": 5,
+      "chars": 34,
+      "lines": 1,
+      "size": 36,
+      "vw": 4.7,
+      "font": "Geist",
+      "weight": 700,
+      "tracking": -0.025,
+      "leading": 1.25,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.92,
+      "top": 1316,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Run your shop.",
+      "words": 3,
+      "chars": 14,
+      "lines": 1,
+      "size": 36,
+      "vw": 4.7,
+      "font": "Geist",
+      "weight": 700,
+      "tracking": -0.025,
+      "leading": 1.25,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.92,
+      "top": 2546,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Plan pickups and deliveries",
+      "words": 4,
+      "chars": 27,
+      "lines": 1,
+      "size": 36,
+      "vw": 4.7,
+      "font": "Geist",
+      "weight": 700,
+      "tracking": -0.025,
+      "leading": 1.25,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.92,
+      "top": 3652,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "From shop to doorstep",
+      "words": 4,
+      "chars": 21,
+      "lines": 1,
+      "size": 36,
+      "vw": 4.7,
+      "font": "Geist",
+      "weight": 700,
+      "tracking": -0.025,
+      "leading": 1.11,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "center",
+      "position": "center",
+      "widthRatio": 0.88,
+      "top": 4724,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Shop or deliver on mobile",
+      "words": 5,
+      "chars": 25,
+      "lines": 1,
+      "size": 36,
+      "vw": 4.7,
+      "font": "Geist",
+      "weight": 700,
+      "tracking": -0.025,
+      "leading": 1.11,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.88,
+      "top": 5601,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Questions & answers",
+      "words": 3,
+      "chars": 19,
+      "lines": 1,
+      "size": 36,
+      "vw": 4.7,
+      "font": "Geist",
+      "weight": 700,
+      "tracking": -0.025,
+      "leading": 1.11,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "center",
+      "position": "center",
+      "widthRatio": 0.92,
+      "top": 6316,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Choose your AISLEY workspace",
+      "words": 4,
+      "chars": 28,
+      "lines": 1,
+      "size": 30,
+      "vw": 3.9,
+      "font": "Geist",
+      "weight": 700,
+      "tracking": -0.025,
+      "leading": 1.2,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "center",
+      "position": "center",
+      "widthRatio": 0.88,
+      "top": 7174,
+      "tag": "h2",
+      "kind": "heading"
+     }
+    ],
+    "headingSummary": {
+     "count": 8,
+     "maxLines": 1,
+     "over2Lines": 0,
+     "statements": 0,
+     "centered": 3,
+     "medianWords": 4,
+     "mixedFontHeadings": 0
+    },
+    "type": {
+     "families": [
+      {
+       "family": "Geist",
+       "share": 0.96,
+       "mono": false
+      },
+      {
+       "family": "ui-monospace",
+       "share": 0.04,
+       "mono": false
+      }
+     ],
+     "familyCount": 2,
+     "sizes": [
+      10,
+      11,
+      12,
+      14,
+      15,
+      16,
+      18,
+      20,
+      24,
+      30,
+      36,
+      48
+     ],
+     "sizeCount": 12,
+     "notLoaded": [],
+     "body": {
+      "font": "Geist",
+      "size": 16,
+      "leading": 1.5,
+      "weight": 400,
+      "tracking": 0,
+      "contrast": 7.4
+     },
+     "measureChars": 88,
+     "max": {
+      "size": 48,
+      "vw": 6.3,
+      "font": "Geist",
+      "text": "Shop independent sellers."
+     },
+     "monoShare": 0.04,
+     "monoProseShare": 0.04,
+     "monoFamilies": [
+      "ui-monospace"
+     ],
+     "monoSamples": [
+      "aisley.app · storefront",
+      "aisley.app · buyer workspace",
+      "seller.aisley.app · workspace",
+      "logistics.aisley.app · hub console",
+      "aisley.app",
+      "seller.aisley.app"
+     ],
+     "microLabels": 14,
+     "microLabelShare": 0.04,
+     "microSamples": [
+      "Philippine Marketplace",
+      "Participant 01 · Buyers",
+      "Participant 02 · Sellers",
+      "Participant 03 · Logistics Hubs",
+      "Access Qualifications",
+      "The Marketplace Cycle"
+     ],
+     "upperShare": 0.04,
+     "centerShare": 0.06,
+     "smallText": 62
+    },
+    "eyebrows": [
+     {
+      "text": "Philippine Marketplace",
+      "above": "Shop independent sellers.",
+      "upper": true,
+      "tracked": true,
+      "mono": false,
+      "pill": false,
+      "size": 12,
+      "top": 173
+     },
+     {
+      "text": "Participant 01 · Buyers",
+      "above": "Find products. Follow your orders.",
+      "upper": true,
+      "tracked": true,
+      "mono": false,
+      "pill": false,
+      "size": 12,
+      "top": 1282
+     },
+     {
+      "text": "Participant 02 · Sellers",
+      "above": "Run your shop.",
+      "upper": true,
+      "tracked": true,
+      "mono": false,
+      "pill": false,
+      "size": 12,
+      "top": 2512
+     },
+     {
+      "text": "Participant 03 · Logistics Hubs",
+      "above": "Plan pickups and deliveries",
+      "upper": true,
+      "tracked": true,
+      "mono": false,
+      "pill": false,
+      "size": 12,
+      "top": 3618
+     },
+     {
+      "text": "The Marketplace Cycle",
+      "above": "From shop to doorstep",
+      "upper": true,
+      "tracked": true,
+      "mono": false,
+      "pill": false,
+      "size": 12,
+      "top": 4688
+     },
+     {
+      "text": "Mobile Releases",
+      "above": "Shop or deliver on mobile",
+      "upper": true,
+      "tracked": true,
+      "mono": false,
+      "pill": false,
+      "size": 12,
+      "top": 5565
+     },
+     {
+      "text": "Frequently Asked Questions",
+      "above": "Questions & answers",
+      "upper": true,
+      "tracked": true,
+      "mono": false,
+      "pill": false,
+      "size": 12,
+      "top": 6280
+     }
+    ],
+    "numbered": [
+     {
+      "text": "01",
+      "size": 12,
+      "top": 4897
+     },
+     {
+      "text": "02",
+      "size": 12,
+      "top": 4897
+     },
+     {
+      "text": "03",
+      "size": 12,
+      "top": 5139
+     },
+     {
+      "text": "04",
+      "size": 12,
+      "top": 5139
+     }
+    ],
+    "color": {
+     "bodyBg": "#f7f5f7",
+     "bodyBgHsl": {
+      "h": 300,
+      "s": 0.11,
+      "l": 0.96
+     },
+     "dark": false,
+     "sectionBgs": [
+      {
+       "color": "#ffffff",
+       "top": 555,
+       "hsl": {
+        "h": 0,
+        "s": 0,
+        "l": 1
+       }
+      },
+      {
+       "color": "#f7f5f7",
+       "top": 604,
+       "hsl": {
+        "h": 300,
+        "s": 0.11,
+        "l": 0.96
+       }
+      }
+     ],
+     "textColors": [
+      {
+       "color": "#594c5e",
+       "share": 0.72
+      },
+      {
+       "color": "#231429",
+       "share": 0.2
+      },
+      {
+       "color": "#4c1268",
+       "share": 0.04
+      },
+      {
+       "color": "#ffffff",
+       "share": 0.02
+      },
+      {
+       "color": "#2563eb",
+       "share": 0.02
+      }
+     ],
+     "button": {
+      "bg": "#4c1268",
+      "hsl": {
+       "h": 280,
+       "s": 0.7,
+       "l": 0.24
+      },
+      "fg": "#ffffff"
+     },
+     "lowContrast": []
+    },
+    "buttons": {
+     "count": 13,
+     "inHero": 3,
+     "radius": 8,
+     "height": 44,
+     "withShadow": 0,
+     "withGradient": 0,
+     "mono": 0,
+     "upper": 0,
+     "heroLabels": [
+      "Skip to content",
+      "Start shopping",
+      "Start shopping"
+     ]
+    },
+    "surfaces": {
+     "shadowStatic": 12,
+     "shadowOverlay": 1,
+     "shadowSamples": [
+      "a.inline-flex.items-center → rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0",
+      "figure.product-shot → rgba(0, 0, 0, 0.05) 0px 1px 2px 0px",
+      "a.inline-flex.items-center → rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0",
+      "figure.product-shot → rgba(0, 0, 0, 0.05) 0px 1px 2px 0px"
+     ],
+     "gradients": 0,
+     "scrims": 0,
+     "gradientSamples": [],
+     "gradientText": 0,
+     "hairlines": 28,
+     "hairlineSamples": [
+      "header.sticky.top-0 768px",
+      "div.flex.items-start 512px",
+      "div.preview-chrome 702px",
+      "a.preview-image 702px",
+      "section#buyers.pt-10.border-t 704px"
+     ],
+     "outlinedBoxes": 25,
+     "dashed": 0,
+     "blurred": 0,
+     "roundedBoxes": 21,
+     "boxRadius": 8,
+     "squareMedia": 0,
+     "roundedMedia": 4,
+     "mediaRadius": 6,
+     "textShadow": 0,
+     "cardRows": [
+      {
+       "count": 4,
+       "iconTopped": false,
+       "rounded": true,
+       "top": 1467
+      },
+      {
+       "count": 4,
+       "iconTopped": false,
+       "rounded": true,
+       "top": 4876
+      },
+      {
+       "count": 3,
+       "iconTopped": false,
+       "rounded": true,
+       "top": 7286
+      }
+     ]
+    },
+    "heroMedia": [
+     {
+      "type": "img",
+      "ratio": 0.33
+     }
+    ],
+    "nav": {
+     "links": 8,
+     "fixed": true,
+     "height": 101,
+     "floatingPill": false,
+     "blur": false
+    },
+    "fontsLoaded": [
+     "geist"
+    ]
+   },
+   "layout": {
+    "viewport": {
+     "w": 768,
+     "h": 1024
+    },
+    "pageH": 8266,
+    "margins": {
+     "left": 32,
+     "right": 38
+    },
+    "sections": [
+     {
+      "sel": "section#hero.grid.grid-cols-1",
+      "tag": "section",
+      "top": 165,
+      "height": 977,
+      "words": 60,
+      "media": 1,
+      "middle": 0,
+      "heading": {
+       "text": "Shop independent sellers.",
+       "size": 48,
+       "tag": "h1"
+      },
+      "left": 32,
+      "right": 53,
+      "textLeft": 32,
+      "textRight": 53,
+      "fullBleed": false,
+      "footer": false,
+      "hero": true,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#buyers.pt-10.border-t",
+      "tag": "section",
+      "top": 1238,
+      "height": 1134,
+      "words": 109,
+      "media": 1,
+      "middle": 0,
+      "heading": {
+       "text": "Find products. Follow your orders.",
+       "size": 36,
+       "tag": "h2"
+      },
+      "left": 32,
+      "right": 51,
+      "textLeft": 32,
+      "textRight": 51,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#sellers.pt-10.border-t",
+      "tag": "section",
+      "top": 2468,
+      "height": 1010,
+      "words": 108,
+      "media": 1,
+      "middle": 0,
+      "heading": {
+       "text": "Run your shop.",
+       "size": 36,
+       "tag": "h2"
+      },
+      "left": 32,
+      "right": 53,
+      "textLeft": 32,
+      "textRight": 53,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#logistics.pt-10.border-t",
+      "tag": "section",
+      "top": 3574,
+      "height": 975,
+      "words": 84,
+      "media": 1,
+      "middle": 0,
+      "heading": {
+       "text": "Plan pickups and deliveries",
+       "size": 36,
+       "tag": "h2"
+      },
+      "left": 32,
+      "right": 38,
+      "textLeft": 32,
+      "textRight": 38,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#workflow.pt-10.border-t",
+      "tag": "section",
+      "top": 4646,
+      "height": 781,
+      "words": 134,
+      "media": 0,
+      "middle": 0,
+      "heading": {
+       "text": "From shop to doorstep",
+       "size": 36,
+       "tag": "h2"
+      },
+      "left": 53,
+      "right": 53,
+      "textLeft": 53,
+      "textRight": 53,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#apps.pt-10.border-t",
+      "tag": "section",
+      "top": 5523,
+      "height": 619,
+      "words": 119,
+      "media": 0,
+      "middle": 0,
+      "heading": {
+       "text": "Shop or deliver on mobile",
+       "size": 36,
+       "tag": "h2"
+      },
+      "left": 32,
+      "right": 65,
+      "textLeft": 32,
+      "textRight": 65,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#faq.pt-10.border-t",
+      "tag": "section",
+      "top": 6238,
+      "height": 800,
+      "words": 218,
+      "media": 0,
+      "middle": 0,
+      "heading": {
+       "text": "Questions & answers",
+       "size": 36,
+       "tag": "h2"
+      },
+      "left": 53,
+      "right": 54,
+      "textLeft": 53,
+      "textRight": 54,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section.pt-10.border-t",
+      "tag": "section",
+      "top": 7133,
+      "height": 481,
+      "words": 87,
+      "media": 0,
+      "middle": 0,
+      "heading": {
+       "text": "Choose your AISLEY workspace",
+       "size": 30,
+       "tag": "h2"
+      },
+      "left": 57,
+      "right": 66,
+      "textLeft": 57,
+      "textRight": 66,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "footer.w-full.bg-surface",
+      "tag": "footer",
+      "top": 7774,
+      "height": 492,
+      "words": 81,
+      "media": 0,
+      "middle": 33,
+      "heading": {
+       "text": "AISLEY",
+       "size": 24,
+       "tag": "span"
+      },
+      "left": 32,
+      "right": 32,
+      "textLeft": 32,
+      "textRight": 32,
+      "fullBleed": false,
+      "footer": true,
+      "hero": false,
+      "continues": false,
+      "pinned": false
+     }
+    ],
+    "gaps": [],
+    "h1s": [
+     {
+      "text": "Shop independent sellers.",
+      "size": 48,
+      "top": 215,
+      "firstScreen": true
+     }
+    ],
+    "edgeText": [],
+    "edges": [
+     {
+      "x": 32,
+      "n": 10
+     },
+     {
+      "x": 49,
+      "n": 6
+     },
+     {
+      "x": 409,
+      "n": 4
+     },
+     {
+      "x": 65,
+      "n": 2
+     },
+     {
+      "x": 433,
+      "n": 2
+     },
+     {
+      "x": 300,
+      "n": 1
+     },
+     {
+      "x": 542,
+      "n": 1
+     }
+    ],
+    "leftBlocks": 26,
+    "bodySize": 16,
+    "stage": false,
+    "explains": true,
+    "slivers": [],
+    "voidShare": 0,
+    "voidBox": null
+   },
+   "app": null,
+   "consoleErrors": []
+  },
+  {
+   "width": 390,
+   "height": 844,
+   "load": "load",
+   "screens": 12,
+   "filled": [
+    0.48,
+    0.71,
+    0.63,
+    0.62,
+    0.6,
+    0.78,
+    0.63,
+    0.63,
+    0.84,
+    0.93,
+    0.87,
+    1
+   ],
+   "motion": {
+    "elements": 0,
+    "css": 0,
+    "transitions": 0,
+    "scripted": 0,
+    "videos": 0,
+    "playingVideos": 0
+   },
+   "metrics": {
+    "viewport": {
+     "w": 390,
+     "h": 844
+    },
+    "page": {
+     "height": 9389,
+     "screens": 11.1,
+     "words": 804,
+     "img": 5,
+     "video": 0,
+     "canvas": 0,
+     "svg": 14,
+     "sections": 8,
+     "horizontalOverflow": 0,
+     "overflowCulprits": [],
+     "uiFragments": 0,
+     "uiAbuse": false,
+     "realPictures": 4,
+     "videoCount": 0,
+     "uiPictures": 0,
+     "pictureSamples": [
+      "buyer-480.webp",
+      "buyer-480.webp",
+      "seller-480.webp",
+      "logistics-480.webp"
+     ],
+     "blendText": 0,
+     "sideScrollers": 0,
+     "brokenImages": [],
+     "emoji": [
+      "✓"
+     ],
+     "videosNoPoster": 0
+    },
+    "hero": {
+     "text": "Shop independent sellers.",
+     "words": 3,
+     "chars": 25,
+     "lines": 2,
+     "size": 36,
+     "vw": 9.2,
+     "font": "Geist",
+     "weight": 700,
+     "tracking": -0.025,
+     "leading": 1.12,
+     "upper": false,
+     "italic": false,
+     "mono": false,
+     "align": "left",
+     "position": "center",
+     "widthRatio": 0.92,
+     "top": 199,
+     "tag": "h1",
+     "kind": "heading"
+    },
+    "h1": {
+     "text": "Shop independent sellers.",
+     "words": 3,
+     "lines": 2,
+     "size": 36,
+     "font": "Geist"
+    },
+    "headings": [
+     {
+      "text": "AISLEY",
+      "words": 1,
+      "chars": 6,
+      "lines": 1,
+      "size": 24,
+      "vw": 6.2,
+      "font": "Geist",
+      "weight": 700,
+      "tracking": -0.025,
+      "leading": 1.33,
+      "upper": true,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.2,
+      "top": 18,
+      "tag": "a",
+      "kind": "heading"
+     },
+     {
+      "text": "Shop independent sellers.",
+      "words": 3,
+      "chars": 25,
+      "lines": 2,
+      "size": 36,
+      "vw": 9.2,
+      "font": "Geist",
+      "weight": 700,
+      "tracking": -0.025,
+      "leading": 1.12,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.92,
+      "top": 199,
+      "tag": "h1",
+      "kind": "heading"
+     },
+     {
+      "text": "Find products. Follow your orders.",
+      "words": 5,
+      "chars": 34,
+      "lines": 2,
+      "size": 30,
+      "vw": 7.7,
+      "font": "Geist",
+      "weight": 700,
+      "tracking": -0.025,
+      "leading": 1.25,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.92,
+      "top": 1142,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Run your shop.",
+      "words": 3,
+      "chars": 14,
+      "lines": 1,
+      "size": 30,
+      "vw": 7.7,
+      "font": "Geist",
+      "weight": 700,
+      "tracking": -0.025,
+      "leading": 1.25,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.92,
+      "top": 2381,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Plan pickups and deliveries",
+      "words": 4,
+      "chars": 27,
+      "lines": 2,
+      "size": 30,
+      "vw": 7.7,
+      "font": "Geist",
+      "weight": 700,
+      "tracking": -0.025,
+      "leading": 1.25,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.92,
+      "top": 3384,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "From shop to doorstep",
+      "words": 4,
+      "chars": 21,
+      "lines": 1,
+      "size": 30,
+      "vw": 7.7,
+      "font": "Geist",
+      "weight": 700,
+      "tracking": -0.025,
+      "leading": 1.2,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "center",
+      "position": "center",
+      "widthRatio": 0.92,
+      "top": 4310,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Shop or deliver on mobile",
+      "words": 5,
+      "chars": 25,
+      "lines": 1,
+      "size": 30,
+      "vw": 7.7,
+      "font": "Geist",
+      "weight": 700,
+      "tracking": -0.025,
+      "leading": 1.2,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.92,
+      "top": 5598,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Questions & answers",
+      "words": 3,
+      "chars": 19,
+      "lines": 1,
+      "size": 30,
+      "vw": 7.7,
+      "font": "Geist",
+      "weight": 700,
+      "tracking": -0.025,
+      "leading": 1.2,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "center",
+      "position": "center",
+      "widthRatio": 0.92,
+      "top": 6694,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Choose your AISLEY workspace",
+      "words": 4,
+      "chars": 28,
+      "lines": 1,
+      "size": 24,
+      "vw": 6.2,
+      "font": "Geist",
+      "weight": 700,
+      "tracking": -0.025,
+      "leading": 1.33,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "center",
+      "position": "center",
+      "widthRatio": 0.92,
+      "top": 7604,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "AISLEY",
+      "words": 1,
+      "chars": 6,
+      "lines": 1,
+      "size": 24,
+      "vw": 6.2,
+      "font": "Geist",
+      "weight": 700,
+      "tracking": -0.025,
+      "leading": 1.33,
+      "upper": true,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.2,
+      "top": 8701,
+      "tag": "span",
+      "kind": "heading"
+     }
+    ],
+    "headingSummary": {
+     "count": 10,
+     "maxLines": 2,
+     "over2Lines": 0,
+     "statements": 0,
+     "centered": 3,
+     "medianWords": 4,
+     "mixedFontHeadings": 0
+    },
+    "type": {
+     "families": [
+      {
+       "family": "Geist",
+       "share": 0.96,
+       "mono": false
+      },
+      {
+       "family": "ui-monospace",
+       "share": 0.04,
+       "mono": false
+      }
+     ],
+     "familyCount": 2,
+     "sizes": [
+      10,
+      11,
+      12,
+      14,
+      16,
+      18,
+      20,
+      24,
+      30,
+      36
+     ],
+     "sizeCount": 10,
+     "notLoaded": [],
+     "body": {
+      "font": "Geist",
+      "size": 12,
+      "leading": 1.5,
+      "weight": 400,
+      "tracking": 0,
+      "contrast": 7.4
+     },
+     "measureChars": 51,
+     "max": {
+      "size": 36,
+      "vw": 9.2,
+      "font": "Geist",
+      "text": "Shop independent sellers."
+     },
+     "monoShare": 0.04,
+     "monoProseShare": 0.04,
+     "monoFamilies": [
+      "ui-monospace"
+     ],
+     "monoSamples": [
+      "aisley.app · storefront",
+      "aisley.app · buyer workspace",
+      "seller.aisley.app · workspace",
+      "logistics.aisley.app · hub console",
+      "aisley.app",
+      "seller.aisley.app"
+     ],
+     "microLabels": 14,
+     "microLabelShare": 0.04,
+     "microSamples": [
+      "Philippine Marketplace",
+      "Participant 01 · Buyers",
+      "Participant 02 · Sellers",
+      "Participant 03 · Logistics Hubs",
+      "Access Qualifications",
+      "The Marketplace Cycle"
+     ],
+     "upperShare": 0.04,
+     "centerShare": 0.06,
+     "smallText": 70
+    },
+    "eyebrows": [
+     {
+      "text": "Philippine Marketplace",
+      "above": "Shop independent sellers.",
+      "upper": true,
+      "tracked": true,
+      "mono": false,
+      "pill": false,
+      "size": 12,
+      "top": 157
+     },
+     {
+      "text": "Participant 01 · Buyers",
+      "above": "Find products. Follow your orders.",
+      "upper": true,
+      "tracked": true,
+      "mono": false,
+      "pill": false,
+      "size": 12,
+      "top": 1108
+     },
+     {
+      "text": "Participant 02 · Sellers",
+      "above": "Run your shop.",
+      "upper": true,
+      "tracked": true,
+      "mono": false,
+      "pill": false,
+      "size": 12,
+      "top": 2347
+     },
+     {
+      "text": "Participant 03 · Logistics Hubs",
+      "above": "Plan pickups and deliveries",
+      "upper": true,
+      "tracked": true,
+      "mono": false,
+      "pill": false,
+      "size": 12,
+      "top": 3350
+     },
+     {
+      "text": "The Marketplace Cycle",
+      "above": "From shop to doorstep",
+      "upper": true,
+      "tracked": true,
+      "mono": false,
+      "pill": false,
+      "size": 12,
+      "top": 4273
+     },
+     {
+      "text": "Mobile Releases",
+      "above": "Shop or deliver on mobile",
+      "upper": true,
+      "tracked": true,
+      "mono": false,
+      "pill": false,
+      "size": 12,
+      "top": 5562
+     },
+     {
+      "text": "Frequently Asked Questions",
+      "above": "Questions & answers",
+      "upper": true,
+      "tracked": true,
+      "mono": false,
+      "pill": false,
+      "size": 12,
+      "top": 6658
+     }
+    ],
+    "numbered": [
+     {
+      "text": "01",
+      "size": 12,
+      "top": 4503
+     },
+     {
+      "text": "02",
+      "size": 12,
+      "top": 4725
+     },
+     {
+      "text": "03",
+      "size": 12,
+      "top": 4946
+     },
+     {
+      "text": "04",
+      "size": 12,
+      "top": 5168
+     }
+    ],
+    "color": {
+     "bodyBg": "#f7f5f7",
+     "bodyBgHsl": {
+      "h": 300,
+      "s": 0.11,
+      "l": 0.96
+     },
+     "dark": false,
+     "sectionBgs": [
+      {
+       "color": "#ffffff",
+       "top": 648,
+       "hsl": {
+        "h": 0,
+        "s": 0,
+        "l": 1
+       }
+      }
+     ],
+     "textColors": [
+      {
+       "color": "#594c5e",
+       "share": 0.72
+      },
+      {
+       "color": "#231429",
+       "share": 0.2
+      },
+      {
+       "color": "#4c1268",
+       "share": 0.04
+      },
+      {
+       "color": "#ffffff",
+       "share": 0.02
+      },
+      {
+       "color": "#2563eb",
+       "share": 0.02
+      }
+     ],
+     "button": {
+      "bg": "#4c1268",
+      "hsl": {
+       "h": 280,
+       "s": 0.7,
+       "l": 0.24
+      },
+      "fg": "#ffffff"
+     },
+     "lowContrast": []
+    },
+    "buttons": {
+     "count": 13,
+     "inHero": 3,
+     "radius": 8,
+     "height": 44,
+     "withShadow": 0,
+     "withGradient": 0,
+     "mono": 0,
+     "upper": 0,
+     "heroLabels": [
+      "Skip to content",
+      "Start shopping",
+      "Start shopping"
+     ]
+    },
+    "surfaces": {
+     "shadowStatic": 12,
+     "shadowOverlay": 1,
+     "shadowSamples": [
+      "a.inline-flex.items-center → rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0",
+      "figure.product-shot → rgba(0, 0, 0, 0.05) 0px 1px 2px 0px",
+      "a.inline-flex.items-center → rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0",
+      "figure.product-shot → rgba(0, 0, 0, 0.05) 0px 1px 2px 0px"
+     ],
+     "gradients": 0,
+     "scrims": 0,
+     "gradientSamples": [],
+     "gradientText": 0,
+     "hairlines": 28,
+     "hairlineSamples": [
+      "header.sticky.top-0 390px",
+      "div.flex.items-start 358px",
+      "div.preview-chrome 356px",
+      "a.preview-image 356px",
+      "section#buyers.pt-10.border-t 358px"
+     ],
+     "outlinedBoxes": 27,
+     "dashed": 0,
+     "blurred": 0,
+     "roundedBoxes": 23,
+     "boxRadius": 8,
+     "squareMedia": 0,
+     "roundedMedia": 4,
+     "mediaRadius": 6,
+     "textShadow": 0,
+     "cardRows": []
+    },
+    "heroMedia": [
+     {
+      "type": "img",
+      "ratio": 0.13
+     }
+    ],
+    "nav": {
+     "links": 8,
+     "fixed": true,
+     "height": 101,
+     "floatingPill": false,
+     "blur": false
+    },
+    "fontsLoaded": [
+     "geist"
+    ]
+   },
+   "layout": {
+    "viewport": {
+     "w": 390,
+     "h": 844
+    },
+    "pageH": 9389,
+    "margins": {
+     "left": 16,
+     "right": 21
+    },
+    "sections": [
+     {
+      "sel": "section#hero.grid.grid-cols-1",
+      "tag": "section",
+      "top": 149,
+      "height": 851,
+      "words": 60,
+      "media": 1,
+      "middle": 0,
+      "heading": {
+       "text": "Shop independent sellers.",
+       "size": 36,
+       "tag": "h1"
+      },
+      "left": 16,
+      "right": 18,
+      "textLeft": 16,
+      "textRight": 18,
+      "fullBleed": false,
+      "footer": false,
+      "hero": true,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#buyers.pt-10.border-t",
+      "tag": "section",
+      "top": 1064,
+      "height": 1175,
+      "words": 109,
+      "media": 1,
+      "middle": 0,
+      "heading": {
+       "text": "Find products. Follow your orders.",
+       "size": 30,
+       "tag": "h2"
+      },
+      "left": 16,
+      "right": 24,
+      "textLeft": 16,
+      "textRight": 24,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#sellers.pt-10.border-t",
+      "tag": "section",
+      "top": 2303,
+      "height": 940,
+      "words": 108,
+      "media": 1,
+      "middle": 0,
+      "heading": {
+       "text": "Run your shop.",
+       "size": 30,
+       "tag": "h2"
+      },
+      "left": 16,
+      "right": 20,
+      "textLeft": 16,
+      "textRight": 20,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#logistics.pt-10.border-t",
+      "tag": "section",
+      "top": 3306,
+      "height": 861,
+      "words": 84,
+      "media": 1,
+      "middle": 0,
+      "heading": {
+       "text": "Plan pickups and deliveries",
+       "size": 30,
+       "tag": "h2"
+      },
+      "left": 16,
+      "right": 27,
+      "textLeft": 16,
+      "textRight": 27,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#workflow.pt-10.border-t",
+      "tag": "section",
+      "top": 4231,
+      "height": 1224,
+      "words": 134,
+      "media": 0,
+      "middle": 0,
+      "heading": {
+       "text": "From shop to doorstep",
+       "size": 30,
+       "tag": "h2"
+      },
+      "left": 21,
+      "right": 21,
+      "textLeft": 21,
+      "textRight": 21,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#apps.pt-10.border-t",
+      "tag": "section",
+      "top": 5520,
+      "height": 1032,
+      "words": 119,
+      "media": 0,
+      "middle": 0,
+      "heading": {
+       "text": "Shop or deliver on mobile",
+       "size": 30,
+       "tag": "h2"
+      },
+      "left": 16,
+      "right": 22,
+      "textLeft": 16,
+      "textRight": 22,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#faq.pt-10.border-t",
+      "tag": "section",
+      "top": 6616,
+      "height": 883,
+      "words": 218,
+      "media": 0,
+      "middle": 0,
+      "heading": {
+       "text": "Questions & answers",
+       "size": 30,
+       "tag": "h2"
+      },
+      "left": 37,
+      "right": 37,
+      "textLeft": 37,
+      "textRight": 37,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section.pt-10.border-t",
+      "tag": "section",
+      "top": 7563,
+      "height": 977,
+      "words": 87,
+      "media": 0,
+      "middle": 0,
+      "heading": {
+       "text": "Choose your AISLEY workspace",
+       "size": 24,
+       "tag": "h2"
+      },
+      "left": 19,
+      "right": 19,
+      "textLeft": 19,
+      "textRight": 19,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "footer.w-full.bg-surface",
+      "tag": "footer",
+      "top": 8652,
+      "height": 737,
+      "words": 81,
+      "media": 0,
+      "middle": 0,
+      "heading": {
+       "text": "AISLEY",
+       "size": 24,
+       "tag": "span"
+      },
+      "left": 16,
+      "right": 41,
+      "textLeft": 16,
+      "textRight": 41,
+      "fullBleed": false,
+      "footer": true,
+      "hero": false,
+      "continues": false,
+      "pinned": false
+     }
+    ],
+    "gaps": [],
+    "h1s": [
+     {
+      "text": "Shop independent sellers.",
+      "size": 36,
+      "top": 199,
+      "firstScreen": true
+     }
+    ],
+    "edgeText": [],
+    "edges": [
+     {
+      "x": 33,
+      "n": 15
+     },
+     {
+      "x": 16,
+      "n": 10
+     }
+    ],
+    "leftBlocks": 25,
+    "bodySize": 14,
+    "stage": false,
+    "explains": true,
+    "slivers": [],
+    "voidShare": 0,
+    "voidBox": null
+   },
+   "app": null,
+   "consoleErrors": []
+  }
+ ],
+ "findings": [
+  {
+   "level": "FAIL",
+   "id": "eyebrow",
+   "width": 1280,
+   "message": "7 eyebrow/kicker label(s) above headings: \"Philippine Marketplace\" above \"Shop independent sellers.\"; \"Participant 01 · Buyers\" above \"Find products. Follow your orders.\"; \"Participant 02 · Sellers\" above \"Run your shop.\"; \"Participant 03 · Logistics Hubs\" above \"Plan pickups and deliveries\"; \"The Marketplace Cycle\" above \"From shop to doorstep\"",
+   "fix": "Delete them. If the label carried real information, fold it into the headline or the supporting sentence.",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "FAIL",
+   "id": "mono",
+   "width": 1280,
+   "message": "Monospace type outside code: ui-monospace — e.g. \"aisley.app · storefront\", \"aisley.app · buyer workspace\", \"seller.aisley.app · workspace\", \"logistics.aisley.app · hub console\"",
+   "fix": "Set it in the text face. Monospace is for literal code inside <pre>/<code> only.",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "FAIL",
+   "id": "numbering",
+   "width": 1280,
+   "message": "Decorative index numbers: \"01\", \"02\", \"03\", \"04\"",
+   "fix": "Remove them. If order truly matters, write it into the words (\"First, …\") or use a real <ol>.",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "FAIL",
+   "id": "micro-label",
+   "width": 1280,
+   "message": "14 tiny uppercase letter-spaced labels (e.g. \"Philippine Marketplace\", \"Participant 01 · Buyers\", \"Participant 02 · Sellers\", \"Participant 03 · Logistics Hubs\").",
+   "fix": "Use sentence-case text at a readable size, or delete the label.",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "FAIL",
+   "id": "emoji",
+   "width": 1280,
+   "message": "Emoji in the page: ✓",
+   "fix": "Remove. Use words or real imagery.",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "FAIL",
+   "id": "shadow",
+   "width": 1280,
+   "message": "12 box-shadow(s) on elements at rest: a.inline-flex.items-center → rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0 | figure.product-shot → rgba(0, 0, 0, 0.05) 0px 1px 2px 0px | a.inline-flex.items-center → rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0",
+   "fix": "Remove. Separate surfaces with a tone step or space. Shadows are for things that really float (menus, dialogs, sticky bars).",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "FAIL",
+   "id": "hairline",
+   "width": 1280,
+   "message": "24 thin rule(s)/divider line(s): header.sticky.top-0 1280px | div.flex.items-start 512px | div.preview-chrome 460px | a.preview-image 460px",
+   "fix": "Delete. Separate with space, a tone change, or scale. Lines are only for real tables and form fields.",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "FAIL",
+   "id": "outlined-box",
+   "width": 1280,
+   "message": "23 boxes drawn with a 1px outline.",
+   "fix": "Define a surface by its fill (one tone step from the page) or leave the content unboxed.",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "WARN",
+   "id": "card-rows",
+   "width": 1280,
+   "message": "3 rows of identical boxed cards.",
+   "fix": "Vary the composition; not every section is a card grid.",
+   "alsoAt": [
+    768
+   ]
+  },
+  {
+   "level": "WARN",
+   "id": "size-count",
+   "width": 1280,
+   "message": "12 different font sizes (10, 11, 12, 14, 15, 16, 18, 20, 24, 30, 36, 56).",
+   "fix": "A page needs about five: display, heading, lead, body, small.",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "WARN",
+   "id": "no-footage",
+   "width": 1280,
+   "message": "No video anywhere on the page.",
+   "fix": "Look for one honest clip with scripts/assets.mjs --video (the place, the material, the process) and use it as a muted loop with a poster frame. Defend its absence only if no clip fits the subject."
+  },
+  {
+   "level": "WARN",
+   "id": "measure",
+   "width": 1280,
+   "message": "Longest paragraph runs about 96 characters per line.",
+   "fix": "Cap paragraphs at 45–75 characters (max-width: 60ch)."
+  },
+  {
+   "level": "FAIL",
+   "id": "small-text",
+   "width": 1280,
+   "message": "62 text blocks under 13px.",
+   "fix": "Nothing meant to be read goes below 13px.",
+   "alsoAt": [
+    768,
+    390
+   ]
+  },
+  {
+   "level": "FAIL",
+   "id": "focal-point",
+   "width": 1280,
+   "message": "The first screen has no dominant element: the largest type is 56px (4.4vw) and no single picture holds a third of the viewport.",
+   "fix": "Make one thing lead: the headline at display size, or one large picture. A grid of many small pictures is not one thing; in blind tests jurors marked a first screen without a headline down every time. On the strongest studied sites the largest type has a median of 8.4vw."
+  },
+  {
+   "level": "FAIL",
+   "id": "still-page",
+   "width": 1280,
+   "message": "Only 0 element(s) moved while the page loaded and scrolled.",
+   "fix": "Build the motion layer (SKILL.md step 9, references/motion.md): the signature move, an entrance for the parts of every section, feedback on every control, and one moving picture. Transform and opacity only, with a reduced-motion fallback."
+  },
+  {
+   "level": "FAIL",
+   "id": "body-size",
+   "width": 390,
+   "message": "Body text is 12px (the size most of the running text is set in).",
+   "fix": "Body copy 16–20px. Map small sizes from blueprints onto your body step."
+  }
+ ],
+ "images": [
+  {
+   "viewport": "desktop",
+   "width": 1280,
+   "fold": "/home/cred/coding/aisley-workplace/aisley/src/landing-page/docs/stitch/2026-10-31-refresh/implementation/desktop-fold.jpg",
+   "pages": [
+    "/home/cred/coding/aisley-workplace/aisley/src/landing-page/docs/stitch/2026-10-31-refresh/implementation/desktop-page-01.jpg",
+    "/home/cred/coding/aisley-workplace/aisley/src/landing-page/docs/stitch/2026-10-31-refresh/implementation/desktop-page-02.jpg"
+   ],
+   "film": []
+  },
+  {
+   "viewport": "tablet",
+   "width": 768,
+   "fold": "/home/cred/coding/aisley-workplace/aisley/src/landing-page/docs/stitch/2026-10-31-refresh/implementation/tablet-fold.jpg",
+   "pages": [
+    "/home/cred/coding/aisley-workplace/aisley/src/landing-page/docs/stitch/2026-10-31-refresh/implementation/tablet-page-01.jpg",
+    "/home/cred/coding/aisley-workplace/aisley/src/landing-page/docs/stitch/2026-10-31-refresh/implementation/tablet-page-02.jpg"
+   ],
+   "film": []
+  },
+  {
+   "viewport": "mobile",
+   "width": 390,
+   "fold": "/home/cred/coding/aisley-workplace/aisley/src/landing-page/docs/stitch/2026-10-31-refresh/implementation/mobile-fold.jpg",
+   "pages": [
+    "/home/cred/coding/aisley-workplace/aisley/src/landing-page/docs/stitch/2026-10-31-refresh/implementation/mobile-page-01.jpg",
+    "/home/cred/coding/aisley-workplace/aisley/src/landing-page/docs/stitch/2026-10-31-refresh/implementation/mobile-page-02.jpg"
+   ],
+   "film": []
+  }
+ ]
+}

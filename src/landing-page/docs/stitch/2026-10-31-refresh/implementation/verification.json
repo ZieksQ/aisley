@@ -1,0 +1,79 @@
+{
+  "viewports": [
+    {
+      "width": 320,
+      "overflow": false,
+      "images": true,
+      "h1Count": 1,
+      "heroLines": 3,
+      "navVisible": true,
+      "primaryActionVisible": true,
+      "faqCount": 5,
+      "initiallyOpenFaqs": 1,
+      "externalLinksSafe": true
+    },
+    {
+      "width": 390,
+      "overflow": false,
+      "images": true,
+      "h1Count": 1,
+      "heroLines": 2,
+      "navVisible": true,
+      "primaryActionVisible": true,
+      "faqCount": 5,
+      "initiallyOpenFaqs": 1,
+      "externalLinksSafe": true
+    },
+    {
+      "width": 768,
+      "overflow": false,
+      "images": true,
+      "h1Count": 1,
+      "heroLines": 1,
+      "navVisible": true,
+      "primaryActionVisible": true,
+      "faqCount": 5,
+      "initiallyOpenFaqs": 1,
+      "externalLinksSafe": true
+    },
+    {
+      "width": 1024,
+      "overflow": false,
+      "images": true,
+      "h1Count": 1,
+      "heroLines": 2,
+      "navVisible": true,
+      "primaryActionVisible": true,
+      "faqCount": 5,
+      "initiallyOpenFaqs": 1,
+      "externalLinksSafe": true
+    },
+    {
+      "width": 1280,
+      "overflow": false,
+      "images": true,
+      "h1Count": 1,
+      "heroLines": 2,
+      "navVisible": true,
+      "primaryActionVisible": true,
+      "faqCount": 5,
+      "initiallyOpenFaqs": 1,
+      "externalLinksSafe": true
+    },
+    {
+      "width": 1440,
+      "overflow": false,
+      "images": true,
+      "h1Count": 1,
+      "heroLines": 2,
+      "navVisible": true,
+      "primaryActionVisible": true,
+      "faqCount": 5,
+      "initiallyOpenFaqs": 1,
+      "externalLinksSafe": true
+    }
+  ],
+  "previewEscapeAndFocus": true,
+  "keyboardFaq": true,
+  "reducedMotion": true
+}

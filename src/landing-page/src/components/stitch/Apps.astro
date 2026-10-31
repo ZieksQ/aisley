@@ -1,73 +1,66 @@
----
----
-<section class="max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-20 border-b border-[var(--border)]" id="apps">
-<div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-6 sm:p-8 lg:p-10">
-<div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+<section id="apps" class="pt-10 border-t border-borderPurple">
+  <div class="max-w-2xl mb-8">
+    <span class="text-xs font-semibold uppercase tracking-wider text-primaryPurple px-2.5 py-1 bg-tintPurple rounded-[6px] border border-borderPurple">
+      Mobile Releases
+    </span>
+    <h2 class="text-3xl sm:text-4xl font-bold tracking-tight text-ink mt-3 mb-3">
+      Shop or deliver on mobile
+    </h2>
+    <p class="text-base text-muted">
+      Standalone mobile application packages are distributed directly via official GitHub releases for community testing and participant installation.
+    </p>
+  </div>
 
-<div class="lg:col-span-7">
-<div class="flex items-center gap-2 mb-2">
-<span class="text-sm font-semibold text-[var(--brand-primary)]">Mobile apps</span>
-</div>
-<h2 class="text-2xl sm:text-3xl font-bold text-[var(--ink)] mb-3 tracking-tight">
-              Shop or deliver on mobile
-            </h2>
-<p class="text-base text-[var(--muted)] mb-6">Find Buyer and Rider mobile app releases on GitHub. Review the release notes, available packages, and installation instructions.</p>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
 
-<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+    <div class="bg-surface rounded-[8px] border border-borderPurple p-6 sm:p-8 flex flex-col justify-between">
+      <div>
+        <div class="flex items-center justify-between mb-4">
+          <span class="text-xs font-bold text-primaryPurple px-2.5 py-1 bg-tintPurple rounded border border-borderPurple">Buyer App</span>
+          <span class="text-xs font-mono text-muted">ApueXI/aisley-app-customer</span>
+        </div>
+        <h3 class="text-xl font-bold text-ink mb-2">AISLEY Customer App</h3>
+        <p class="text-sm text-muted leading-relaxed mb-6">
+          Browse independent shop catalogs, check out with Cash on Delivery, and monitor order updates on the go.
+        </p>
+        <div class="p-3 bg-canvas rounded-[6px] border border-borderPurple text-xs text-muted mb-6 leading-relaxed">
+          <strong>Installation note:</strong> Please review GitHub release notes, package assets, and local installation instructions prior to downloading.
+        </div>
+      </div>
 
-<div class="border border-[var(--border)] rounded-lg p-4 bg-[var(--canvas)] flex flex-col justify-between">
-<div>
-<div class="flex items-center gap-2 mb-2">
-<svg class="stitch-icon" aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M8 5V3h8v2M8 11h8M8 15h5"/></svg>
-<span class="text-sm font-bold text-[var(--ink)]">Buyer app</span>
-</div>
-<p class="text-base text-[var(--muted)] mb-3">Shop and follow your orders on mobile.</p>
-</div>
-<a class="min-h-[44px] w-full px-4 inline-flex items-center justify-center rounded-lg bg-[var(--surface)] border border-[var(--control-border)] hover:bg-[var(--brand-tint)] hover:border-[var(--brand-primary)] text-[var(--ink)] text-sm font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] focus-visible:outline-none" href="https://github.com/ApueXI/aisley-app-customer/releases" rel="noopener noreferrer" target="_blank">
-<span class="stitch-icon" aria-hidden="true">↓</span>
-                  Buyer app releases
-                </a>
-</div>
+      <a href="https://github.com/ApueXI/aisley-app-customer/releases"
+         class="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 py-2.5 bg-surface hover:bg-canvas text-ink border border-borderPurple text-sm font-semibold rounded-[8px] transition-colors"
+         target="_blank" rel="noopener noreferrer">
+        <svg class="w-4 h-4 text-ink" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd" />
+        </svg>
+        Customer GitHub Releases
+      </a>
+    </div>
 
-<div class="border border-[var(--logistics-border)] rounded-lg p-4 bg-[var(--logistics-tint)]/40 flex flex-col justify-between">
-<div>
-<div class="flex items-center gap-2 mb-2">
-<svg class="stitch-icon" aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M8 5V3h8v2M8 11h8M8 15h5"/></svg>
-<span class="text-sm font-bold text-[var(--ink)]">Rider app</span>
-</div>
-<p class="text-base text-[var(--muted)] mb-3">Access courier pickup and delivery workflows.</p>
-</div>
-<a class="min-h-[44px] w-full px-4 inline-flex items-center justify-center rounded-lg bg-[var(--surface)] border border-[var(--logistics-border)] hover:bg-[var(--logistics-tint)] text-[var(--logistics-primary)] text-sm font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-[var(--logistics-primary)] focus-visible:outline-none" href="https://github.com/ApueXI/aisley-app-rider/releases" rel="noopener noreferrer" target="_blank">
-<span class="stitch-icon" aria-hidden="true">↓</span>
-                  Rider app releases
-                </a>
-</div>
-</div>
+    <div class="bg-surface rounded-[8px] border border-borderPurple p-6 sm:p-8 flex flex-col justify-between">
+      <div>
+        <div class="flex items-center justify-between mb-4">
+          <span class="text-xs font-bold text-logisticsBlue px-2.5 py-1 bg-logisticsTint rounded border border-logisticsBorder">Rider App</span>
+          <span class="text-xs font-mono text-muted">ApueXI/aisley-app-rider</span>
+        </div>
+        <h3 class="text-xl font-bold text-ink mb-2">AISLEY Rider App</h3>
+        <p class="text-sm text-muted leading-relaxed mb-6">
+          Dedicated tool for logistics-affiliated couriers to manage dispatch manifests and confirm door-to-door handoffs.
+        </p>
+        <div class="p-3 bg-canvas rounded-[6px] border border-borderPurple text-xs text-muted mb-6 leading-relaxed">
+          <strong>Approval required:</strong> Couriers require formal credential approval by their affiliated Logistics partner organization prior to logging in.
+        </div>
+      </div>
 
-<div class="bg-[var(--brand-tint)] border border-[var(--border)] rounded-lg p-3 text-sm text-[var(--muted)]">
-<span class="font-bold text-[var(--ink)]">Courier access:</span> Couriers use the Rider mobile app and require approval from their associated Logistics organization. Sellers and Logistics teams use their dedicated web portals.
-            </div>
-</div>
-
-<div class="lg:col-span-5 bg-[var(--canvas)] border border-[var(--border)] rounded-lg p-5 space-y-4">
-<div class="text-sm font-bold text-[var(--muted)]">Before you download</div>
-<div class="border-b border-[var(--border)] pb-3">
-<div class="text-sm font-semibold text-[var(--ink)]">Available packages</div>
-<div class="font-sans text-sm text-[var(--muted)] mt-0.5">Check the selected release</div>
-</div>
-<div class="border-b border-[var(--border)] pb-3">
-<div class="text-sm font-semibold text-[var(--ink)]">Release source</div>
-<div class="font-sans text-sm text-[var(--muted)] mt-0.5">github.com/ApueXI/aisley-app-*</div>
-</div>
-<div class="border-b border-[var(--border)] pb-3">
-<div class="text-sm font-semibold text-[var(--ink)]">Installation guidance</div>
-<div class="font-sans text-sm text-[var(--muted)] mt-0.5">Read the release notes and instructions</div>
-</div>
-<div>
-<div class="text-sm font-semibold text-[var(--ink)]">Device compatibility</div>
-<div class="font-sans text-sm text-[var(--muted)] mt-0.5">Check the package requirements</div>
-</div>
-</div>
-</div>
-</div>
+      <a href="https://github.com/ApueXI/aisley-app-rider/releases"
+         class="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 py-2.5 bg-surface hover:bg-canvas text-ink border border-borderPurple text-sm font-semibold rounded-[8px] transition-colors focus-blue"
+         target="_blank" rel="noopener noreferrer">
+        <svg class="w-4 h-4 text-ink" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd" />
+        </svg>
+        Rider GitHub Releases
+      </a>
+    </div>
+  </div>
 </section>

@@ -1,56 +1,48 @@
 ---
 import Preview from '../Preview.astro';
 ---
-<section class="max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-20 border-b border-[var(--border)]" id="logistics">
-<div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
+<section id="logistics" class="pt-10 border-t border-borderPurple">
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
 
-<div class="lg:col-span-7">
-<div class="flex items-center gap-2 mb-2">
-<span class="text-sm font-semibold text-[var(--logistics-primary)]">For logistics teams</span>
-</div>
-<h2 class="text-2xl sm:text-3xl font-bold text-[var(--ink)] mb-4 tracking-tight">
-            Plan pickups and deliveries
-          </h2>
+    <div class="lg:col-span-6">
+      <div class="inline-flex items-center gap-2 mb-3">
+        <span class="text-xs font-semibold uppercase tracking-wider text-logisticsBlue px-2.5 py-0.5 bg-logisticsTint rounded-[6px] border border-logisticsBorder">
+          Participant 03 · Logistics Hubs
+        </span>
+      </div>
 
-<div class="bg-[var(--logistics-tint)] border border-[var(--logistics-border)] rounded-lg p-3.5 mb-6 flex items-start gap-2.5">
-<svg class="stitch-icon" aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M8 5V3h8v2M8 11h8M8 15h5"/></svg>
-<p class="text-base font-semibold text-[var(--logistics-primary)]">Coordinate parcel receiving, sorting, and dispatch from a dedicated operations workspace.</p>
-</div>
-<p class="text-base text-[var(--muted)] leading-relaxed mb-6">Logistics access requires Admin approval. Couriers require approval by their associated Logistics organization.</p>
-<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-<div class="p-3.5 bg-[var(--surface)] border border-[var(--logistics-border)] rounded-lg">
-<div class="text-sm font-bold text-[var(--ink)] mb-1 flex items-center gap-1.5">
-<svg class="stitch-icon" aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M8 5V3h8v2M8 11h8M8 15h5"/></svg>
-                Parcel receiving
-              </div>
-<p class="text-base text-[var(--muted)]">Receive and sort parcels.</p>
-</div>
-<div class="p-3.5 bg-[var(--surface)] border border-[var(--logistics-border)] rounded-lg">
-<div class="text-sm font-bold text-[var(--ink)] mb-1 flex items-center gap-1.5">
-<svg class="stitch-icon" aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M8 5V3h8v2M8 11h8M8 15h5"/></svg>
-                Pickup and delivery planning
-              </div>
-<p class="text-base text-[var(--muted)]">Plan pickup and delivery schedules.</p>
-</div>
-<div class="p-3.5 bg-[var(--surface)] border border-[var(--logistics-border)] rounded-lg">
-<div class="text-sm font-bold text-[var(--ink)] mb-1 flex items-center gap-1.5">
-<svg class="stitch-icon" aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M8 5V3h8v2M8 11h8M8 15h5"/></svg>
-                Affiliated couriers
-              </div>
-<p class="text-base text-[var(--muted)]">Coordinate approved affiliated couriers through the Rider mobile app.</p>
-</div>
-<div class="p-3.5 bg-[var(--surface)] border border-[var(--logistics-border)] rounded-lg">
-<div class="text-sm font-bold text-[var(--ink)] mb-1 flex items-center gap-1.5">
-<svg class="stitch-icon" aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m5 12 4 4L19 6"/></svg>
-                Courier approval
-              </div>
-<p class="text-base text-[var(--muted)]">Couriers use the Rider mobile app. Seller and Logistics workflows are available through their dedicated web portals.</p>
-</div>
-</div>
-<a class="min-h-[44px] px-5 inline-flex items-center justify-center rounded-lg bg-[var(--logistics-primary)] hover:bg-[var(--logistics-hover)] text-white text-sm font-semibold transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-[var(--logistics-primary)] focus-visible:outline-none" href="https://logistics.aisley.app" rel="noopener noreferrer" target="_blank">
-<span>Open logistics portal</span>
-<span class="stitch-icon" aria-hidden="true">→</span>
-</a>
-</div>
-<div class="lg:col-span-5"><div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 shadow-sm"><div class="text-sm text-[var(--muted)] mb-4">Logistics dispatch workspace</div><Preview src="/screens/logistics.webp" title="Logistics dispatch workspace" width={780} height={437} /></div></div>
-</div></section>
+      <h2 class="text-3xl sm:text-4xl font-bold tracking-tight text-ink leading-tight mb-4">
+        Plan pickups and deliveries
+      </h2>
+
+      <p class="text-base sm:text-lg text-muted mb-6 leading-relaxed">
+        Coordinate parcel receiving, sorting, pickup and dispatch; approved affiliated couriers execute route deliveries using the Rider mobile app.
+      </p>
+
+      <div class="p-4 bg-logisticsTint rounded-[8px] border border-logisticsBorder mb-8">
+        <h3 class="text-xs font-bold uppercase tracking-wider text-logisticsBlue mb-1.5 flex items-center gap-1.5">
+          <svg class="w-4 h-4 text-logisticsBlue" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+          </svg>
+          Access Qualifications
+        </h3>
+        <p class="text-xs sm:text-sm text-ink leading-relaxed">
+          Logistics access requires Admin approval. Couriers require approval by their associated Logistics organization.
+        </p>
+        <p class="text-[11px] text-muted mt-2">
+          Note: Couriers operate exclusively via the Rider mobile app; there is no separate courier web UI.
+        </p>
+      </div>
+
+      <a href="https://logistics.aisley.app"
+         class="inline-flex items-center justify-center min-h-[44px] px-6 py-2.5 bg-logisticsBlue hover:bg-logisticsHover text-surface text-sm font-semibold rounded-[8px] transition-colors shadow-sm focus-blue"
+         target="_blank" rel="noopener noreferrer">
+        Open logistics portal
+      </a>
+    </div>
+
+    <div class="lg:col-span-6">
+      <Preview src="/screens/logistics.webp" title="AISLEY logistics hub console" channel="logistics.aisley.app · hub console" width={780} height={437} blue />
+    </div>
+  </div>
+</section>

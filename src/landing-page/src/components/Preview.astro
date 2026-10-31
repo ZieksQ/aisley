@@ -2,22 +2,41 @@
 interface Props {
   src: string;
   title: string;
+  channel: string;
   width: number;
   height: number;
   eager?: boolean;
+  blue?: boolean;
 }
-const { src, title, width, height, eager = false } = Astro.props;
+const { src, title, channel, width, height, eager = false, blue = false } = Astro.props;
 const small = src.replace('.webp', '-480.webp');
 const srcset = width > 960
   ? `${small} 480w, ${src.replace('.webp', '-960.webp')} 960w, ${src} ${width}w`
   : `${small} 480w, ${src} ${width}w`;
 ---
-<figure class="product-shot">
-  <a href={src} data-preview aria-label={'Enlarge '+title}>
-    <img src={src} srcset={srcset} sizes="(min-width: 1240px) 410px, (min-width: 1024px) 34vw, (min-width: 640px) calc(100vw - 88px), calc(100vw - 72px)" decoding="async" alt={title} width={width} height={height}
+<figure class:list={['product-shot', { 'product-shot-blue': blue }]}>
+  <div class="preview-chrome">
+    <div class="preview-address">
+      <span class="preview-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span>{channel}</span>
+    </div>
+    <span class="preview-dimensions">{width} × {height}</span>
+  </div>
+  <a class="preview-image" href={src} data-preview aria-label={'Enlarge ' + title}>
+    <img src={src} srcset={srcset}
+      sizes="(min-width: 1240px) 538px, (min-width: 1024px) 44vw, calc(100vw - 80px)"
+      decoding="async" alt={title} width={width} height={height}
       loading={eager ? 'eager' : 'lazy'} fetchpriority={eager ? 'high' : 'auto'} />
   </a>
-  <figcaption>{title} <a href={src} data-preview>Enlarge preview ↗</a></figcaption>
+  <figcaption>
+    <span>Uncropped natural ratio · {width} × {height}</span>
+    <a href={src} data-preview>
+      <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m-3-3h6" />
+      </svg>
+      Enlarge preview
+    </a>
+  </figcaption>
 </figure>
 <script>
   const dialog = document.createElement('dialog');

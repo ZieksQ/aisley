@@ -44,3 +44,8 @@ Short, dated log of what has been implemented across the whole app. Append new e
 ## 2026-10-31 — Stitch desktop design refresh references
 
 - Created accessible private Stitch project AISLEY Landing Page (`15557909308404563880`) after historical project lookup failed; generated desktop screen `973c10bb2c70499faee3616805ef3553`. Saved MCP-downloaded screenshot/HTML, metadata, exact prompt, response and review in `src/landing-page/docs/stitch/2026-10-31-refresh/`. Flagged invented panel data, copy drift, small labels and pending mobile/dialog work. Existing frontend and pre-existing deleted context files unchanged; design reference only.
+
+## 2026-10-31 — Exact Stitch landing reference adoption
+
+- Replaced the Astro landing composition with MCP screen `973c10bb2c70499faee3616805ef3553`: exported desktop header, split sections, badges, workflow/release/workspace cards, first-open FAQ and footer. Filled marked screenshot slots with authentic local assets, preserved native enlargement and exact destinations/SEO, and added reproducible local utility compilation. Updated the matching spec; unrelated pre-existing deletions and Flutter remain untouched.
+- Preview/production builds and SEO/link checks passed. Chromium at 320/390/768/1024/1280/1440px passed overflow, loaded screenshots, visible navigation/shopping action, FAQ defaults, preview Escape/focus restoration, keyboard FAQ and reduced motion. Saved fresh captures/verification beside the reference. Taste style conflicts are documented as explicit reference choices; no pixel-identical, Lighthouse or deployed acceptance claim.

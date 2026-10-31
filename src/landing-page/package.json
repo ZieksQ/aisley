@@ -10,7 +10,8 @@
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
-    "build:production": "INDEXABLE=true astro build"
+    "build:production": "INDEXABLE=true astro build",
+    "styles": "node scripts/compile-stitch.mjs"
   },
   "dependencies": {
     "astro": "^7.4.4"
