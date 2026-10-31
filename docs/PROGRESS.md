@@ -1,5 +1,9 @@
 # Progress
 
+## 2026-10-31 — Stitch landing design context
+
+- Reused AISLEY Landing Page project and generated an Astro desktop reference refinement; saved project/screen IDs, screenshot URLs, project thumbnail, exact prompt, response and contract review in src/landing-page/docs/stitch. Flagged unsupported generated copy for correction; full-resolution screenshot downloads require authentication (HTTP 401). Frontend and Flutter unchanged.
+
 Short, dated log of what has been implemented across the whole app. Append new entries and preserve archives.
 
 ## 2026-10-30 — Progress archive

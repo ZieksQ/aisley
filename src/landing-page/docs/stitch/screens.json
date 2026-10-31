@@ -1,0 +1,38 @@
+{
+  "screens": [
+    {
+      "deviceType": "MOBILE",
+      "height": "13798",
+      "htmlCode": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/8631170844035430395/files/1dfa743213ed42afa471ac037ec22bce:download",
+        "mimeType": "text/html",
+        "name": "projects/8631170844035430395/files/1dfa743213ed42afa471ac037ec22bce"
+      },
+      "name": "projects/8631170844035430395/screens/c6ff773f56b1417bbba7dce43af9ab14",
+      "screenshot": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/8631170844035430395/files/8d0cd32fe6144a1ab1a7fe3c2e21931f:download",
+        "mimeType": "png",
+        "name": "projects/8631170844035430395/files/8d0cd32fe6144a1ab1a7fe3c2e21931f"
+      },
+      "title": "AISLEY Mobile Homepage (390px)",
+      "width": "780"
+    },
+    {
+      "deviceType": "DESKTOP",
+      "height": "12938",
+      "htmlCode": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/8631170844035430395/files/38358920b9e5494aaee3a46402eb6007:download",
+        "mimeType": "text/html",
+        "name": "projects/8631170844035430395/files/38358920b9e5494aaee3a46402eb6007"
+      },
+      "name": "projects/8631170844035430395/screens/b2b40a393cca4857b06b06c6fbe772c3",
+      "screenshot": {
+        "downloadUrl": "https://stitch.googleapis.com/v1/projects/8631170844035430395/files/282c5c1da4a243ceb5bb2ed006c3dc26:download",
+        "mimeType": "png",
+        "name": "projects/8631170844035430395/files/282c5c1da4a243ceb5bb2ed006c3dc26"
+      },
+      "title": "AISLEY Product-Led Marketing Homepage",
+      "width": "2560"
+    }
+  ]
+}
