@@ -16,3 +16,8 @@ Short, dated log of what has been implemented across the whole app. Append new e
 - Added the static Astro landing page at `src/landing-page`, informed by the AISLEY Landing Page Stitch design, with buyer/seller/logistics sections, all five portal/release destinations, native FAQ, local branding/font, and redacted live-app screenshots. Added root `dev:landing` and LANDING to concurrent `pnpm dev`.
 - Added canonical/social metadata, Organization/WebSite JSON-LD, sitemap, branded PNG preview, noindex 404, and opt-in production indexing via `build:production`. Preview builds default to noindex.
 - Verification: preview/production static builds passed; generated metadata, exact links, JSON-LD, sitemap and 404 assertions passed. Chromium showed no horizontal overflow at 320/390/768/1024/1440px; all images loaded. Lighthouse, full keyboard/zoom acceptance and deployed-domain checks remain open.
+
+## 2026-10-31 — Landing page density and preview UX
+
+- Tightened hero and role sections, moved feature lists alongside role descriptions, alternated Seller media, consolidated downloads/footer, and added accessible native screenshot dialogs with direct-image fallbacks. Retained exact portal/release links, early-access copy, branding and SEO.
+- Production build and generated SEO/link assertions passed. Chromium measured no overflow at 320/390/768/1024/1440px; desktop height fell from 5666px to about 4020px. Escape/focus restoration passed; all final viewport screenshot sheets reviewed. Taste flags for contract-permitted boundaries and restrained typography/motion remain documented in the feature spec; Lighthouse/deployed acceptance remains open.

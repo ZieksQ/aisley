@@ -1,8 +1,9 @@
 ---
+import Preview from './Preview.astro';
 const portals = [
- {id:'buyers', name:'Buyers', title:'Discover products. Follow every order.', text:'Explore independent shops, find products, and place orders with Cash on Delivery. Follow order milestones from preparation through delivery.', url:'https://aisley.app', action:'Open buyer portal', features:['Browse products and shops','Choose your delivery option at checkout','Review products after delivery']},
- {id:'sellers', name:'Sellers', title:'Your shop, from catalog to fulfillment.', text:'Manage your products, inventory, and incoming orders in one workspace. Prepare parcels and request pickup from your selected logistics provider. Seller access requires Admin approval.', url:'https://seller.aisley.app', action:'Open seller portal', features:['Manage your shop and product catalog','Keep track of inventory and orders','Prepare parcels and print waybills']},
- {id:'logistics', name:'Logistics', title:'Connect the hub to the doorstep.', text:'Coordinate parcel receiving, sorting, and dispatch from a dedicated operations workspace. Work with approved affiliated couriers through the Rider mobile app. Logistics access requires Admin approval.', url:'https://logistics.aisley.app', action:'Open logistics portal', features:['Receive and sort parcels','Plan pickup and delivery schedules','Coordinate your affiliated couriers']},
+ {id:'buyers', name:'Buyers', text:'Explore independent shops, find products, and place orders with Cash on Delivery. Follow order milestones from preparation through delivery.', url:'https://aisley.app', action:'Open buyer portal', features:['Browse products and shops','Choose your delivery option at checkout','Review products after delivery']},
+ {id:'sellers', name:'Sellers', text:'Manage your products, inventory, and incoming orders in one workspace. Prepare parcels and request pickup from your selected logistics provider. Seller access requires Admin approval.', url:'https://seller.aisley.app', action:'Open seller portal', features:['Manage your shop and product catalog','Keep track of inventory and orders','Prepare parcels and print waybills']},
+ {id:'logistics', name:'Logistics', text:'Coordinate parcel receiving, sorting, and dispatch from a dedicated operations workspace. Work with approved affiliated couriers through the Rider mobile app. Logistics access requires Admin approval.', url:'https://logistics.aisley.app', action:'Open logistics portal', features:['Receive and sort parcels','Plan pickup and delivery schedules','Coordinate your affiliated couriers']},
 ];
 const apps=[['Buyer app releases','Shop and follow your orders on mobile.','https://github.com/ApueXI/aisley-app-customer/releases'],['Rider app releases','Access courier pickup and delivery workflows.','https://github.com/ApueXI/aisley-app-rider/releases']];
 const faq=[['What is AISLEY?','AISLEY is a Philippine multi-vendor marketplace connecting buyers, independent sellers, logistics organizations, and couriers.'],['Is AISLEY available everywhere?','AISLEY is in early access. Available products and delivery options depend on participating shops and operational coverage. Review the options presented at checkout.'],['Do I need approval?','Seller and Logistics accounts require Admin approval. Couriers require approval by their associated Logistics organization. Account access follows the applicable registration requirements.'],['Where can I get the mobile apps?','The Buyer and Rider links open their respective GitHub Releases pages. Review the release notes and available packages there.'],['Does tracking show a live courier location?','Order tracking follows recorded shipment milestones. Live courier GPS tracking is not promised.']];
@@ -18,44 +19,33 @@ const faq=[['What is AISLEY?','AISLEY is a Philippine multi-vendor marketplace c
 <main id="main">
 <section class="shell hero">
 <div>
-<h1>Shopping, selling, and delivery—connected.</h1>
+<h1>Shop. Sell. Deliver.</h1>
 <p class="lead">Explore AISLEY: a Philippine marketplace connecting buyers, independent sellers, and delivery teams. Now in early access.</p>
 <div class="actions">{portals.map(p=>
 <a class:list={['button',p.id==='logistics'&&'blue']} href={p.url}>{p.name==='Buyers'?'Buyer':p.name==='Sellers'?'Seller':'Logistics'} portal <span aria-hidden="true">↗</span>
 </a>)}</div>
 </div>
-<figure class="product-shot">
-<img src="/screens/buyer.webp" width="1280" height="850" alt="AISLEY storefront with product discovery and shopping navigation" fetchpriority="high"/>
-<figcaption>Explore the AISLEY marketplace.</figcaption>
-</figure>
+<Preview src="/screens/buyer.webp" width={1280} height={850} title="AISLEY storefront" eager />
 </section>
-{portals.map((p,i)=>
+{portals.map(p=>
 <section id={p.id} class:list={['audience',p.id==='logistics'&&'logistics']}>
 <div class="shell split">
 <div>
-<p class="role">For {p.name.toLowerCase()}</p>
-<h2>{p.title}</h2>
+<h2>{p.id==='buyers'?'Buy on AISLEY':p.id==='sellers'?'Sell on AISLEY':'Deliver with AISLEY'}</h2>
 <p>{p.text}</p>
+<ul class="features">{p.features.map(f => <li>{f}</li>)}</ul>
 <a class="button" href={p.url}>{p.action} ↗</a>
 </div>
 <div>
-<figure class="product-shot">
-<img src={'/screens/'+(p.id==='buyers'?'buyer':p.id==='sellers'?'seller':'logistics')+'.webp'} width={p.id==='buyers'?1280:780} height={p.id==='buyers'?850:437} loading="lazy" alt={p.name+' web workspace preview; private details omitted'}/>
-<figcaption>Actual AISLEY web workspace. Private details omitted.</figcaption>
-</figure>
-<div class="feature-list">{p.features.map((f,j)=>
-<div>
-<span aria-hidden="true">0{j+1}</span>
-<h3>{f}</h3>
-</div>)}</div>
+<Preview src={'/screens/'+(p.id==='buyers'?'buyer':p.id==='sellers'?'seller':'logistics')+'.webp'} width={p.id==='buyers'?1280:780} height={p.id==='buyers'?850:437} title={p.id==='buyers'?'AISLEY storefront':p.id==='sellers'?'Seller product catalog':'Logistics dispatch workspace'} />
+
 </div>
 </div>
 </section>)}
 <section class="shell workflow">
-<h2>How the connected marketplace moves orders</h2>
-<ol>{['Browse and order','Seller prepares','Logistics coordinates','Courier delivers'].map((x,i)=>
+<h2>From order to delivery</h2>
+<ol>{['Browse and order','Seller prepares','Logistics coordinates','Courier delivers'].map(x=>
 <li>
-<span>0{i+1}</span>
 <h3>{x}</h3>
 </li>)}</ol>
 </section>
@@ -68,8 +58,9 @@ const faq=[['What is AISLEY?','AISLEY is a Philippine multi-vendor marketplace c
 <h3>{title}</h3>
 <p>{text}</p>
 <a class="button" href={url}>View releases ↗</a>
-<p class="small">Opens GitHub Releases. Check available packages and installation instructions.</p>
+
 </article>)}</div>
+<p class="small">Downloads open GitHub Releases. Check available packages and installation instructions.</p>
 </div>
 </section>
 <section class="shell faq">
@@ -80,17 +71,11 @@ const faq=[['What is AISLEY?','AISLEY is a Philippine multi-vendor marketplace c
 <p>{a}</p>
 </details>)}</div>
 </section>
-<section class="closing">
-<div class="shell">
-<h2>Find your place in AISLEY.</h2>
-<div class="actions">{portals.map(p=>
-<a class="button" href={p.url}>{p.action} ↗</a>)}</div>
-</div>
-</section>
+
 </main>
 <footer class="shell">
 <img src="/logo.svg" alt="AISLEY" width="142" height="44"/>
-<p>Shopping, selling, and delivery. Connected.</p>
+<p>Find your place in AISLEY.</p>
 <nav aria-label="Footer">{portals.map(p=>
 <a href={p.url}>{p.name}</a>)}{apps.map(([title,_,url])=>
 <a href={url}>{title}</a>)}</nav>

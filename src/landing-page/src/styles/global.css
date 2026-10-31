@@ -73,14 +73,14 @@ nav a:hover {
 .hero {
   display:grid;
   grid-template-columns:1.3fr 1fr;
-  gap:64px;
+  gap:32px;
   align-items:center;
-  padding-block:100px 120px
+  padding-block:48px
 }
 .lead {
   font-size:20px;
   max-width:650px;
-  margin-block:32px
+  margin-block:24px
 }
 .actions {
   display:flex;
@@ -106,54 +106,25 @@ nav a:hover {
 .blue,.logistics .button {
   background:#2563eb
 }
-.intro {
-  background:#f1eaf4;
-  padding:48px;
-  border-radius:16px
-}
-.intro h2 {
-  margin-top:36px
-}
 .audience {
-  padding-block:100px;
+  padding-block:56px;
   background:white;
   border-top:1px solid #e5e7eb
 }
 .split {
   display:grid;
   grid-template-columns:1fr 1fr;
-  gap:100px;
+  gap:32px;
   align-items:center
 }
 .split p {
   max-width:580px
 }
-.role {
-  font-weight:600;
-  color:#4c1268
-}
 .logistics {
   background:#eff6ff
 }
-.logistics .role {
-  color:#1e40af
-}
-.feature-list>div {
-  display:flex;
-  align-items:baseline;
-  gap:28px;
-  padding:24px 0;
-  border-bottom:1px solid #d1d5db
-}
-.feature-list span {
-  color:#6d28d9
-}
-.feature-list h3 {
-  margin:0;
-  line-height:1.4
-}
-.workflow {
-  padding-block:110px
+.logistics .workflow {
+  padding-block:48px
 }
 .workflow h2 {
   max-width:700px
@@ -162,27 +133,23 @@ nav a:hover {
   display:grid;
   grid-template-columns:repeat(4,1fr);
   gap:24px;
-  padding:36px 0 0;
+  padding:16px 0 0;
   list-style:none
 }
 .workflow li {
   border-top:2px solid #4c1268;
   padding-top:24px
 }
-.workflow span {
-  display:block;
-  margin-bottom:24px
-}
 .apps {
-  background:#231429;
-  color:white;
-  padding-block:100px
+  background:#f1eaf4;
+  color:#231429;
+  padding-block:56px
 }
 .app-grid {
   display:grid;
   grid-template-columns:1fr 1fr;
   gap:32px;
-  margin-top:48px
+  margin-top:24px
 }
 .app-grid article {
   border-top:1px solid #97859e;
@@ -197,10 +164,10 @@ nav a:hover {
   margin-top:20px
 }
 .faq {
-  padding-block:100px;
+  padding-block:56px;
   display:grid;
   grid-template-columns:1fr 1.3fr;
-  gap:64px
+  gap:32px
 }
 details {
   border-bottom:1px solid #d1d5db;
@@ -214,10 +181,6 @@ summary {
 }
 details p {
   margin:16px 0
-}
-.closing {
-  background:#f1eaf4;
-  padding-block:80px
 }
 footer {
   padding-block:48px
@@ -241,16 +204,13 @@ footer nav {
   gap:40px
 }
 .hero {
-  padding-block:56px 72px
+  padding-block:32px 40px
 }
 .audience,.workflow,.apps,.faq {
   padding-block:64px
 }
 .workflow ol {
   grid-template-columns:1fr 1fr
-}
-.intro {
-  padding:32px
 }
 
 }
@@ -277,9 +237,6 @@ footer nav {
 }
 .app-grid,.workflow ol {
   grid-template-columns:1fr
-}
-.intro {
-  padding:24px
 }
 h1 {
   font-size:40px
@@ -309,7 +266,7 @@ h1 {
   border-radius:8px
 }
 figcaption {
-  font-size:12px;
+  font-size:14px;
   margin-top:10px;
   color:#4b5563
 }
@@ -317,4 +274,128 @@ figcaption {
 
 .header>a img, footer>img {
   filter: brightness(0);
+}
+
+:root {
+  --brand: #4c1268;
+  --ink: #231429;
+  --layout-gap: 32px;
+}
+.hero {
+  grid-template-columns: 1fr 1fr;
+  gap: var(--layout-gap);
+}
+.hero h1 {
+  font-size: clamp(36px, 4.4vw, 64px);
+}
+.hero .lead {
+  font-size: 18px;
+}
+.split {
+  grid-template-columns: 5fr 7fr;
+  gap: var(--layout-gap);
+}
+.features {
+  padding-left: 20px;
+  margin: 0 0 24px;
+}
+.features li {
+  padding-block: 4px;
+}
+#sellers .split > :first-child {
+  order: 2;
+}
+#sellers .split > :last-child {
+  order: 1;
+}
+figcaption {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+figcaption a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 14px;
+}
+.preview-dialog {
+  width: min(1280px, calc(100% - 32px));
+  max-height: calc(100dvh - 32px);
+  padding: 20px;
+  border: 0;
+  border-radius: 8px;
+}
+.preview-dialog::backdrop {
+  background: rgb(35 20 41 / 70%);
+}
+.preview-dialog button {
+  margin-bottom: 16px;
+}
+.preview-dialog img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+footer {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  column-gap: 32px;
+  align-items: start;
+}
+footer nav {
+  margin: 0;
+}
+footer .small {
+  grid-column: 1 / -1;
+}
+@media (max-width: 900px) {
+  .hero, .split {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  #sellers .split > :first-child, #sellers .split > :last-child {
+    order: initial;
+  }
+  .audience, .apps, .faq {
+    padding-block: 40px;
+  }
+  footer {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 540px) {
+  .hero .actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .hero .actions > :last-child {
+    grid-column: 1 / -1;
+  }
+  .hero .button {
+    padding: 12px;
+    gap: 8px;
+    font-size: 14px;
+  }
+  .hero h1 {
+    font-size: 36px;
+  }
+  .hero .lead {
+    font-size: 16px;
+  }
+}
+
+.hero {
+  align-items: start;
+}
+.hero .product-shot img {
+  max-height: 340px;
+  object-fit: cover;
+  object-position: center bottom;
+}
+@media (max-width: 540px) {
+  .hero .product-shot img {
+    max-height: none;
+  }
 }

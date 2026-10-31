@@ -1,0 +1,41 @@
+---
+interface Props {
+  src: string;
+  title: string;
+  width: number;
+  height: number;
+  eager?: boolean;
+}
+const { src, title, width, height, eager = false } = Astro.props;
+---
+<figure class="product-shot">
+  <a href={src} data-preview aria-label={'Enlarge '+title}>
+    <img src={src} alt={title} width={width} height={height}
+      loading={eager ? 'eager' : 'lazy'} fetchpriority={eager ? 'high' : 'auto'} />
+  </a>
+  <figcaption>{title} <a href={src} data-preview>Enlarge preview ↗</a></figcaption>
+</figure>
+<script>
+  const dialog = document.createElement('dialog');
+  dialog.className = 'preview-dialog';
+  dialog.setAttribute('aria-label', 'Application preview');
+  const close = document.createElement('button');
+  close.textContent = 'Close preview';
+  close.className = 'button';
+  const image = document.createElement('img');
+  dialog.append(close, image);
+  document.body.append(dialog);
+  let trigger: HTMLAnchorElement | null = null;
+  document.querySelectorAll<HTMLAnchorElement>('[data-preview]').forEach(link => {
+    link.addEventListener('click', event => {
+      if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+      event.preventDefault();
+      trigger = link;
+      image.src = link.href;
+      image.alt = link.closest('figure')?.querySelector('img')?.alt ?? 'AISLEY preview';
+      dialog.showModal();
+    });
+  });
+  close.addEventListener('click', () => dialog.close());
+  dialog.addEventListener('close', () => trigger?.focus());
+</script>
