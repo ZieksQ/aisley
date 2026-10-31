@@ -1,88 +1,145 @@
 ---
-import Preview from './Preview.astro';
-const portals = [
- {id:'buyers', name:'Buyers', text:'Explore independent shops, find products, and place orders with Cash on Delivery. Follow order milestones from preparation through delivery.', url:'https://aisley.app', action:'Open buyer portal', features:['Browse products and shops','Choose your delivery option at checkout','Review products after delivery']},
- {id:'sellers', name:'Sellers', text:'Manage your products, inventory, and incoming orders in one workspace. Prepare parcels and request pickup from your selected logistics provider. Seller access requires Admin approval.', url:'https://seller.aisley.app', action:'Open seller portal', features:['Manage your shop and product catalog','Keep track of inventory and orders','Prepare parcels and print waybills']},
- {id:'logistics', name:'Logistics', text:'Coordinate parcel receiving, sorting, and dispatch from a dedicated operations workspace. Work with approved affiliated couriers through the Rider mobile app. Logistics access requires Admin approval.', url:'https://logistics.aisley.app', action:'Open logistics portal', features:['Receive and sort parcels','Plan pickup and delivery schedules','Coordinate your affiliated couriers']},
-];
-const apps=[['Buyer app releases','Shop and follow your orders on mobile.','https://github.com/ApueXI/aisley-app-customer/releases'],['Rider app releases','Access courier pickup and delivery workflows.','https://github.com/ApueXI/aisley-app-rider/releases']];
-const faq=[['What is AISLEY?','AISLEY is a Philippine multi-vendor marketplace connecting buyers, independent sellers, logistics organizations, and couriers.'],['Is AISLEY available everywhere?','AISLEY is in early access. Available products and delivery options depend on participating shops and operational coverage. Review the options presented at checkout.'],['Do I need approval?','Seller and Logistics accounts require Admin approval. Couriers require approval by their associated Logistics organization. Account access follows the applicable registration requirements.'],['Where can I get the mobile apps?','The Buyer and Rider links open their respective GitHub Releases pages. Review the release notes and available packages there.'],['Does tracking show a live courier location?','Order tracking follows recorded shipment milestones. Live courier GPS tracking is not promised.']];
+import Hero from './stitch/Hero.astro';
+import Buyers from './stitch/Buyers.astro';
+import Sellers from './stitch/Sellers.astro';
+import Logistics from './stitch/Logistics.astro';
+import Workflow from './stitch/Workflow.astro';
+import Apps from './stitch/Apps.astro';
+import Faq from './stitch/Faq.astro';
+import Portals from './stitch/Portals.astro';
 ---
-<header class="shell header">
-<a href="#" aria-label="AISLEY home">
-<img src="/logo.svg" width="142" height="44" alt="AISLEY" />
-</a>
-<nav aria-label="Main navigation">{portals.map(p=>
-<a href={'#'+p.id}>{p.name}</a>)}<a href="#apps">Apps</a>
+
+
+<header class="bg-[#ffffff]/90 backdrop-blur-md border-b border-[#e5dce7] sticky top-0 z-50">
+<div class="max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+
+<div class="flex items-center gap-3">
+<a class="text-xl font-bold tracking-tight text-[#4c1268] hover:opacity-90 transition-opacity flex items-center gap-2" href="#">
+          AISLEY
+        </a>
+<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#f1ebf3] border border-[#e5dce7] text-[#4c1268]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#4c1268]"></span>
+          Early Access
+        </span>
+</div>
+
+<nav class="hidden md:flex items-center space-x-7 text-sm font-medium text-[#594c5e]">
+<a class="hover:text-[#231429] transition-colors py-2 focus-visible:ring-2 focus-visible:ring-[#4c1268] focus-visible:outline-none rounded" href="#buyers">Buyers</a>
+<a class="hover:text-[#231429] transition-colors py-2 focus-visible:ring-2 focus-visible:ring-[#4c1268] focus-visible:outline-none rounded" href="#sellers">Sellers</a>
+<a class="hover:text-[#231429] transition-colors py-2 focus-visible:ring-2 focus-visible:ring-[#4c1268] focus-visible:outline-none rounded" href="#logistics">Logistics</a>
+<a class="hover:text-[#231429] transition-colors py-2 focus-visible:ring-2 focus-visible:ring-[#4c1268] focus-visible:outline-none rounded" href="#apps">Apps</a>
+<a class="hover:text-[#231429] transition-colors py-2 focus-visible:ring-2 focus-visible:ring-[#4c1268] focus-visible:outline-none rounded" href="#workflow">Workflow</a>
+<a class="hover:text-[#231429] transition-colors py-2 focus-visible:ring-2 focus-visible:ring-[#4c1268] focus-visible:outline-none rounded" href="#faq">FAQ</a>
 </nav>
-<a class="button header-action" href="https://aisley.app">Start shopping <span aria-hidden="true">↗</span></a>
+
+<div class="flex items-center gap-3">
+<a class="min-h-[44px] px-5 inline-flex items-center justify-center rounded-lg bg-[#4c1268] hover:bg-[#3d0e54] text-white text-sm font-semibold transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-[#4c1268] focus-visible:ring-offset-2 focus-visible:outline-none" href="https://aisley.app" rel="noopener noreferrer" target="_blank">
+          Start shopping
+          <span class="stitch-icon" aria-hidden="true">→</span>
+</a>
+</div>
+</div>
 </header>
 <main id="main">
-<section class="shell hero">
-<div>
-<h1>Shop. Sell. Deliver.</h1>
-<p class="lead">Explore AISLEY: a Philippine marketplace connecting buyers, independent sellers, and delivery teams. Now in early access.</p>
-<div class="actions">{portals.map(p=>
-<a class:list={['button',p.id!=='buyers'&&'secondary',p.id==='logistics'&&'blue']} href={p.url}>{p.id==='buyers'?'Start shopping':p.id==='sellers'?'Seller portal':'Logistics portal'} <span aria-hidden="true">↗</span>
-</a>)}</div>
-</div>
-<Preview src="/screens/buyer.webp" width={1280} height={850} title="AISLEY storefront" eager />
-</section>
-{portals.map(p=>
-<section id={p.id} class:list={['audience',p.id==='logistics'&&'logistics']}>
-<div class="shell split">
-<div>
-<h2>{p.id==='buyers'?'Buy on AISLEY':p.id==='sellers'?'Sell on AISLEY':'Deliver with AISLEY'}</h2>
-<p>{p.text}</p>
-<ul class="features">{p.features.map(f => <li>{f}</li>)}</ul>
-<a class="button" href={p.url}>{p.action} ↗</a>
-</div>
-<div>
-<Preview src={'/screens/'+(p.id==='buyers'?'buyer':p.id==='sellers'?'seller':'logistics')+'.webp'} width={p.id==='buyers'?1280:780} height={p.id==='buyers'?850:437} title={p.id==='buyers'?'AISLEY storefront':p.id==='sellers'?'Seller product catalog':'Logistics dispatch workspace'} />
 
-</div>
-</div>
-</section>)}
-<section class="shell workflow">
-<h2>From order to delivery</h2>
-<ol>{['Browse and order','Seller prepares','Logistics coordinates','Courier delivers'].map(x=>
-<li>
-<h3>{x}</h3>
-</li>)}</ol>
-</section>
-<section id="apps" class="apps">
-<div class="shell apps-layout">
-<div>
-<h2>AISLEY on the go.</h2>
-<p>Two mobile apps, with a purpose for each participant.</p>
-<p class="small">Downloads open GitHub Releases. Check available packages and installation instructions.</p>
-</div>
-<div class="app-grid">{apps.map(([title,text,url])=>
-<article>
-<h3>{title}</h3>
-<p>{text}</p>
-<a class="button" href={url}>View releases ↗</a>
+<Hero />
 
-</article>)}</div>
-</div>
-</section>
-<section class="shell faq">
-<h2>Frequently asked questions</h2>
-<div>{faq.map(([q,a])=>
-<details>
-<summary>{q}</summary>
-<p>{a}</p>
-</details>)}</div>
-</section>
+<Buyers />
 
+<Sellers />
+
+<Logistics />
+
+<Workflow />
+
+<Apps />
+
+<Faq />
+
+<Portals />
 </main>
-<footer class="shell">
-<div class="footer-brand">
-<img src="/logo.svg" alt="AISLEY" width="142" height="44"/>
-<p>Find your place in AISLEY.</p>
+
+<footer class="bg-[#ffffff] border-t border-[#e5dce7]">
+<div class="max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
+
+<div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
+
+<div class="md:col-span-1">
+<span class="text-lg font-bold tracking-tight text-[#4c1268] block mb-2">
+            AISLEY
+          </span>
+<p class="text-xs text-[#594c5e] leading-relaxed">
+            A Philippine marketplace connecting buyers, independent sellers, logistics organizations, and couriers.
+          </p>
 </div>
-<nav aria-label="Footer">{portals.map(p=>
-<a href={p.url}>{p.name}</a>)}{apps.map(([title,_,url])=>
-<a href={url}>{title}</a>)}</nav>
-<p class="small">© {new Date().getFullYear()} AISLEY · Early access</p>
+
+<div>
+<h4 class="text-xs font-bold text-[#231429] uppercase tracking-wider mb-3">Commerce Portals</h4>
+<ul class="space-y-2 text-xs">
+<li>
+<a class="text-[#594c5e] hover:text-[#4c1268] transition-colors py-1 inline-block focus-visible:ring-2 focus-visible:ring-[#4c1268] focus-visible:outline-none rounded" href="https://aisley.app" rel="noopener noreferrer" target="_blank">
+                Buyer Portal (aisley.app)
+              </a>
+</li>
+<li>
+<a class="text-[#594c5e] hover:text-[#4c1268] transition-colors py-1 inline-block focus-visible:ring-2 focus-visible:ring-[#4c1268] focus-visible:outline-none rounded" href="https://seller.aisley.app" rel="noopener noreferrer" target="_blank">
+                Seller Portal (seller.aisley.app)
+              </a>
+</li>
+<li>
+<a class="text-[#594c5e] hover:text-[#2563eb] transition-colors py-1 inline-block focus-visible:ring-2 focus-visible:ring-[#2563eb] focus-visible:outline-none rounded" href="https://logistics.aisley.app" rel="noopener noreferrer" target="_blank">
+                Logistics Portal (logistics.aisley.app)
+              </a>
+</li>
+</ul>
+</div>
+
+<div>
+<h4 class="text-xs font-bold text-[#231429] uppercase tracking-wider mb-3">Software Releases</h4>
+<ul class="space-y-2 text-xs">
+<li>
+<a class="text-[#594c5e] hover:text-[#4c1268] transition-colors py-1 inline-block focus-visible:ring-2 focus-visible:ring-[#4c1268] focus-visible:outline-none rounded" href="https://github.com/ApueXI/aisley-app-customer/releases" rel="noopener noreferrer" target="_blank">
+                Buyer app releases
+              </a>
+</li>
+<li>
+<a class="text-[#594c5e] hover:text-[#2563eb] transition-colors py-1 inline-block focus-visible:ring-2 focus-visible:ring-[#2563eb] focus-visible:outline-none rounded" href="https://github.com/ApueXI/aisley-app-rider/releases" rel="noopener noreferrer" target="_blank">
+                Rider app releases
+              </a>
+</li>
+<li>
+<span class="text-[#7d6f83] py-1 inline-block">Review available release packages</span>
+</li>
+</ul>
+</div>
+
+<div>
+<h4 class="text-xs font-bold text-[#231429] uppercase tracking-wider mb-3">Getting started</h4>
+<ul class="space-y-2 text-xs">
+<li>
+<span class="text-[#594c5e]">Seller approval</span>
+</li>
+<li>
+<span class="text-[#594c5e]">Courier approval</span>
+</li>
+<li>
+<span class="text-[#594c5e]">Early access</span>
+</li>
+<li>
+<span class="text-[#594c5e]">Delivery options at checkout</span>
+</li>
+</ul>
+</div>
+</div>
+
+<div class="pt-8 border-t border-[#e5dce7] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 text-xs text-[#7d6f83]">
+<p>
+          © {new Date().getFullYear()} AISLEY · Early access
+        </p>
+<div class="flex items-center gap-2 text-[#4c1268] font-mono text-[11px]">
+<span class="w-1.5 h-1.5 rounded-full bg-[#4c1268]"></span>
+<span>info.aisley.app</span>
+</div>
+</div>
+</div>
 </footer>

@@ -30,3 +30,8 @@ Short, dated log of what has been implemented across the whole app. Append new e
 
 - Refined the marketing page with left branding/right shopping action at all widths, desktop navigation between them, wider uncropped screenshots, primary/secondary hero actions, alternating role sections, side-by-side app introduction/downloads, and grouped brand/links in the footer. Preserved existing content, destinations, preview dialogs and SEO; consolidated the affected CSS cascade.
 - Verification: preview and production Astro builds, generated production SEO/JSON-LD/sitemap/noindex-404 assertions, and diff whitespace checks passed. Chromium passed 320/390/640/768/1024/1440px overflow, image, heading and alignment/destination checks, plus preview Escape/focus restoration, FAQ and reduced-motion checks. Desktop/tablet/mobile screenshots reviewed; Taste style exceptions remain documented in the feature spec. Lighthouse and deployed-domain acceptance remain open.
+
+## 2026-10-31 — Stitch landing implementation
+
+- Applied the refined Stitch desktop composition to the Astro landing page, retaining exported spacing, colors, section grids, feature cards, downloads panel, FAQ, portal grid and footer. Replaced generated claims with canonical system copy and authentic app previews; retained destinations, metadata and native image dialogs. No dependencies or Flutter changes.
+- Preview and production builds passed; Chromium checked 320/390/768/1024/1440px without horizontal overflow, five FAQ disclosures, and preview dialog opening. Desktop/mobile captures and verification data saved with Stitch context. Local outline icons replace the external Material Symbols font; no pixel-identical certification claimed.
