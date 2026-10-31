@@ -1,0 +1,17 @@
+{
+  "deviceType": "DESKTOP",
+  "height": "11250",
+  "htmlCode": {
+    "downloadUrl": "https://stitch.googleapis.com/v1/projects/15557909308404563880/files/2cbecc9d38e04354bea65cd09797f30a:download",
+    "mimeType": "text/html",
+    "name": "projects/15557909308404563880/files/2cbecc9d38e04354bea65cd09797f30a"
+  },
+  "name": "projects/15557909308404563880/screens/973c10bb2c70499faee3616805ef3553",
+  "screenshot": {
+    "downloadUrl": "https://stitch.googleapis.com/v1/projects/15557909308404563880/files/504f972cc170494bb4dff68c13c13ed6:download",
+    "mimeType": "png",
+    "name": "projects/15557909308404563880/files/504f972cc170494bb4dff68c13c13ed6"
+  },
+  "title": "AISLEY Landing — existing screen refinement",
+  "width": "2560"
+}

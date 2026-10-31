@@ -40,3 +40,7 @@ Short, dated log of what has been implemented across the whole app. Append new e
 
 - Clarified the Astro hero with a concrete shopping headline, one primary action and supporting sentence; repeated shopping CTAs and simplified role copy. Preserved portal/release destinations, authentic previews, early access and approval qualifications. Added phone navigation, 44px targets, consistent headings/focus, readable copy, color variables, responsive WebP variants, font preload and social image metadata. No dependencies or other app changes.
 - Preview/production builds passed. Chromium at 360/768/1280/1440px passed overflow, image, CTA visibility, target sizing, headings, destinations, keyboard dialog/FAQ and reduced-motion checks. Taste retains documented design-contract/style exceptions; Lighthouse, assistive-technology and deployed acceptance remain open. See `src/landing-page/docs/quality-review.md`.
+
+## 2026-10-31 — Stitch desktop design refresh references
+
+- Created accessible private Stitch project AISLEY Landing Page (`15557909308404563880`) after historical project lookup failed; generated desktop screen `973c10bb2c70499faee3616805ef3553`. Saved MCP-downloaded screenshot/HTML, metadata, exact prompt, response and review in `src/landing-page/docs/stitch/2026-10-31-refresh/`. Flagged invented panel data, copy drift, small labels and pending mobile/dialog work. Existing frontend and pre-existing deleted context files unchanged; design reference only.

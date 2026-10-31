@@ -1,0 +1,2229 @@
+{
+ "url": "http://localhost:4322",
+ "at": "2026-10-31T03:37:59.202Z",
+ "allow": [],
+ "viewports": [
+  {
+   "width": 1440,
+   "height": 900,
+   "load": "load",
+   "screens": 8,
+   "filled": [
+    0.52,
+    0.36,
+    0.93,
+    1,
+    0.61,
+    0.51,
+    0.84,
+    0.91
+   ],
+   "motion": {
+    "elements": 33,
+    "css": 33,
+    "transitions": 0,
+    "scripted": 0,
+    "videos": 0,
+    "playingVideos": 0
+   },
+   "metrics": {
+    "viewport": {
+     "w": 1440,
+     "h": 900
+    },
+    "page": {
+     "height": 6362,
+     "screens": 7.1,
+     "words": 492,
+     "img": 5,
+     "video": 0,
+     "canvas": 0,
+     "svg": 0,
+     "sections": 8,
+     "horizontalOverflow": 0,
+     "overflowCulprits": [],
+     "uiFragments": 0,
+     "uiAbuse": false,
+     "realPictures": 4,
+     "videoCount": 0,
+     "uiPictures": 0,
+     "pictureSamples": [
+      "buyer-960.webp",
+      "buyer.webp",
+      "seller.webp",
+      "logistics.webp"
+     ],
+     "blendText": 0,
+     "sideScrollers": 0,
+     "brokenImages": [],
+     "emoji": [],
+     "videosNoPoster": 0
+    },
+    "hero": {
+     "text": "Shop independent sellers.",
+     "words": 3,
+     "chars": 25,
+     "lines": 2,
+     "size": 93.6,
+     "vw": 6.5,
+     "font": "Geist",
+     "weight": 600,
+     "tracking": -0.055,
+     "leading": 1.03,
+     "upper": false,
+     "italic": false,
+     "mono": false,
+     "align": "left",
+     "position": "left",
+     "widthRatio": 0.54,
+     "top": 164,
+     "tag": "h1",
+     "kind": "heading"
+    },
+    "h1": {
+     "text": "Shop independent sellers.",
+     "words": 3,
+     "lines": 2,
+     "size": 93.6,
+     "font": "Geist"
+    },
+    "headings": [
+     {
+      "text": "Shop independent sellers.",
+      "words": 3,
+      "chars": 25,
+      "lines": 2,
+      "size": 93.6,
+      "vw": 6.5,
+      "font": "Geist",
+      "weight": 600,
+      "tracking": -0.055,
+      "leading": 1.03,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.54,
+      "top": 164,
+      "tag": "h1",
+      "kind": "heading"
+     },
+     {
+      "text": "Find it. Follow it home.",
+      "words": 5,
+      "chars": 24,
+      "lines": 2,
+      "size": 60,
+      "vw": 4.2,
+      "font": "Geist",
+      "weight": 600,
+      "tracking": -0.055,
+      "leading": 1.03,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.42,
+      "top": 1197,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Your shop. Your workspace.",
+      "words": 4,
+      "chars": 26,
+      "lines": 2,
+      "size": 60,
+      "vw": 4.2,
+      "font": "Geist",
+      "weight": 600,
+      "tracking": -0.055,
+      "leading": 1.03,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.42,
+      "top": 1930,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Keep parcels moving.",
+      "words": 3,
+      "chars": 20,
+      "lines": 2,
+      "size": 60,
+      "vw": 4.2,
+      "font": "Geist",
+      "weight": 600,
+      "tracking": -0.055,
+      "leading": 1.03,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.34,
+      "top": 2892,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "From shop to doorstep.",
+      "words": 4,
+      "chars": 22,
+      "lines": 2,
+      "size": 60,
+      "vw": 4.2,
+      "font": "Geist",
+      "weight": 600,
+      "tracking": -0.055,
+      "leading": 1.03,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.42,
+      "top": 3698,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Take AISLEY with you.",
+      "words": 4,
+      "chars": 21,
+      "lines": 2,
+      "size": 60,
+      "vw": 4.2,
+      "font": "Geist",
+      "weight": 600,
+      "tracking": -0.055,
+      "leading": 1.03,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.41,
+      "top": 4257,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Before you get started.",
+      "words": 4,
+      "chars": 23,
+      "lines": 2,
+      "size": 60,
+      "vw": 4.2,
+      "font": "Geist",
+      "weight": 600,
+      "tracking": -0.055,
+      "leading": 1.03,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.34,
+      "top": 4701,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Find your place on AISLEY.",
+      "words": 5,
+      "chars": 26,
+      "lines": 2,
+      "size": 60,
+      "vw": 4.2,
+      "font": "Geist",
+      "weight": 600,
+      "tracking": -0.055,
+      "leading": 1.03,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.42,
+      "top": 5277,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "AISLEY",
+      "words": 1,
+      "chars": 6,
+      "lines": 1,
+      "size": 288,
+      "vw": 20,
+      "font": "Geist",
+      "weight": 600,
+      "tracking": -0.06,
+      "leading": 1,
+      "upper": true,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.89,
+      "top": 5974,
+      "tag": "p",
+      "kind": "statement"
+     }
+    ],
+    "headingSummary": {
+     "count": 9,
+     "maxLines": 2,
+     "over2Lines": 0,
+     "statements": 1,
+     "centered": 0,
+     "medianWords": 4,
+     "mixedFontHeadings": 0
+    },
+    "type": {
+     "families": [
+      {
+       "family": "Geist",
+       "share": 1,
+       "mono": false
+      }
+     ],
+     "familyCount": 1,
+     "sizes": [
+      14,
+      16,
+      18,
+      20,
+      60,
+      94,
+      288
+     ],
+     "sizeCount": 7,
+     "notLoaded": [],
+     "body": {
+      "font": "Geist",
+      "size": 16,
+      "leading": 1.55,
+      "weight": 400,
+      "tracking": 0,
+      "contrast": 16.1
+     },
+     "measureChars": 85,
+     "max": {
+      "size": 288,
+      "vw": 20,
+      "font": "Geist",
+      "text": "AISLEY"
+     },
+     "monoShare": 0,
+     "monoProseShare": 0,
+     "monoFamilies": [],
+     "monoSamples": [],
+     "microLabels": 0,
+     "microLabelShare": 0,
+     "microSamples": [],
+     "upperShare": 0.01,
+     "centerShare": 0,
+     "smallText": 0
+    },
+    "eyebrows": [],
+    "numbered": [],
+    "color": {
+     "bodyBg": "#f7f5f7",
+     "bodyBgHsl": {
+      "h": 300,
+      "s": 0.11,
+      "l": 0.96
+     },
+     "dark": false,
+     "sectionBgs": [
+      {
+       "color": "#f1eaf4",
+       "top": 413,
+       "hsl": {
+        "h": 282,
+        "s": 0.31,
+        "l": 0.94
+       }
+      },
+      {
+       "color": "#ffffff",
+       "top": 2796,
+       "hsl": {
+        "h": 0,
+        "s": 0,
+        "l": 1
+       }
+      },
+      {
+       "color": "#4c1268",
+       "top": 4161,
+       "hsl": {
+        "h": 280,
+        "s": 0.7,
+        "l": 0.24
+       }
+      }
+     ],
+     "textColors": [
+      {
+       "color": "#231429",
+       "share": 0.78
+      },
+      {
+       "color": "#ffffff",
+       "share": 0.13
+      },
+      {
+       "color": "#594c5e",
+       "share": 0.07
+      },
+      {
+       "color": "#4c1268",
+       "share": 0.02
+      }
+     ],
+     "button": {
+      "bg": "#4c1268",
+      "hsl": {
+       "h": 280,
+       "s": 0.7,
+       "l": 0.24
+      },
+      "fg": "#ffffff"
+     },
+     "lowContrast": []
+    },
+    "buttons": {
+     "count": 4,
+     "inHero": 3,
+     "radius": 8,
+     "height": 49,
+     "withShadow": 0,
+     "withGradient": 0,
+     "mono": 0,
+     "upper": 0,
+     "heroLabels": [
+      "Skip to content",
+      "Start shopping →",
+      "Start shopping →"
+     ]
+    },
+    "surfaces": {
+     "shadowStatic": 0,
+     "shadowOverlay": 0,
+     "shadowSamples": [],
+     "gradients": 0,
+     "scrims": 0,
+     "gradientSamples": [],
+     "gradientText": 0,
+     "hairlines": 0,
+     "hairlineSamples": [],
+     "outlinedBoxes": 0,
+     "dashed": 0,
+     "blurred": 0,
+     "roundedBoxes": 0,
+     "boxRadius": 0,
+     "squareMedia": 4,
+     "roundedMedia": 0,
+     "mediaRadius": 0,
+     "textShadow": 0,
+     "cardRows": [
+      {
+       "count": 3,
+       "iconTopped": false,
+       "rounded": false,
+       "top": 5448
+      }
+     ]
+    },
+    "heroMedia": [
+     {
+      "type": "img",
+      "ratio": 0.3
+     }
+    ],
+    "nav": {
+     "links": 7,
+     "fixed": false,
+     "height": 100,
+     "floatingPill": false,
+     "blur": false
+    },
+    "fontsLoaded": [
+     "geist"
+    ]
+   },
+   "layout": {
+    "viewport": {
+     "w": 1440,
+     "h": 900
+    },
+    "pageH": 6362,
+    "margins": {
+     "left": 80,
+     "right": 80
+    },
+    "sections": [
+     {
+      "sel": "section.hero.shell",
+      "tag": "section",
+      "top": 100,
+      "height": 1001,
+      "words": 49,
+      "media": 1,
+      "middle": 0,
+      "heading": {
+       "text": "Shop independent",
+       "size": 94,
+       "tag": "h1"
+      },
+      "left": 80,
+      "right": 104,
+      "textLeft": 80,
+      "textRight": 104,
+      "fullBleed": false,
+      "footer": false,
+      "hero": true,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#buyers.buyers.shell",
+      "tag": "section",
+      "top": 1101,
+      "height": 733,
+      "words": 69,
+      "media": 1,
+      "middle": 64,
+      "heading": {
+       "text": "Find it.",
+       "size": 60,
+       "tag": "h2"
+      },
+      "left": 80,
+      "right": 87,
+      "textLeft": 80,
+      "textRight": 87,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#sellers.seller.chapter",
+      "tag": "section",
+      "top": 1834,
+      "height": 962,
+      "words": 72,
+      "media": 1,
+      "middle": 0,
+      "heading": {
+       "text": "Your shop.",
+       "size": 60,
+       "tag": "h2"
+      },
+      "left": 80,
+      "right": 80,
+      "textLeft": 80,
+      "textRight": 80,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#logistics.logistics.chapter",
+      "tag": "section",
+      "top": 2796,
+      "height": 806,
+      "words": 56,
+      "media": 1,
+      "middle": 66,
+      "heading": {
+       "text": "Keep parcels",
+       "size": 60,
+       "tag": "h2"
+      },
+      "left": 80,
+      "right": 80,
+      "textLeft": 80,
+      "textRight": 80,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#workflow.workflow.shell",
+      "tag": "section",
+      "top": 3602,
+      "height": 559,
+      "words": 85,
+      "media": 0,
+      "middle": 89,
+      "heading": {
+       "text": "From shop",
+       "size": 60,
+       "tag": "h2"
+      },
+      "left": 80,
+      "right": 80,
+      "textLeft": 80,
+      "textRight": 80,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#apps.apps.chapter",
+      "tag": "section",
+      "top": 4161,
+      "height": 444,
+      "words": 77,
+      "media": 0,
+      "middle": 144,
+      "heading": {
+       "text": "Take AISLEY",
+       "size": 60,
+       "tag": "h2"
+      },
+      "left": 80,
+      "right": 80,
+      "textLeft": 80,
+      "textRight": 80,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#faq.faq.shell",
+      "tag": "section",
+      "top": 4605,
+      "height": 640,
+      "words": 142,
+      "media": 0,
+      "middle": 280,
+      "heading": {
+       "text": "Before you",
+       "size": 60,
+       "tag": "h2"
+      },
+      "left": 80,
+      "right": 134,
+      "textLeft": 80,
+      "textRight": 134,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section.portals.shell",
+      "tag": "section",
+      "top": 5245,
+      "height": 588,
+      "words": 41,
+      "media": 0,
+      "middle": 0,
+      "heading": {
+       "text": "Find your",
+       "size": 60,
+       "tag": "h2"
+      },
+      "left": 80,
+      "right": 107,
+      "textLeft": 80,
+      "textRight": 107,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "footer.site-footer",
+      "tag": "footer",
+      "top": 5832,
+      "height": 530,
+      "words": 27,
+      "media": 0,
+      "middle": 288,
+      "heading": {
+       "text": "AISLEY",
+       "size": 288,
+       "tag": "p"
+      },
+      "left": 80,
+      "right": 80,
+      "textLeft": 80,
+      "textRight": 80,
+      "fullBleed": false,
+      "footer": true,
+      "hero": false,
+      "continues": false,
+      "pinned": false
+     }
+    ],
+    "gaps": [],
+    "h1s": [
+     {
+      "text": "Shop independent sellers.",
+      "size": 94,
+      "top": 164,
+      "firstScreen": true
+     }
+    ],
+    "edgeText": [],
+    "edges": [
+     {
+      "x": 80,
+      "n": 20
+     },
+     {
+      "x": 654,
+      "n": 5
+     },
+     {
+      "x": 752,
+      "n": 4
+     },
+     {
+      "x": 768,
+      "n": 3
+     },
+     {
+      "x": 918,
+      "n": 1
+     },
+     {
+      "x": 1024,
+      "n": 1
+     }
+    ],
+    "leftBlocks": 34,
+    "bodySize": 16,
+    "stage": false,
+    "explains": true,
+    "slivers": [],
+    "voidShare": 0.13,
+    "voidBox": {
+     "x": 0,
+     "y": 540,
+     "w": 480,
+     "h": 360
+    }
+   },
+   "app": null,
+   "consoleErrors": []
+  },
+  {
+   "width": 768,
+   "height": 1024,
+   "load": "load",
+   "screens": 7,
+   "filled": [
+    0.53,
+    0.66,
+    1,
+    0.72,
+    0.71,
+    0.7,
+    0.74
+   ],
+   "motion": {
+    "elements": 33,
+    "css": 33,
+    "transitions": 0,
+    "scripted": 0,
+    "videos": 0,
+    "playingVideos": 0
+   },
+   "metrics": {
+    "viewport": {
+     "w": 768,
+     "h": 1024
+    },
+    "page": {
+     "height": 6225,
+     "screens": 6.1,
+     "words": 492,
+     "img": 5,
+     "video": 0,
+     "canvas": 0,
+     "svg": 0,
+     "sections": 8,
+     "horizontalOverflow": 0,
+     "overflowCulprits": [],
+     "uiFragments": 0,
+     "uiAbuse": false,
+     "realPictures": 4,
+     "videoCount": 0,
+     "uiPictures": 0,
+     "pictureSamples": [
+      "buyer-960.webp",
+      "buyer.webp",
+      "seller.webp",
+      "logistics.webp"
+     ],
+     "blendText": 0,
+     "sideScrollers": 0,
+     "brokenImages": [],
+     "emoji": [],
+     "videosNoPoster": 0
+    },
+    "hero": {
+     "text": "Shop independent sellers.",
+     "words": 3,
+     "chars": 25,
+     "lines": 2,
+     "size": 61.4,
+     "vw": 8,
+     "font": "Geist",
+     "weight": 600,
+     "tracking": -0.055,
+     "leading": 1.03,
+     "upper": false,
+     "italic": false,
+     "mono": false,
+     "align": "left",
+     "position": "center",
+     "widthRatio": 0.94,
+     "top": 169,
+     "tag": "h1",
+     "kind": "heading"
+    },
+    "h1": {
+     "text": "Shop independent sellers.",
+     "words": 3,
+     "lines": 2,
+     "size": 61.4,
+     "font": "Geist"
+    },
+    "headings": [
+     {
+      "text": "Shop independent sellers.",
+      "words": 3,
+      "chars": 25,
+      "lines": 2,
+      "size": 61.4,
+      "vw": 8,
+      "font": "Geist",
+      "weight": 600,
+      "tracking": -0.055,
+      "leading": 1.03,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.94,
+      "top": 169,
+      "tag": "h1",
+      "kind": "heading"
+     },
+     {
+      "text": "Find it. Follow it home.",
+      "words": 5,
+      "chars": 24,
+      "lines": 2,
+      "size": 36,
+      "vw": 4.7,
+      "font": "Geist",
+      "weight": 600,
+      "tracking": -0.055,
+      "leading": 1.03,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.45,
+      "top": 926,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Your shop. Your workspace.",
+      "words": 4,
+      "chars": 26,
+      "lines": 2,
+      "size": 36,
+      "vw": 4.7,
+      "font": "Geist",
+      "weight": 600,
+      "tracking": -0.055,
+      "leading": 1.03,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.45,
+      "top": 1848,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Keep parcels moving.",
+      "words": 3,
+      "chars": 20,
+      "lines": 2,
+      "size": 36,
+      "vw": 4.7,
+      "font": "Geist",
+      "weight": 600,
+      "tracking": -0.055,
+      "leading": 1.03,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.45,
+      "top": 2804,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "From shop to doorstep.",
+      "words": 4,
+      "chars": 22,
+      "lines": 2,
+      "size": 36,
+      "vw": 4.7,
+      "font": "Geist",
+      "weight": 600,
+      "tracking": -0.055,
+      "leading": 1.03,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.45,
+      "top": 3761,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Take AISLEY with you.",
+      "words": 4,
+      "chars": 21,
+      "lines": 2,
+      "size": 36,
+      "vw": 4.7,
+      "font": "Geist",
+      "weight": 600,
+      "tracking": -0.055,
+      "leading": 1.03,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.44,
+      "top": 4305,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Before you get started.",
+      "words": 4,
+      "chars": 23,
+      "lines": 2,
+      "size": 36,
+      "vw": 4.7,
+      "font": "Geist",
+      "weight": 600,
+      "tracking": -0.055,
+      "leading": 1.03,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.36,
+      "top": 4790,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Find your place on AISLEY.",
+      "words": 5,
+      "chars": 26,
+      "lines": 2,
+      "size": 36,
+      "vw": 4.7,
+      "font": "Geist",
+      "weight": 600,
+      "tracking": -0.055,
+      "leading": 1.03,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "left",
+      "widthRatio": 0.45,
+      "top": 5334,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "AISLEY",
+      "words": 1,
+      "chars": 6,
+      "lines": 1,
+      "size": 153.6,
+      "vw": 20,
+      "font": "Geist",
+      "weight": 600,
+      "tracking": -0.06,
+      "leading": 1,
+      "upper": true,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.94,
+      "top": 5972,
+      "tag": "p",
+      "kind": "statement"
+     }
+    ],
+    "headingSummary": {
+     "count": 9,
+     "maxLines": 2,
+     "over2Lines": 0,
+     "statements": 1,
+     "centered": 0,
+     "medianWords": 4,
+     "mixedFontHeadings": 0
+    },
+    "type": {
+     "families": [
+      {
+       "family": "Geist",
+       "share": 1,
+       "mono": false
+      }
+     ],
+     "familyCount": 1,
+     "sizes": [
+      14,
+      16,
+      18,
+      20,
+      36,
+      61,
+      154
+     ],
+     "sizeCount": 7,
+     "notLoaded": [],
+     "body": {
+      "font": "Geist",
+      "size": 16,
+      "leading": 1.55,
+      "weight": 400,
+      "tracking": 0,
+      "contrast": 16.1
+     },
+     "measureChars": 46,
+     "max": {
+      "size": 153.6,
+      "vw": 20,
+      "font": "Geist",
+      "text": "AISLEY"
+     },
+     "monoShare": 0,
+     "monoProseShare": 0,
+     "monoFamilies": [],
+     "monoSamples": [],
+     "microLabels": 0,
+     "microLabelShare": 0,
+     "microSamples": [],
+     "upperShare": 0.01,
+     "centerShare": 0,
+     "smallText": 0
+    },
+    "eyebrows": [],
+    "numbered": [],
+    "color": {
+     "bodyBg": "#f7f5f7",
+     "bodyBgHsl": {
+      "h": 300,
+      "s": 0.11,
+      "l": 0.96
+     },
+     "dark": false,
+     "sectionBgs": [
+      {
+       "color": "#f1eaf4",
+       "top": 1784,
+       "hsl": {
+        "h": 282,
+        "s": 0.31,
+        "l": 0.94
+       }
+      },
+      {
+       "color": "#ffffff",
+       "top": 2740,
+       "hsl": {
+        "h": 0,
+        "s": 0,
+        "l": 1
+       }
+      },
+      {
+       "color": "#4c1268",
+       "top": 4241,
+       "hsl": {
+        "h": 280,
+        "s": 0.7,
+        "l": 0.24
+       }
+      }
+     ],
+     "textColors": [
+      {
+       "color": "#231429",
+       "share": 0.78
+      },
+      {
+       "color": "#ffffff",
+       "share": 0.13
+      },
+      {
+       "color": "#594c5e",
+       "share": 0.07
+      },
+      {
+       "color": "#4c1268",
+       "share": 0.02
+      }
+     ],
+     "button": {
+      "bg": "#4c1268",
+      "hsl": {
+       "h": 280,
+       "s": 0.7,
+       "l": 0.24
+      },
+      "fg": "#ffffff"
+     },
+     "lowContrast": []
+    },
+    "buttons": {
+     "count": 4,
+     "inHero": 3,
+     "radius": 8,
+     "height": 49,
+     "withShadow": 0,
+     "withGradient": 0,
+     "mono": 0,
+     "upper": 0,
+     "heroLabels": [
+      "Skip to content",
+      "Start shopping →",
+      "Start shopping →"
+     ]
+    },
+    "surfaces": {
+     "shadowStatic": 0,
+     "shadowOverlay": 0,
+     "shadowSamples": [],
+     "gradients": 0,
+     "scrims": 0,
+     "gradientSamples": [],
+     "gradientText": 0,
+     "hairlines": 0,
+     "hairlineSamples": [],
+     "outlinedBoxes": 0,
+     "dashed": 0,
+     "blurred": 0,
+     "roundedBoxes": 0,
+     "boxRadius": 0,
+     "squareMedia": 4,
+     "roundedMedia": 0,
+     "mediaRadius": 0,
+     "textShadow": 0,
+     "cardRows": []
+    },
+    "heroMedia": [
+     {
+      "type": "img",
+      "ratio": 0.17
+     }
+    ],
+    "nav": {
+     "links": 7,
+     "fixed": false,
+     "height": 129,
+     "floatingPill": false,
+     "blur": false
+    },
+    "fontsLoaded": [
+     "geist"
+    ]
+   },
+   "layout": {
+    "viewport": {
+     "w": 768,
+     "h": 1024
+    },
+    "pageH": 6225,
+    "margins": {
+     "left": 24,
+     "right": 24
+    },
+    "sections": [
+     {
+      "sel": "header.site-header",
+      "tag": "header",
+      "top": 0,
+      "height": 129,
+      "words": 8,
+      "media": 0,
+      "middle": 120,
+      "heading": null,
+      "left": 24,
+      "right": 31,
+      "textLeft": 24,
+      "textRight": 31,
+      "fullBleed": false,
+      "footer": false,
+      "hero": true,
+      "continues": false,
+      "pinned": false
+     },
+     {
+      "sel": "section.hero.shell",
+      "tag": "section",
+      "top": 129,
+      "height": 733,
+      "words": 49,
+      "media": 1,
+      "middle": 0,
+      "heading": {
+       "text": "Shop independent",
+       "size": 61,
+       "tag": "h1"
+      },
+      "left": 24,
+      "right": 48,
+      "textLeft": 24,
+      "textRight": 48,
+      "fullBleed": false,
+      "footer": false,
+      "hero": true,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#buyers.buyers.shell",
+      "tag": "section",
+      "top": 862,
+      "height": 922,
+      "words": 69,
+      "media": 1,
+      "middle": 0,
+      "heading": {
+       "text": "Find it.",
+       "size": 36,
+       "tag": "h2"
+      },
+      "left": 24,
+      "right": 24,
+      "textLeft": 24,
+      "textRight": 25,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#sellers.seller.chapter",
+      "tag": "section",
+      "top": 1784,
+      "height": 956,
+      "words": 72,
+      "media": 1,
+      "middle": 0,
+      "heading": {
+       "text": "Your shop.",
+       "size": 36,
+       "tag": "h2"
+      },
+      "left": 24,
+      "right": 24,
+      "textLeft": 24,
+      "textRight": 24,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#logistics.logistics.chapter",
+      "tag": "section",
+      "top": 2740,
+      "height": 956,
+      "words": 56,
+      "media": 1,
+      "middle": 0,
+      "heading": {
+       "text": "Keep parcels",
+       "size": 36,
+       "tag": "h2"
+      },
+      "left": 24,
+      "right": 24,
+      "textLeft": 24,
+      "textRight": 24,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#workflow.workflow.shell",
+      "tag": "section",
+      "top": 3697,
+      "height": 545,
+      "words": 85,
+      "media": 0,
+      "middle": 44,
+      "heading": {
+       "text": "From shop",
+       "size": 36,
+       "tag": "h2"
+      },
+      "left": 24,
+      "right": 24,
+      "textLeft": 24,
+      "textRight": 24,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#apps.apps.chapter",
+      "tag": "section",
+      "top": 4241,
+      "height": 485,
+      "words": 77,
+      "media": 0,
+      "middle": 46,
+      "heading": {
+       "text": "Take AISLEY",
+       "size": 36,
+       "tag": "h2"
+      },
+      "left": 24,
+      "right": 25,
+      "textLeft": 24,
+      "textRight": 25,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#faq.faq.shell",
+      "tag": "section",
+      "top": 4726,
+      "height": 576,
+      "words": 142,
+      "media": 0,
+      "middle": 78,
+      "heading": {
+       "text": "Before you",
+       "size": 36,
+       "tag": "h2"
+      },
+      "left": 24,
+      "right": 59,
+      "textLeft": 24,
+      "textRight": 59,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section.portals.shell",
+      "tag": "section",
+      "top": 5302,
+      "height": 528,
+      "words": 41,
+      "media": 0,
+      "middle": 0,
+      "heading": {
+       "text": "Find your",
+       "size": 36,
+       "tag": "h2"
+      },
+      "left": 24,
+      "right": 28,
+      "textLeft": 24,
+      "textRight": 28,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "footer.site-footer",
+      "tag": "footer",
+      "top": 5830,
+      "height": 396,
+      "words": 27,
+      "media": 0,
+      "middle": 82,
+      "heading": {
+       "text": "AISLEY",
+       "size": 154,
+       "tag": "p"
+      },
+      "left": 24,
+      "right": 24,
+      "textLeft": 24,
+      "textRight": 24,
+      "fullBleed": false,
+      "footer": true,
+      "hero": false,
+      "continues": false,
+      "pinned": false
+     }
+    ],
+    "gaps": [],
+    "h1s": [
+     {
+      "text": "Shop independent sellers.",
+      "size": 61,
+      "top": 169,
+      "firstScreen": true
+     }
+    ],
+    "edgeText": [],
+    "edges": [
+     {
+      "x": 24,
+      "n": 19
+     },
+     {
+      "x": 400,
+      "n": 9
+     },
+     {
+      "x": 355,
+      "n": 5
+     },
+     {
+      "x": 515,
+      "n": 1
+     }
+    ],
+    "leftBlocks": 34,
+    "bodySize": 16,
+    "stage": false,
+    "explains": true,
+    "slivers": [],
+    "voidShare": 0,
+    "voidBox": null
+   },
+   "app": null,
+   "consoleErrors": []
+  },
+  {
+   "width": 390,
+   "height": 844,
+   "load": "load",
+   "screens": 9,
+   "filled": [
+    0.54,
+    0.45,
+    0.83,
+    0.97,
+    0.6,
+    0.62,
+    0.75,
+    0.76,
+    0.83
+   ],
+   "motion": {
+    "elements": 33,
+    "css": 33,
+    "transitions": 0,
+    "scripted": 0,
+    "videos": 0,
+    "playingVideos": 0
+   },
+   "metrics": {
+    "viewport": {
+     "w": 390,
+     "h": 844
+    },
+    "page": {
+     "height": 7059,
+     "screens": 8.4,
+     "words": 492,
+     "img": 5,
+     "video": 0,
+     "canvas": 0,
+     "svg": 0,
+     "sections": 8,
+     "horizontalOverflow": 0,
+     "overflowCulprits": [],
+     "uiFragments": 0,
+     "uiAbuse": false,
+     "realPictures": 4,
+     "videoCount": 0,
+     "uiPictures": 0,
+     "pictureSamples": [
+      "buyer-480.webp",
+      "buyer.webp",
+      "seller-480.webp",
+      "logistics-480.webp"
+     ],
+     "blendText": 0,
+     "sideScrollers": 0,
+     "brokenImages": [],
+     "emoji": [],
+     "videosNoPoster": 0
+    },
+    "hero": {
+     "text": "Shop independent sellers.",
+     "words": 3,
+     "chars": 25,
+     "lines": 2,
+     "size": 37.1,
+     "vw": 9.5,
+     "font": "Geist",
+     "weight": 600,
+     "tracking": -0.055,
+     "leading": 1.03,
+     "upper": false,
+     "italic": false,
+     "mono": false,
+     "align": "left",
+     "position": "center",
+     "widthRatio": 0.92,
+     "top": 161,
+     "tag": "h1",
+     "kind": "heading"
+    },
+    "h1": {
+     "text": "Shop independent sellers.",
+     "words": 3,
+     "lines": 2,
+     "size": 37.1,
+     "font": "Geist"
+    },
+    "headings": [
+     {
+      "text": "Shop independent sellers.",
+      "words": 3,
+      "chars": 25,
+      "lines": 2,
+      "size": 37.1,
+      "vw": 9.5,
+      "font": "Geist",
+      "weight": 600,
+      "tracking": -0.055,
+      "leading": 1.03,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.92,
+      "top": 161,
+      "tag": "h1",
+      "kind": "heading"
+     },
+     {
+      "text": "Find it. Follow it home.",
+      "words": 5,
+      "chars": 24,
+      "lines": 2,
+      "size": 38,
+      "vw": 9.7,
+      "font": "Geist",
+      "weight": 600,
+      "tracking": -0.055,
+      "leading": 1.03,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.92,
+      "top": 943,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Your shop. Your workspace.",
+      "words": 4,
+      "chars": 26,
+      "lines": 2,
+      "size": 38,
+      "vw": 9.7,
+      "font": "Geist",
+      "weight": 600,
+      "tracking": -0.055,
+      "leading": 1.03,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.92,
+      "top": 1886,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Keep parcels moving.",
+      "words": 3,
+      "chars": 20,
+      "lines": 2,
+      "size": 38,
+      "vw": 9.7,
+      "font": "Geist",
+      "weight": 600,
+      "tracking": -0.055,
+      "leading": 1.03,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.92,
+      "top": 2845,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "From shop to doorstep.",
+      "words": 4,
+      "chars": 22,
+      "lines": 2,
+      "size": 38,
+      "vw": 9.7,
+      "font": "Geist",
+      "weight": 600,
+      "tracking": -0.055,
+      "leading": 1.03,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.92,
+      "top": 3790,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Take AISLEY with you.",
+      "words": 4,
+      "chars": 21,
+      "lines": 2,
+      "size": 38,
+      "vw": 9.7,
+      "font": "Geist",
+      "weight": 600,
+      "tracking": -0.055,
+      "leading": 1.03,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.92,
+      "top": 4680,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Before you get started.",
+      "words": 4,
+      "chars": 23,
+      "lines": 2,
+      "size": 38,
+      "vw": 9.7,
+      "font": "Geist",
+      "weight": 600,
+      "tracking": -0.055,
+      "leading": 1.03,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.92,
+      "top": 5407,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "Find your place on AISLEY.",
+      "words": 5,
+      "chars": 26,
+      "lines": 2,
+      "size": 38,
+      "vw": 9.7,
+      "font": "Geist",
+      "weight": 600,
+      "tracking": -0.055,
+      "leading": 1.03,
+      "upper": false,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.92,
+      "top": 6078,
+      "tag": "h2",
+      "kind": "heading"
+     },
+     {
+      "text": "AISLEY",
+      "words": 1,
+      "chars": 6,
+      "lines": 1,
+      "size": 80,
+      "vw": 20.5,
+      "font": "Geist",
+      "weight": 600,
+      "tracking": -0.06,
+      "leading": 1,
+      "upper": true,
+      "italic": false,
+      "mono": false,
+      "align": "left",
+      "position": "center",
+      "widthRatio": 0.92,
+      "top": 6850,
+      "tag": "p",
+      "kind": "statement"
+     }
+    ],
+    "headingSummary": {
+     "count": 9,
+     "maxLines": 2,
+     "over2Lines": 0,
+     "statements": 1,
+     "centered": 0,
+     "medianWords": 4,
+     "mixedFontHeadings": 0
+    },
+    "type": {
+     "families": [
+      {
+       "family": "Geist",
+       "share": 1,
+       "mono": false
+      }
+     ],
+     "familyCount": 1,
+     "sizes": [
+      14,
+      16,
+      18,
+      20,
+      37,
+      38,
+      80
+     ],
+     "sizeCount": 7,
+     "notLoaded": [],
+     "body": {
+      "font": "Geist",
+      "size": 16,
+      "leading": 1.55,
+      "weight": 400,
+      "tracking": 0,
+      "contrast": 16.1
+     },
+     "measureChars": 41,
+     "max": {
+      "size": 80,
+      "vw": 20.5,
+      "font": "Geist",
+      "text": "AISLEY"
+     },
+     "monoShare": 0,
+     "monoProseShare": 0,
+     "monoFamilies": [],
+     "monoSamples": [],
+     "microLabels": 0,
+     "microLabelShare": 0,
+     "microSamples": [],
+     "upperShare": 0.01,
+     "centerShare": 0,
+     "smallText": 0
+    },
+    "eyebrows": [],
+    "numbered": [],
+    "color": {
+     "bodyBg": "#f7f5f7",
+     "bodyBgHsl": {
+      "h": 300,
+      "s": 0.11,
+      "l": 0.96
+     },
+     "dark": false,
+     "sectionBgs": [
+      {
+       "color": "#f1eaf4",
+       "top": 456,
+       "hsl": {
+        "h": 282,
+        "s": 0.31,
+        "l": 0.94
+       }
+      },
+      {
+       "color": "#ffffff",
+       "top": 2789,
+       "hsl": {
+        "h": 0,
+        "s": 0,
+        "l": 1
+       }
+      },
+      {
+       "color": "#4c1268",
+       "top": 4624,
+       "hsl": {
+        "h": 280,
+        "s": 0.7,
+        "l": 0.24
+       }
+      }
+     ],
+     "textColors": [
+      {
+       "color": "#231429",
+       "share": 0.78
+      },
+      {
+       "color": "#ffffff",
+       "share": 0.13
+      },
+      {
+       "color": "#594c5e",
+       "share": 0.07
+      },
+      {
+       "color": "#4c1268",
+       "share": 0.02
+      }
+     ],
+     "button": {
+      "bg": "#4c1268",
+      "hsl": {
+       "h": 280,
+       "s": 0.7,
+       "l": 0.24
+      },
+      "fg": "#ffffff"
+     },
+     "lowContrast": []
+    },
+    "buttons": {
+     "count": 4,
+     "inHero": 3,
+     "radius": 8,
+     "height": 49,
+     "withShadow": 0,
+     "withGradient": 0,
+     "mono": 0,
+     "upper": 0,
+     "heroLabels": [
+      "Skip to content",
+      "Start shopping →",
+      "Start shopping →"
+     ]
+    },
+    "surfaces": {
+     "shadowStatic": 0,
+     "shadowOverlay": 0,
+     "shadowSamples": [],
+     "gradients": 0,
+     "scrims": 0,
+     "gradientSamples": [],
+     "gradientText": 0,
+     "hairlines": 0,
+     "hairlineSamples": [],
+     "outlinedBoxes": 0,
+     "dashed": 0,
+     "blurred": 0,
+     "roundedBoxes": 0,
+     "boxRadius": 0,
+     "squareMedia": 4,
+     "roundedMedia": 0,
+     "mediaRadius": 0,
+     "textShadow": 0,
+     "cardRows": []
+    },
+    "heroMedia": [
+     {
+      "type": "img",
+      "ratio": 0.23
+     }
+    ],
+    "nav": {
+     "links": 7,
+     "fixed": false,
+     "height": 129,
+     "floatingPill": false,
+     "blur": false
+    },
+    "fontsLoaded": [
+     "geist"
+    ]
+   },
+   "layout": {
+    "viewport": {
+     "w": 390,
+     "h": 844
+    },
+    "pageH": 7059,
+    "margins": {
+     "left": 16,
+     "right": 16
+    },
+    "sections": [
+     {
+      "sel": "header.site-header",
+      "tag": "header",
+      "top": 0,
+      "height": 129,
+      "words": 8,
+      "media": 0,
+      "middle": 31,
+      "heading": null,
+      "left": 16,
+      "right": 25,
+      "textLeft": 16,
+      "textRight": 25,
+      "fullBleed": false,
+      "footer": false,
+      "hero": true,
+      "continues": false,
+      "pinned": false
+     },
+     {
+      "sel": "section.hero.shell",
+      "tag": "section",
+      "top": 129,
+      "height": 759,
+      "words": 49,
+      "media": 1,
+      "middle": 0,
+      "heading": {
+       "text": "Shop independent",
+       "size": 37,
+       "tag": "h1"
+      },
+      "left": 16,
+      "right": 28,
+      "textLeft": 16,
+      "textRight": 28,
+      "fullBleed": false,
+      "footer": false,
+      "hero": true,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#buyers.buyers.shell",
+      "tag": "section",
+      "top": 887,
+      "height": 942,
+      "words": 69,
+      "media": 1,
+      "middle": 0,
+      "heading": {
+       "text": "Find it.",
+       "size": 38,
+       "tag": "h2"
+      },
+      "left": 16,
+      "right": 16,
+      "textLeft": 16,
+      "textRight": 17,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#sellers.seller.chapter",
+      "tag": "section",
+      "top": 1830,
+      "height": 960,
+      "words": 72,
+      "media": 1,
+      "middle": 0,
+      "heading": {
+       "text": "Your shop.",
+       "size": 38,
+       "tag": "h2"
+      },
+      "left": 16,
+      "right": 16,
+      "textLeft": 16,
+      "textRight": 16,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#logistics.logistics.chapter",
+      "tag": "section",
+      "top": 2789,
+      "height": 944,
+      "words": 56,
+      "media": 1,
+      "middle": 0,
+      "heading": {
+       "text": "Keep parcels",
+       "size": 38,
+       "tag": "h2"
+      },
+      "left": 16,
+      "right": 16,
+      "textLeft": 16,
+      "textRight": 16,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#workflow.workflow.shell",
+      "tag": "section",
+      "top": 3734,
+      "height": 891,
+      "words": 85,
+      "media": 0,
+      "middle": 0,
+      "heading": {
+       "text": "From shop",
+       "size": 38,
+       "tag": "h2"
+      },
+      "left": 16,
+      "right": 22,
+      "textLeft": 16,
+      "textRight": 22,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#apps.apps.chapter",
+      "tag": "section",
+      "top": 4624,
+      "height": 726,
+      "words": 77,
+      "media": 0,
+      "middle": 0,
+      "heading": {
+       "text": "Take AISLEY",
+       "size": 38,
+       "tag": "h2"
+      },
+      "left": 16,
+      "right": 18,
+      "textLeft": 16,
+      "textRight": 18,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section#faq.faq.shell",
+      "tag": "section",
+      "top": 5351,
+      "height": 696,
+      "words": 128,
+      "media": 0,
+      "middle": 0,
+      "heading": {
+       "text": "Before you",
+       "size": 38,
+       "tag": "h2"
+      },
+      "left": 16,
+      "right": 33,
+      "textLeft": 16,
+      "textRight": 33,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "section.portals.shell",
+      "tag": "section",
+      "top": 6046,
+      "height": 604,
+      "words": 41,
+      "media": 0,
+      "middle": 0,
+      "heading": {
+       "text": "Find your",
+       "size": 38,
+       "tag": "h2"
+      },
+      "left": 16,
+      "right": 17,
+      "textLeft": 16,
+      "textRight": 17,
+      "fullBleed": false,
+      "footer": false,
+      "hero": false,
+      "continues": true,
+      "pinned": false
+     },
+     {
+      "sel": "footer.site-footer",
+      "tag": "footer",
+      "top": 6650,
+      "height": 409,
+      "words": 27,
+      "media": 0,
+      "middle": 0,
+      "heading": {
+       "text": "AISLEY",
+       "size": 80,
+       "tag": "p"
+      },
+      "left": 16,
+      "right": 16,
+      "textLeft": 16,
+      "textRight": 16,
+      "fullBleed": false,
+      "footer": true,
+      "hero": false,
+      "continues": false,
+      "pinned": false
+     }
+    ],
+    "gaps": [],
+    "h1s": [
+     {
+      "text": "Shop independent sellers.",
+      "size": 37,
+      "top": 161,
+      "firstScreen": true
+     }
+    ],
+    "edgeText": [],
+    "edges": [
+     {
+      "x": 16,
+      "n": 28
+     },
+     {
+      "x": 32,
+      "n": 5
+     },
+     {
+      "x": 201,
+      "n": 1
+     }
+    ],
+    "leftBlocks": 34,
+    "bodySize": 16,
+    "stage": false,
+    "explains": true,
+    "slivers": [],
+    "voidShare": 0,
+    "voidBox": null
+   },
+   "app": null,
+   "consoleErrors": []
+  }
+ ],
+ "findings": [
+  {
+   "level": "WARN",
+   "id": "no-footage",
+   "width": 1440,
+   "message": "No video anywhere on the page.",
+   "fix": "Look for one honest clip with scripts/assets.mjs --video (the place, the material, the process) and use it as a muted loop with a poster frame. Defend its absence only if no clip fits the subject."
+  }
+ ],
+ "images": [
+  {
+   "viewport": "desktop",
+   "width": 1440,
+   "fold": "/home/cred/coding/aisley-workplace/aisley/src/landing-page/docs/stitch/2026-10-31-refresh/current-ui/desktop-fold.jpg",
+   "pages": [
+    "/home/cred/coding/aisley-workplace/aisley/src/landing-page/docs/stitch/2026-10-31-refresh/current-ui/desktop-page-01.jpg",
+    "/home/cred/coding/aisley-workplace/aisley/src/landing-page/docs/stitch/2026-10-31-refresh/current-ui/desktop-page-02.jpg"
+   ],
+   "film": []
+  },
+  {
+   "viewport": "tablet",
+   "width": 768,
+   "fold": "/home/cred/coding/aisley-workplace/aisley/src/landing-page/docs/stitch/2026-10-31-refresh/current-ui/tablet-fold.jpg",
+   "pages": [
+    "/home/cred/coding/aisley-workplace/aisley/src/landing-page/docs/stitch/2026-10-31-refresh/current-ui/tablet-page-01.jpg",
+    "/home/cred/coding/aisley-workplace/aisley/src/landing-page/docs/stitch/2026-10-31-refresh/current-ui/tablet-page-02.jpg"
+   ],
+   "film": []
+  },
+  {
+   "viewport": "mobile",
+   "width": 390,
+   "fold": "/home/cred/coding/aisley-workplace/aisley/src/landing-page/docs/stitch/2026-10-31-refresh/current-ui/mobile-fold.jpg",
+   "pages": [
+    "/home/cred/coding/aisley-workplace/aisley/src/landing-page/docs/stitch/2026-10-31-refresh/current-ui/mobile-page-01.jpg",
+    "/home/cred/coding/aisley-workplace/aisley/src/landing-page/docs/stitch/2026-10-31-refresh/current-ui/mobile-page-02.jpg"
+   ],
+   "film": []
+  }
+ ]
+}
