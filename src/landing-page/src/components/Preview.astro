@@ -7,10 +7,14 @@ interface Props {
   eager?: boolean;
 }
 const { src, title, width, height, eager = false } = Astro.props;
+const small = src.replace('.webp', '-480.webp');
+const srcset = width > 960
+  ? `${small} 480w, ${src.replace('.webp', '-960.webp')} 960w, ${src} ${width}w`
+  : `${small} 480w, ${src} ${width}w`;
 ---
 <figure class="product-shot">
   <a href={src} data-preview aria-label={'Enlarge '+title}>
-    <img src={src} alt={title} width={width} height={height}
+    <img src={src} srcset={srcset} sizes="(min-width: 1240px) 410px, (min-width: 1024px) 34vw, (min-width: 640px) calc(100vw - 88px), calc(100vw - 72px)" decoding="async" alt={title} width={width} height={height}
       loading={eager ? 'eager' : 'lazy'} fetchpriority={eager ? 'high' : 'auto'} />
   </a>
   <figcaption>{title} <a href={src} data-preview>Enlarge preview ↗</a></figcaption>

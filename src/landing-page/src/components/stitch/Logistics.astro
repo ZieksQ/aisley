@@ -1,56 +1,56 @@
 ---
 import Preview from '../Preview.astro';
 ---
-<section class="max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-20 border-b border-[#e5dce7]" id="logistics">
+<section class="max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-20 border-b border-[var(--border)]" id="logistics">
 <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
 
 <div class="lg:col-span-7">
 <div class="flex items-center gap-2 mb-2">
-<span class="text-xs uppercase tracking-wider font-semibold text-[#2563eb]">Logistics &amp; Hub Operations</span>
+<span class="text-sm font-semibold text-[var(--logistics-primary)]">For logistics teams</span>
 </div>
-<h2 class="text-2xl sm:text-3xl font-bold text-[#231429] mb-4 tracking-tight">
-            Coordinate receiving, sorting, and dispatch
+<h2 class="text-2xl sm:text-3xl font-bold text-[var(--ink)] mb-4 tracking-tight">
+            Plan pickups and deliveries
           </h2>
 
-<div class="bg-[#eff6ff] border border-[#bfdbfe] rounded-lg p-3.5 mb-6 flex items-start gap-2.5">
+<div class="bg-[var(--logistics-tint)] border border-[var(--logistics-border)] rounded-lg p-3.5 mb-6 flex items-start gap-2.5">
 <svg class="stitch-icon" aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M8 5V3h8v2M8 11h8M8 15h5"/></svg>
-<p class="text-xs font-semibold text-[#2563eb]">Coordinate parcel receiving, sorting, and dispatch from a dedicated operations workspace.</p>
+<p class="text-base font-semibold text-[var(--logistics-primary)]">Coordinate parcel receiving, sorting, and dispatch from a dedicated operations workspace.</p>
 </div>
-<p class="text-base text-[#594c5e] leading-relaxed mb-6">Logistics access requires Admin approval. Couriers require approval by their associated Logistics organization.</p>
+<p class="text-base text-[var(--muted)] leading-relaxed mb-6">Logistics access requires Admin approval. Couriers require approval by their associated Logistics organization.</p>
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-<div class="p-3.5 bg-[#ffffff] border border-[#bfdbfe] rounded-lg">
-<div class="text-xs font-bold text-[#231429] mb-1 flex items-center gap-1.5">
+<div class="p-3.5 bg-[var(--surface)] border border-[var(--logistics-border)] rounded-lg">
+<div class="text-sm font-bold text-[var(--ink)] mb-1 flex items-center gap-1.5">
 <svg class="stitch-icon" aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M8 5V3h8v2M8 11h8M8 15h5"/></svg>
                 Parcel receiving
               </div>
-<p class="text-xs text-[#594c5e]">Receive and sort parcels.</p>
+<p class="text-base text-[var(--muted)]">Receive and sort parcels.</p>
 </div>
-<div class="p-3.5 bg-[#ffffff] border border-[#bfdbfe] rounded-lg">
-<div class="text-xs font-bold text-[#231429] mb-1 flex items-center gap-1.5">
+<div class="p-3.5 bg-[var(--surface)] border border-[var(--logistics-border)] rounded-lg">
+<div class="text-sm font-bold text-[var(--ink)] mb-1 flex items-center gap-1.5">
 <svg class="stitch-icon" aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M8 5V3h8v2M8 11h8M8 15h5"/></svg>
                 Pickup and delivery planning
               </div>
-<p class="text-xs text-[#594c5e]">Plan pickup and delivery schedules.</p>
+<p class="text-base text-[var(--muted)]">Plan pickup and delivery schedules.</p>
 </div>
-<div class="p-3.5 bg-[#ffffff] border border-[#bfdbfe] rounded-lg">
-<div class="text-xs font-bold text-[#231429] mb-1 flex items-center gap-1.5">
+<div class="p-3.5 bg-[var(--surface)] border border-[var(--logistics-border)] rounded-lg">
+<div class="text-sm font-bold text-[var(--ink)] mb-1 flex items-center gap-1.5">
 <svg class="stitch-icon" aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M8 5V3h8v2M8 11h8M8 15h5"/></svg>
                 Affiliated couriers
               </div>
-<p class="text-xs text-[#594c5e]">Coordinate approved affiliated couriers through the Rider mobile app.</p>
+<p class="text-base text-[var(--muted)]">Coordinate approved affiliated couriers through the Rider mobile app.</p>
 </div>
-<div class="p-3.5 bg-[#ffffff] border border-[#bfdbfe] rounded-lg">
-<div class="text-xs font-bold text-[#231429] mb-1 flex items-center gap-1.5">
-<span class="stitch-icon" aria-hidden="true">✓</span>
+<div class="p-3.5 bg-[var(--surface)] border border-[var(--logistics-border)] rounded-lg">
+<div class="text-sm font-bold text-[var(--ink)] mb-1 flex items-center gap-1.5">
+<svg class="stitch-icon" aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m5 12 4 4L19 6"/></svg>
                 Courier approval
               </div>
-<p class="text-xs text-[#594c5e]">Couriers use the Rider mobile app. Seller and Logistics workflows are available through their dedicated web portals.</p>
+<p class="text-base text-[var(--muted)]">Couriers use the Rider mobile app. Seller and Logistics workflows are available through their dedicated web portals.</p>
 </div>
 </div>
-<a class="min-h-[44px] px-5 inline-flex items-center justify-center rounded-lg bg-[#2563eb] hover:bg-[#1d4ed8] text-white text-sm font-semibold transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-[#2563eb] focus-visible:outline-none" href="https://logistics.aisley.app" rel="noopener noreferrer" target="_blank">
-<span>Open logistics terminal</span>
+<a class="min-h-[44px] px-5 inline-flex items-center justify-center rounded-lg bg-[var(--logistics-primary)] hover:bg-[var(--logistics-hover)] text-white text-sm font-semibold transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-[var(--logistics-primary)] focus-visible:outline-none" href="https://logistics.aisley.app" rel="noopener noreferrer" target="_blank">
+<span>Open logistics portal</span>
 <span class="stitch-icon" aria-hidden="true">→</span>
 </a>
 </div>
-<div class="lg:col-span-5"><div class="bg-[#ffffff] border border-[#e5dce7] rounded-lg p-5 shadow-sm"><div class="text-xs text-[#594c5e] mb-4">Logistics dispatch workspace</div><Preview src="/screens/logistics.webp" title="Logistics dispatch workspace" width={780} height={437} /></div></div>
+<div class="lg:col-span-5"><div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 shadow-sm"><div class="text-sm text-[var(--muted)] mb-4">Logistics dispatch workspace</div><Preview src="/screens/logistics.webp" title="Logistics dispatch workspace" width={780} height={437} /></div></div>
 </div></section>

@@ -35,3 +35,8 @@ Short, dated log of what has been implemented across the whole app. Append new e
 
 - Applied the refined Stitch desktop composition to the Astro landing page, retaining exported spacing, colors, section grids, feature cards, downloads panel, FAQ, portal grid and footer. Replaced generated claims with canonical system copy and authentic app previews; retained destinations, metadata and native image dialogs. No dependencies or Flutter changes.
 - Preview and production builds passed; Chromium checked 320/390/768/1024/1440px without horizontal overflow, five FAQ disclosures, and preview dialog opening. Desktop/mobile captures and verification data saved with Stitch context. Local outline icons replace the external Material Symbols font; no pixel-identical certification claimed.
+
+## 2026-10-31 — Landing conversion and accessibility refinement
+
+- Clarified the Astro hero with a concrete shopping headline, one primary action and supporting sentence; repeated shopping CTAs and simplified role copy. Preserved portal/release destinations, authentic previews, early access and approval qualifications. Added phone navigation, 44px targets, consistent headings/focus, readable copy, color variables, responsive WebP variants, font preload and social image metadata. No dependencies or other app changes.
+- Preview/production builds passed. Chromium at 360/768/1280/1440px passed overflow, image, CTA visibility, target sizing, headings, destinations, keyboard dialog/FAQ and reduced-motion checks. Taste retains documented design-contract/style exceptions; Lighthouse, assistive-technology and deployed acceptance remain open. See `src/landing-page/docs/quality-review.md`.

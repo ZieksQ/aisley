@@ -10,37 +10,16 @@ import Portals from './stitch/Portals.astro';
 ---
 
 
-<header class="bg-[#ffffff]/90 backdrop-blur-md border-b border-[#e5dce7] sticky top-0 z-50">
-<div class="max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-
-<div class="flex items-center gap-3">
-<a class="text-xl font-bold tracking-tight text-[#4c1268] hover:opacity-90 transition-opacity flex items-center gap-2" href="#">
-          AISLEY
-        </a>
-<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#f1ebf3] border border-[#e5dce7] text-[#4c1268]">
-<span class="w-1.5 h-1.5 rounded-full bg-[#4c1268]"></span>
-          Early Access
-        </span>
-</div>
-
-<nav class="hidden md:flex items-center space-x-7 text-sm font-medium text-[#594c5e]">
-<a class="hover:text-[#231429] transition-colors py-2 focus-visible:ring-2 focus-visible:ring-[#4c1268] focus-visible:outline-none rounded" href="#buyers">Buyers</a>
-<a class="hover:text-[#231429] transition-colors py-2 focus-visible:ring-2 focus-visible:ring-[#4c1268] focus-visible:outline-none rounded" href="#sellers">Sellers</a>
-<a class="hover:text-[#231429] transition-colors py-2 focus-visible:ring-2 focus-visible:ring-[#4c1268] focus-visible:outline-none rounded" href="#logistics">Logistics</a>
-<a class="hover:text-[#231429] transition-colors py-2 focus-visible:ring-2 focus-visible:ring-[#4c1268] focus-visible:outline-none rounded" href="#apps">Apps</a>
-<a class="hover:text-[#231429] transition-colors py-2 focus-visible:ring-2 focus-visible:ring-[#4c1268] focus-visible:outline-none rounded" href="#workflow">Workflow</a>
-<a class="hover:text-[#231429] transition-colors py-2 focus-visible:ring-2 focus-visible:ring-[#4c1268] focus-visible:outline-none rounded" href="#faq">FAQ</a>
+<header class="site-header">
+<div class="header-inner">
+<a class="brand" href="#main" aria-label="AISLEY home">AISLEY <span>Early access</span></a>
+<nav class="site-nav" aria-label="Main navigation">
+<a href="#buyers">Buyers</a><a href="#sellers">Sellers</a><a href="#logistics">Logistics</a><a href="#apps">Apps</a><a href="#workflow">Workflow</a><a href="#faq">FAQ</a>
 </nav>
-
-<div class="flex items-center gap-3">
-<a class="min-h-[44px] px-5 inline-flex items-center justify-center rounded-lg bg-[#4c1268] hover:bg-[#3d0e54] text-white text-sm font-semibold transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-[#4c1268] focus-visible:ring-offset-2 focus-visible:outline-none" href="https://aisley.app" rel="noopener noreferrer" target="_blank">
-          Start shopping
-          <span class="stitch-icon" aria-hidden="true">→</span>
-</a>
-</div>
+<a class="primary-action" href="https://aisley.app" rel="noopener noreferrer" target="_blank">Start shopping <span aria-hidden="true">→</span></a>
 </div>
 </header>
-<main id="main">
+<main id="main" tabindex="-1">
 
 <Hero />
 
@@ -59,35 +38,35 @@ import Portals from './stitch/Portals.astro';
 <Portals />
 </main>
 
-<footer class="bg-[#ffffff] border-t border-[#e5dce7]">
+<footer aria-labelledby="footer-title" class="bg-[var(--surface)] border-t border-[var(--border)]">
 <div class="max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
 
 <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
 
 <div class="md:col-span-1">
-<span class="text-lg font-bold tracking-tight text-[#4c1268] block mb-2">
+<h2 id="footer-title" class="text-lg font-bold tracking-tight text-[var(--brand-primary)] block mb-2">
             AISLEY
-          </span>
-<p class="text-xs text-[#594c5e] leading-relaxed">
+          </h2>
+<p class="text-base text-[var(--muted)] leading-relaxed">
             A Philippine marketplace connecting buyers, independent sellers, logistics organizations, and couriers.
           </p>
 </div>
 
 <div>
-<h4 class="text-xs font-bold text-[#231429] uppercase tracking-wider mb-3">Commerce Portals</h4>
-<ul class="space-y-2 text-xs">
+<h3 class="text-sm font-bold text-[var(--ink)] mb-3">Commerce Portals</h3>
+<ul class="space-y-2 text-sm">
 <li>
-<a class="text-[#594c5e] hover:text-[#4c1268] transition-colors py-1 inline-block focus-visible:ring-2 focus-visible:ring-[#4c1268] focus-visible:outline-none rounded" href="https://aisley.app" rel="noopener noreferrer" target="_blank">
+<a class="text-[var(--muted)] hover:text-[var(--brand-primary)] transition-colors py-1 inline-block focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] focus-visible:outline-none rounded" href="https://aisley.app" rel="noopener noreferrer" target="_blank">
                 Buyer Portal (aisley.app)
               </a>
 </li>
 <li>
-<a class="text-[#594c5e] hover:text-[#4c1268] transition-colors py-1 inline-block focus-visible:ring-2 focus-visible:ring-[#4c1268] focus-visible:outline-none rounded" href="https://seller.aisley.app" rel="noopener noreferrer" target="_blank">
+<a class="text-[var(--muted)] hover:text-[var(--brand-primary)] transition-colors py-1 inline-block focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] focus-visible:outline-none rounded" href="https://seller.aisley.app" rel="noopener noreferrer" target="_blank">
                 Seller Portal (seller.aisley.app)
               </a>
 </li>
 <li>
-<a class="text-[#594c5e] hover:text-[#2563eb] transition-colors py-1 inline-block focus-visible:ring-2 focus-visible:ring-[#2563eb] focus-visible:outline-none rounded" href="https://logistics.aisley.app" rel="noopener noreferrer" target="_blank">
+<a class="text-[var(--muted)] hover:text-[var(--logistics-primary)] transition-colors py-1 inline-block focus-visible:ring-2 focus-visible:ring-[var(--logistics-primary)] focus-visible:outline-none rounded" href="https://logistics.aisley.app" rel="noopener noreferrer" target="_blank">
                 Logistics Portal (logistics.aisley.app)
               </a>
 </li>
@@ -95,49 +74,49 @@ import Portals from './stitch/Portals.astro';
 </div>
 
 <div>
-<h4 class="text-xs font-bold text-[#231429] uppercase tracking-wider mb-3">Software Releases</h4>
-<ul class="space-y-2 text-xs">
+<h3 class="text-sm font-bold text-[var(--ink)] mb-3">Software Releases</h3>
+<ul class="space-y-2 text-sm">
 <li>
-<a class="text-[#594c5e] hover:text-[#4c1268] transition-colors py-1 inline-block focus-visible:ring-2 focus-visible:ring-[#4c1268] focus-visible:outline-none rounded" href="https://github.com/ApueXI/aisley-app-customer/releases" rel="noopener noreferrer" target="_blank">
+<a class="text-[var(--muted)] hover:text-[var(--brand-primary)] transition-colors py-1 inline-block focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] focus-visible:outline-none rounded" href="https://github.com/ApueXI/aisley-app-customer/releases" rel="noopener noreferrer" target="_blank">
                 Buyer app releases
               </a>
 </li>
 <li>
-<a class="text-[#594c5e] hover:text-[#2563eb] transition-colors py-1 inline-block focus-visible:ring-2 focus-visible:ring-[#2563eb] focus-visible:outline-none rounded" href="https://github.com/ApueXI/aisley-app-rider/releases" rel="noopener noreferrer" target="_blank">
+<a class="text-[var(--muted)] hover:text-[var(--logistics-primary)] transition-colors py-1 inline-block focus-visible:ring-2 focus-visible:ring-[var(--logistics-primary)] focus-visible:outline-none rounded" href="https://github.com/ApueXI/aisley-app-rider/releases" rel="noopener noreferrer" target="_blank">
                 Rider app releases
               </a>
 </li>
 <li>
-<span class="text-[#7d6f83] py-1 inline-block">Review available release packages</span>
+<span class="text-[var(--muted)] py-1 inline-block">Review available release packages</span>
 </li>
 </ul>
 </div>
 
 <div>
-<h4 class="text-xs font-bold text-[#231429] uppercase tracking-wider mb-3">Getting started</h4>
-<ul class="space-y-2 text-xs">
+<h3 class="text-sm font-bold text-[var(--ink)] mb-3">Getting started</h3>
+<ul class="space-y-2 text-sm">
 <li>
-<span class="text-[#594c5e]">Seller approval</span>
+<span class="text-[var(--muted)]">Seller approval</span>
 </li>
 <li>
-<span class="text-[#594c5e]">Courier approval</span>
+<span class="text-[var(--muted)]">Courier approval</span>
 </li>
 <li>
-<span class="text-[#594c5e]">Early access</span>
+<span class="text-[var(--muted)]">Early access</span>
 </li>
 <li>
-<span class="text-[#594c5e]">Delivery options at checkout</span>
+<span class="text-[var(--muted)]">Delivery options at checkout</span>
 </li>
 </ul>
 </div>
 </div>
 
-<div class="pt-8 border-t border-[#e5dce7] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 text-xs text-[#7d6f83]">
+<div class="pt-8 border-t border-[var(--border)] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 text-sm text-[var(--muted)]">
 <p>
           © {new Date().getFullYear()} AISLEY · Early access
         </p>
-<div class="flex items-center gap-2 text-[#4c1268] font-mono text-[11px]">
-<span class="w-1.5 h-1.5 rounded-full bg-[#4c1268]"></span>
+<div class="flex items-center gap-2 text-[var(--brand-primary)] font-sans text-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-[var(--brand-primary)]"></span>
 <span>info.aisley.app</span>
 </div>
 </div>

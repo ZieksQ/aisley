@@ -31,3 +31,9 @@ Chromium visual review at 1440/768/390px: desktop hero media increased from 16% 
 ## Stitch implementation — 2026-10-31
 
 The approved reference is Stitch screen `68e3f7718218424ca7eb504f7de36487`. Its 7:5 hero, alternating role sections, capability cards, workflow cards, bordered download panel, FAQ cards, portal jump grid and four-column footer supersede the previous compact composition. Preserve canonical system copy, authentic screenshots and all existing destinations. Local CSS compiled from the existing workspace Tailwind tooling avoids runtime CDN dependencies. Native expandable FAQ cards start open to match the reference. External icon-font glyphs use local outline SVGs. Design contract and functional accessibility requirements continue to apply.
+
+## Conversion and accessibility refinement — 2026-10-31
+
+Retain the existing Stitch section order and split layout. The hero now leads with “Shop independent sellers.” and one supporting sentence. “Start shopping” is the sole filled hero action; Seller and Logistics remain text links. Repeat the shopping action after Buyer, workflow, FAQ, and in the portal grid. Preserve all five external destinations, early-access/coverage qualifications, approval rules, native FAQ, and full-size screenshot fallbacks.
+
+Navigation remains visible on phones, with at least 44×44px targets. Running feature copy uses 16px, supporting labels use at least 14px, and colors use shared page variables with the existing generated type/spacing scales. Responsive WebP variants reduce inline screenshot transfers while dialogs retain original images. Font preload and social image dimensions/alternative text supplement existing SEO. See the landing page's [quality review](../../../../src/landing-page/docs/quality-review.md) for validation and remaining limits.

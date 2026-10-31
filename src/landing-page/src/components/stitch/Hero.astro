@@ -1,50 +1,14 @@
 ---
 import Preview from '../Preview.astro';
 ---
-<section class="max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-8 pt-12 lg:pt-16 pb-16 lg:pb-20 border-b border-[#e5dce7]">
+<section class="hero max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-8 border-b border-[var(--border)]" aria-labelledby="hero-title">
 <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-start">
-
-<div class="lg:col-span-7 flex flex-col justify-start">
-<div class="flex items-center gap-2 mb-4">
-<span class="w-2 h-2 rounded-full bg-[#4c1268]"></span>
-<span class="text-xs uppercase tracking-wider font-semibold text-[#4c1268]">
-              Philippine marketplace · Early access
-            </span>
+<div class="lg:col-span-7">
+<h1 id="hero-title">Shop independent sellers.</h1>
+<p class="hero-intro">Find products from independent shops on AISLEY, a Philippine marketplace with Cash on Delivery and order updates.</p>
+<a class="primary-action" href="https://aisley.app" rel="noopener noreferrer" target="_blank">Start shopping <span aria-hidden="true">→</span></a>
+<p class="hero-portals">Here for your business? <a href="https://seller.aisley.app" rel="noopener noreferrer" target="_blank">Seller portal</a><a href="https://logistics.aisley.app" rel="noopener noreferrer" target="_blank">Logistics portal</a></p>
+<p class="hero-note">Early access · Products and delivery options depend on participating shops and coverage.</p>
 </div>
-<h1 class="text-4xl sm:text-5xl lg:text-[3.5rem] leading-[1.12] font-bold text-[#231429] tracking-tight mb-6">
-            Shop. Sell. Deliver.
-          </h1>
-<p class="text-lg text-[#594c5e] leading-relaxed max-w-xl mb-8">Explore AISLEY: a Philippine marketplace connecting buyers, independent sellers, and delivery teams. Now in early access.</p>
-
-<div class="flex flex-col sm:flex-row flex-wrap gap-3 mb-8">
-<a class="min-h-[44px] px-5 inline-flex items-center justify-center rounded-lg bg-[#4c1268] hover:bg-[#3d0e54] text-white text-sm font-semibold transition-colors duration-150 shadow-sm focus-visible:ring-2 focus-visible:ring-[#4c1268] focus-visible:outline-none" href="https://aisley.app" rel="noopener noreferrer" target="_blank">
-              Start shopping
-              <svg class="stitch-icon" aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M8 5V3h8v2M8 11h8M8 15h5"/></svg>
-</a>
-<a class="min-h-[44px] px-5 inline-flex items-center justify-center rounded-lg bg-[#ffffff] border border-[#cfc1d2] hover:bg-[#f1ebf3] hover:border-[#4c1268] text-[#231429] text-sm font-semibold transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-[#4c1268] focus-visible:outline-none" href="https://seller.aisley.app" rel="noopener noreferrer" target="_blank">
-              Seller portal
-              <svg class="stitch-icon" aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M8 5V3h8v2M8 11h8M8 15h5"/></svg>
-</a>
-<a class="min-h-[44px] px-5 inline-flex items-center justify-center rounded-lg bg-[#ffffff] border border-[#bfdbfe] hover:bg-[#eff6ff] text-[#2563eb] text-sm font-semibold transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-[#2563eb] focus-visible:outline-none" href="https://logistics.aisley.app" rel="noopener noreferrer" target="_blank">
-              Logistics portal
-              <svg class="stitch-icon" aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M8 5V3h8v2M8 11h8M8 15h5"/></svg>
-</a>
-</div>
-
-<div class="pt-6 border-t border-[#e5dce7] grid grid-cols-3 gap-4">
-<div>
-<div class="text-xs uppercase tracking-wider text-[#7d6f83] font-semibold mb-1">Availability</div>
-<div class="text-sm font-medium text-[#231429]">Early access</div>
-</div>
-<div>
-<div class="text-xs uppercase tracking-wider text-[#7d6f83] font-semibold mb-1">Payment Method</div>
-<div class="text-sm font-medium text-[#231429]">Cash on Delivery</div>
-</div>
-<div>
-<div class="text-xs uppercase tracking-wider text-[#7d6f83] font-semibold mb-1">Order updates</div>
-<div class="text-sm font-medium text-[#231429]">Shipment milestones</div>
-</div>
-</div>
-</div>
-<div class="lg:col-span-5"><div class="bg-[#ffffff] border border-[#e5dce7] rounded-lg p-5 shadow-sm"><div class="text-xs text-[#594c5e] mb-4">AISLEY storefront</div><Preview eager src="/screens/buyer.webp" title="AISLEY storefront" width={1280} height={850} /></div></div>
+<div class="lg:col-span-5"><div class="bg-[var(--surface)] border border-[var(--border)] rounded-lg p-5 shadow-sm"><div class="text-sm text-[var(--muted)] mb-4">AISLEY storefront</div><Preview eager src="/screens/buyer.webp" title="AISLEY storefront" width={1280} height={850} /></div></div>
 </div></section>
