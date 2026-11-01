@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { ApiError } from '../../lib/api'
 import { loadPhoto, loadReviews, submitReview, type Confirmation, type ReviewAttempt } from './api'
 
-export function useDeliveryReview(view: 'pending' | 'history', query: string, page: number) {
+export function useDeliveryReview(view: 'pending' | 'history', query: string, page: number, proofId?: string) {
   const [rows, setRows] = useState<Confirmation[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -18,7 +18,8 @@ export function useDeliveryReview(view: 'pending' | 'history', query: string, pa
   const [attempt, setAttempt] = useState<ReviewAttempt | null>(null)
   const generation = useRef(0)
   const pending = useRef<ReviewAttempt | null>(null)
-  const selected = rows.find((row) => row.proof.id === selectedId) ?? null
+  const selected = rows.find((row) => row.proof.id === selectedId && row.proof.id === proofId) ?? null
+  const photoId = selected?.proof.id ?? null
   const clearPrivate = useCallback(() => {
     setRows([]);
     setSelectedId(null);
@@ -32,12 +33,23 @@ export function useDeliveryReview(view: 'pending' | 'history', query: string, pa
     if (!background) setLoading(true)
     setError('')
     try {
-      const response = await loadReviews(view, query, page)
+      let response = await loadReviews(view, query, page)
+      if (proofId) {
+        // Resolve exactly this proof, including older pages and decisions made since linking.
+        for (const detailView of [view, view === 'pending' ? 'history' : 'pending'] as const) {
+          if (detailView !== view) response = await loadReviews(detailView, query, 1)
+          for (let nextPage = 2; !response.data.some((row) => row.proof.id === proofId) && nextPage <= response.meta.last_page; nextPage++) {
+            if (current !== generation.current) return
+            response = await loadReviews(detailView, query, nextPage)
+          }
+          if (response.data.some((row) => row.proof.id === proofId)) break
+        }
+      }
       if (current !== generation.current) return
       setRows(response.data)
       setLastPage(response.meta.last_page)
       setTotal(response.meta.total)
-      setSelectedId((id) => response.data.some((row) => row.proof.id === id) ? id : response.data[0]?.proof.id ?? null)
+      setSelectedId(proofId && response.data.some((row) => row.proof.id === proofId) ? proofId : null)
       if (pending.current) {
         const decision = await loadReviews('history', pending.current.reference, 1)
         if (current !== generation.current) return
@@ -55,7 +67,7 @@ export function useDeliveryReview(view: 'pending' | 'history', query: string, pa
     } finally {
       if (current === generation.current) setLoading(false)
     }
-  }, [view, query, page, clearPrivate])
+  }, [view, query, page, proofId, clearPrivate])
 
   useEffect(() => {
     void load();
@@ -83,8 +95,8 @@ export function useDeliveryReview(view: 'pending' | 'history', query: string, pa
     let url: string | null = null
     setPhotoUrl(null)
     setPhotoError('')
-    setPhotoLoading(Boolean(selectedId))
-    if (selectedId) void loadPhoto(selectedId).then((photo) => {
+    setPhotoLoading(Boolean(photoId))
+    if (photoId) void loadPhoto(photoId).then((photo) => {
       if (!active) return
       url = URL.createObjectURL(photo)
       setPhotoUrl(url)
@@ -99,7 +111,7 @@ export function useDeliveryReview(view: 'pending' | 'history', query: string, pa
       active = false;
       if (url) URL.revokeObjectURL(url)
     }
-  }, [selectedId, photoVersion, clearPrivate])
+  }, [photoId, photoVersion, clearPrivate])
 
   async function run(next: ReviewAttempt) {
     if (busy) return

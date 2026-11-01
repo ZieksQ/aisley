@@ -1,5 +1,5 @@
 import { PortalNavigation } from '@aisley/ui/portal'
-import { LuCar, LuChartNoAxesCombined, LuClipboardCheck, LuLayoutDashboard, LuListFilter, LuMessageSquare, LuPackageCheck, LuPackageOpen, LuRoute, LuSearch, LuTags, LuTruck, LuUserRoundCheck, LuBell, LuSettings } from 'react-icons/lu'
+import { LuNetwork, LuCar, LuChartNoAxesCombined, LuClipboardCheck, LuLayoutDashboard, LuListFilter, LuMessageSquare, LuPackageCheck, LuPackageOpen, LuRoute, LuSearch, LuTags, LuTruck, LuUserRoundCheck, LuBell, LuSettings } from 'react-icons/lu'
 import type { IconType } from 'react-icons'
 import { Link, useLocation } from 'react-router-dom'
 
@@ -32,9 +32,9 @@ const groups: NavGroup[] = [
     id: 'transport',
     label: 'Transport & delivery',
     items: [
-      { label: 'Linehaul', path: '/linehaul', icon: LuRoute, beta: true },
+      { label: 'Network', path: '/network', icon: LuNetwork, beta: true },
       { label: 'Linehaul dispatch', path: '/linehaul-dispatch', icon: LuTruck, beta: true },
-      { label: 'Inbound linehaul', path: '/inbound-linehaul', icon: LuTruck, beta: true },
+      { label: 'Linehaul inbound', path: '/inbound-linehaul', icon: LuTruck, beta: true },
       { label: 'Last-mile dispatch', path: '/dispatch', icon: LuTruck },
       { label: 'Delivery confirmations', path: '/delivery-confirmations', icon: LuClipboardCheck },
     ],

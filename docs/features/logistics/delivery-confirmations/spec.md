@@ -51,7 +51,7 @@ COD completion intent accepts only `cod_collected: true`; the declaration amount
 - A reviewer may request correction with a reason; the task remains assigned and pending at the current delivery state.
 - Pending reviews refresh on window focus/visibility return and every 30 seconds while the page is visible. Background reads preserve the workspace; pause refresh while a decision is submitting or has an uncertain result. Manual refresh remains available.
 - Pending intent remains active Courier work. Completed history is populated only after authoritative Logistics approval.
-- The search input keeps the available toolbar width while its submit action remains content-sized. The queue and review workspace stack on mobile, tablet, and iPad-sized viewports, then use a bounded two-column layout when wide desktop space is available.
+- Pending and History each show a searchable, paginated table. Clicking a row or its keyboard-accessible Order link opens `/delivery-confirmations/:proofId`; the list does not load private photos. Detail pages present Order/Courier/recipient context, private proof, and review actions, with photo and context alongside each other on desktop and stacked on smaller screens. Back navigation preserves the source view, search, and page.
 
 ## Acceptance
 
@@ -79,3 +79,9 @@ COD completion intent accepts only `cod_collected: true`; the declaration amount
 ## Courier mockup submission clarification (2026-10-22)
 
 The harness uses one **Delivered** action to upload the selected private photo then submit its matching intent. Photo upload alone does not create a pending confirmation entry. The queue continues to require both records and current hub/task scope; it must never fabricate an intent for an uploaded photo. The harness preserves upload/intent retry identities and reconciles uncertain results before reporting success.
+
+## Confirmation list and detail redesign — 2026-11-01
+
+- Pending, History, and Approval settings use URL-backed view navigation. Detail links carry the selected proof ID, Order reference for scoped lookup, and source list query. Direct links resolve exactly the selected proof across pagination, including a decision that has since moved to History; missing proofs never select another delivery. No new API is introduced.
+- Show approval/correction success and uncertain-result recovery on the detail page. Preserve proof revision checks, private-photo errors/retry/enlargement, COD acknowledgment, and the original idempotency key for an uncertain mutation. Approved/rejected details become read-only after an authoritative refresh.
+- Tables use semantic headers, keyboard-accessible reference links, and labeled scroll regions. Both themes retain the Logistics blue/slate contract. Backend and external Flutter acceptance statuses remain unchanged by this frontend work.

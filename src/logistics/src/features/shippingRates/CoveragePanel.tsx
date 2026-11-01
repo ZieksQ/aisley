@@ -71,6 +71,6 @@ export function CoveragePanel({ cards, shopCategories }: { cards: RateCard[]; sh
         </table>
       </div> : <p className="p-5 text-sm text-zinc-500">{shopCategories.length ? 'No Shop Categories match this search.' : 'No active Shop Categories are available.'}</p>}
     </section>
-    <p className="text-sm leading-6 text-zinc-600 dark:text-zinc-400">This coverage is commercial by a Shop's main category and service leg. Different Product Categories in one parcel share its main Shop Category rate. Geographic hub connections and postal routing remain in <Link className="font-medium text-[#4C1268] underline-offset-4 hover:underline dark:text-purple-300" to="/sort-plan">Sort plan</Link> and <Link className="font-medium text-[#4C1268] underline-offset-4 hover:underline dark:text-purple-300" to="/linehaul">Linehaul</Link>.</p>
+    <p className="text-sm leading-6 text-zinc-600 dark:text-zinc-400">This coverage is commercial by a Shop's main category and service leg. Different Product Categories in one parcel share its main Shop Category rate. Geographic hub connections and postal routing remain in <Link className="font-medium text-[#4C1268] underline-offset-4 hover:underline dark:text-purple-300" to="/sort-plan">Sort plan</Link> and <Link className="font-medium text-[#4C1268] underline-offset-4 hover:underline dark:text-purple-300" to="/network">Network</Link>.</p>
   </div>
 }

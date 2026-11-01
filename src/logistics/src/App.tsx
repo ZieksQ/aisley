@@ -9,6 +9,7 @@ import { CourierVehiclesPage } from './pages/CourierVehiclesPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { BillingPage } from './pages/BillingPage'
 import { CourierCashPage } from './pages/CourierCashPage'
+import { DeliveryConfirmationDetailPage } from './pages/DeliveryConfirmationDetailPage'
 import { DeliveryConfirmationsPage } from './pages/DeliveryConfirmationsPage'
 import { DispatchPage } from './pages/DispatchPage'
 import { FinancePaymentsPage } from './pages/FinancePaymentsPage'
@@ -56,8 +57,10 @@ export default function App() {
           <Route element={<FinancePaymentsPage />} path="/finance/payment-settings" />
           <Route element={<FulfillmentOperationsPage />} path="/operations" />
           <Route element={<DeliveryConfirmationsPage />} path="/delivery-confirmations" />
+          <Route element={<DeliveryConfirmationDetailPage />} path="/delivery-confirmations/:proofId" />
           <Route element={<ReceiveAtHubPage />} path="/receive-at-hub" />
-          <Route element={<LinehaulPage />} path="/linehaul" />
+          <Route element={<LinehaulPage />} path="/network" />
+          <Route element={<Navigate replace to="/network" />} path="/linehaul" />
           <Route element={<LinehaulDispatchPage />} path="/linehaul-dispatch" />
           <Route element={<InboundLinehaulPage />} path="/inbound-linehaul" />
           <Route element={<SortingPage />} path="/sorting" />

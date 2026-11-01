@@ -1,64 +1,290 @@
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { useCallback, useEffect, useState } from 'react'
+import { PortalButton, PortalModal, PortalSkeleton } from '@aisley/ui/portal'
 import { ReceivingWorkspace } from '../features/linehaulReceiving/ReceivingWorkspace'
 import { receivingAction } from '../features/linehaulReceiving/api'
-import { useCallback, useEffect, useState } from 'react'
+import {
+  InboundTripTable,
+  type InboundView
+} from '../features/inboundLinehaul/InboundTripTable'
 import { FlatpickrInput } from '../components/FlatpickrInput'
-import { ActionButton, ErrorNotice, PrimaryButton, field, manilaDate, panel } from '../components/PickupUi'
-import { csrf, requestWithTimeout } from '../lib/api'
+import { ErrorNotice } from '../components/PickupUi'
+import { ApiError, csrf, requestWithTimeout } from '../lib/api'
 import { defaultLinehaulTime } from '../types/linehaulTrips'
 import type { LinehaulOverview, LinehaulTrip } from '../types/linehaulTrips'
+import '../features/transport.css'
 
 export function InboundLinehaulPage() {
   const navigate = useNavigate()
   const [params] = useSearchParams()
   const selectedTrip = params.get('trip')
+  const requestedView = params.get('view')
+  const view: InboundView = selectedTrip
+    ? 'receiving'
+    : requestedView === 'arriving' ||
+        requestedView === 'receiving' ||
+        requestedView === 'visitors'
+      ? requestedView
+      : 'requests'
   const [overview, setOverview] = useState<LinehaulOverview | null>(null)
   const [scheduledFor, setScheduledFor] = useState(defaultLinehaulTime)
+  const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
-  const load = useCallback(async () => { try { const response = await requestWithTimeout<{ data: LinehaulOverview }>('/api/v1/logistics/linehaul/trips'); setOverview(response.data) } catch (caught) { setError(caught instanceof Error ? caught.message : 'Inbound linehaul could not be loaded.') } }, [])
+  const [rejecting, setRejecting] = useState<LinehaulTrip | null>(null)
+  const [reason, setReason] = useState('')
+  const load = useCallback(async () => {
+    setError('')
+    try {
+      const response = await requestWithTimeout<{ data: LinehaulOverview }>(
+        '/api/v1/logistics/linehaul/trips'
+      )
+      setOverview(response.data)
+    } catch (caught) {
+      if (caught instanceof ApiError && [401, 403].includes(caught.status))
+        setOverview(null)
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : 'Linehaul inbound could not be loaded.'
+      )
+    } finally {
+      setLoading(false)
+    }
+  }, [])
   useEffect(() => {
-    document.title = 'Inbound linehaul | Aisley Logistics'
+    document.title = 'Linehaul inbound | Aisley Logistics'
     void load()
-    const timer = window.setInterval(() => { if (navigator.onLine) void load() }, 15000)
+    const timer = window.setInterval(() => {
+      if (navigator.onLine) void load()
+    }, 15000)
     return () => window.clearInterval(timer)
   }, [load])
 
   async function post(trip: LinehaulTrip, action: string, body: object) {
-    setBusy(true); setError(''); setNotice('')
-    try { await csrf(); await requestWithTimeout(`/api/v1/logistics/linehaul/trips/${trip.id}/${action}`, { method: 'POST', headers: action === 'return' ? { 'Idempotency-Key': crypto.randomUUID() } : undefined, body: JSON.stringify(body) }); setNotice('Linehaul trip updated.'); await load() }
-    catch (caught) { setError(caught instanceof Error ? caught.message : 'The linehaul action could not be completed.') }
-    finally { setBusy(false) }
+    setBusy(true)
+    setError('')
+    setNotice('')
+    try {
+      await csrf()
+      await requestWithTimeout(
+        `/api/v1/logistics/linehaul/trips/${trip.id}/${action}`,
+        {
+          method: 'POST',
+          headers:
+            action === 'return'
+              ? { 'Idempotency-Key': crypto.randomUUID() }
+              : undefined,
+          body: JSON.stringify(body)
+        }
+      )
+      setNotice('Linehaul trip updated.')
+      setRejecting(null)
+      setReason('')
+      await load()
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : 'The linehaul action could not be completed.'
+      )
+    } finally {
+      setBusy(false)
+    }
   }
   async function startReceiving(trip: LinehaulTrip) {
-    setBusy(true); setError('')
+    setBusy(true)
+    setError('')
     try {
-      await receivingAction(trip.id, 'start', { client_id: crypto.randomUUID() })
+      await receivingAction(trip.id, 'start', {
+        client_id: crypto.randomUUID()
+      })
       if (trip.empty_return) await load()
       else navigate(`/receive-at-hub?trip=${trip.id}`)
-    } catch (caught) { setError(caught instanceof Error ? caught.message : 'Could not start receiving.') }
-    finally { setBusy(false) }
+    } catch (caught) {
+      setError(
+        caught instanceof Error ? caught.message : 'Could not start receiving.'
+      )
+    } finally {
+      setBusy(false)
+    }
   }
-  const pending = overview?.inbound.filter((trip) => trip.can_decide) ?? []
-  const arriving = overview?.inbound.filter((trip) => trip.can_receive) ?? []
-
-  return <div className="mx-auto max-w-[1200px] px-4 py-4 sm:px-6"><div className="flex flex-wrap items-start justify-between gap-3 border-b border-zinc-200 pb-3 dark:border-white/10"><div><h2 className="text-xl font-semibold">Inbound linehaul</h2><p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Approve incoming transfer requests, receive physical arrivals, and schedule visiting trucks home.</p></div><ActionButton onClick={() => void load()}>Refresh</ActionButton></div>
-    {error ? <div className="mt-3"><ErrorNotice message={error} retry={() => void load()} /></div> : null}{notice ? <p className="mt-3 text-sm text-emerald-700 dark:text-emerald-300">{notice}</p> : null}
-    <section className={`${panel} mt-3 overflow-hidden`}><div className="border-b border-zinc-200 px-4 py-3 dark:border-white/10"><h3 className="font-semibold">Approval requests</h3></div>{pending.length ? <ul className="divide-y divide-zinc-200 dark:divide-white/10">{pending.map((trip) => <li className="flex flex-wrap items-center justify-between gap-3 px-4 py-3" key={trip.id}><div><p className="font-medium">{trip.from_hub.name} · {trip.parcel_count} parcels</p><p className="mt-1 text-xs text-zinc-500">{trip.truck.plate_number} · {trip.driver.name} · {manilaDate(trip.scheduled_for)}</p></div><div className="flex gap-2"><PrimaryButton disabled={busy} onClick={() => void post(trip, 'decision', { accept: true, expected_revision: trip.revision })}>Approve</PrimaryButton><ActionButton disabled={busy} onClick={() => { const reason = window.prompt('Reason for rejecting this transfer?'); if (reason) void post(trip, 'decision', { accept: false, reason, expected_revision: trip.revision }) }}>Reject</ActionButton></div></li>)}</ul> : <p className="p-4 text-sm text-zinc-500">No inbound requests await approval.</p>}</section>
-    <section className={`${panel} mt-3 overflow-hidden`}><div className="border-b border-zinc-200 px-4 py-3 dark:border-white/10"><h3 className="font-semibold">Arriving trips</h3></div>{arriving.length ? <ul className="divide-y divide-zinc-200 dark:divide-white/10">{arriving.map((trip) => <li className="flex flex-wrap items-center justify-between gap-3 px-4 py-3" key={trip.id}><div><p className="font-medium">{trip.from_hub.name} → {trip.to_hub.name}</p><p className="text-xs text-zinc-500">{trip.parcel_count ? `${trip.parcel_count} parcels` : 'Empty return'} · {trip.truck.plate_number}</p>{trip.courier_arrived_at ? <p className="mt-1 text-sm">Driver reported arrival: {manilaDate(trip.courier_arrived_at)}</p> : null}</div><PrimaryButton disabled={busy || !navigator.onLine} onClick={() => void startReceiving(trip)}>{trip.empty_return ? 'Confirm arrival' : 'Start receiving'}</PrimaryButton></li>)}</ul> : <p className="p-4 text-sm text-zinc-500">No linehaul trips are awaiting receipt.</p>}</section>
-    <section className={`${panel} mt-3 p-4`}>
-      <h3 className="font-semibold">Receiving and reconciliation</h3>
-      <ul className="mt-2 divide-y divide-zinc-200 dark:divide-white/10">
-        {overview?.inbound.filter((trip) => trip.status === 'receiving' || trip.status === 'received').map((trip) => (
-          <li key={trip.id} className="flex flex-wrap justify-between gap-2 py-2 text-sm">
-            <span>{trip.truck.plate_number} · {trip.from_hub.name} · {trip.status === 'receiving' ? 'Unloading' : 'Unloading complete'}</span>
-            <Link className="underline" to={`/inbound-linehaul?trip=${trip.id}`}>Review receipt and discrepancies</Link>
-          </li>
+  function scheduleReturn(trip: LinehaulTrip, empty: boolean) {
+    const time = new Date(scheduledFor.replace(' ', 'T'))
+    if (!Number.isFinite(time.getTime())) {
+      setError('Choose a valid return schedule.')
+      return
+    }
+    void post(trip, 'return', {
+      scheduled_for: time.toISOString(),
+      empty_return: empty
+    })
+  }
+  const trips = {
+    requests: overview?.inbound.filter((trip) => trip.can_decide) ?? [],
+    arriving: overview?.inbound.filter((trip) => trip.can_receive) ?? [],
+    receiving:
+      overview?.inbound.filter(
+        (trip) => trip.status === 'receiving' || trip.status === 'received'
+      ) ?? [],
+    visitors: overview?.visitors ?? []
+  }
+  const labels = {
+    requests: 'Approval requests',
+    arriving: 'Arriving trips',
+    receiving: 'Receiving',
+    visitors: 'Visiting trucks'
+  }
+  return (
+    <div className="transport-workspace">
+      <header className="transport-heading">
+        <div>
+          <h1>Linehaul inbound</h1>
+          <p>
+            Approve transfers, receive arriving loads, and schedule visiting
+            trucks home.
+          </p>
+        </div>
+        <PortalButton disabled={busy || loading} onClick={() => void load()}>
+          Refresh
+        </PortalButton>
+      </header>
+      <nav
+        className="transport-tabs flex-wrap"
+        aria-label="Linehaul inbound views"
+      >
+        {(Object.keys(labels) as InboundView[]).map((item) => (
+          <Link
+            key={item}
+            to={`?view=${item}`}
+            aria-current={view === item ? 'page' : undefined}
+          >
+            {labels[item]}
+            {overview ? ` · ${trips[item].length}` : ''}
+          </Link>
         ))}
-      </ul>
-    </section>
-    {selectedTrip ? <ReceivingWorkspace key={selectedTrip} trip={selectedTrip} /> : null}
-    <section className={`${panel} mt-3 overflow-hidden`}><div className="border-b border-zinc-200 px-4 py-3 dark:border-white/10"><h3 className="font-semibold">Visiting trucks</h3><p className="mt-1 text-xs text-zinc-500">A return is committed immediately; the owner and driver are notified without another acceptance step.</p></div><div className="grid gap-3 border-b border-zinc-200 p-4 dark:border-white/10 sm:grid-cols-[minmax(0,20rem)_1fr]"><label className="text-sm font-medium">Return schedule<FlatpickrInput className={`${field} mt-1`} value={scheduledFor} onChange={setScheduledFor} options={{ enableTime: true, time_24hr: true, dateFormat: 'Y-m-d H:i', minDate: 'today', minuteIncrement: 15 }} /></label></div>{overview?.visitors.length ? <ul className="divide-y divide-zinc-200 dark:divide-white/10">{overview.visitors.map((trip) => <li className="flex flex-wrap items-center justify-between gap-3 px-4 py-3" key={trip.id}><div><p className="font-medium">{trip.truck.plate_number} · {trip.driver.name}</p><p className="text-xs text-zinc-500">Owned by {trip.from_hub.name}; confirmed at this hub</p></div><div className="flex flex-wrap gap-2"><PrimaryButton disabled={busy} onClick={() => void post(trip, 'return', { scheduled_for: new Date(scheduledFor.replace(' ', 'T')).toISOString(), empty_return: false })}>Schedule with return cargo</PrimaryButton><ActionButton disabled={busy} onClick={() => void post(trip, 'return', { scheduled_for: new Date(scheduledFor.replace(' ', 'T')).toISOString(), empty_return: true })}>Schedule empty return</ActionButton></div></li>)}</ul> : <p className="p-4 text-sm text-zinc-500">No visiting trucks are ready for a return.</p>}</section>
-  </div>
+      </nav>
+      {error && !rejecting && (
+        <ErrorNotice message={error} retry={() => void load()} />
+      )}
+      {notice && (
+        <p
+          className="mb-4 text-sm text-emerald-700 dark:text-emerald-300"
+          role="status"
+        >
+          {notice}
+        </p>
+      )}
+      <section className="transport-panel" aria-label={labels[view]}>
+        <div className="transport-toolbar">
+          <div>
+            <h2 className="font-semibold">{labels[view]}</h2>
+            <p className="portal-secondary mt-1 text-sm">
+              {view === 'visitors'
+                ? 'Returns commit immediately and notify the truck owner and driver.'
+                : view === 'receiving'
+                  ? 'Review unloading progress, receipts, and parcel discrepancies.'
+                  : view === 'arriving'
+                    ? 'Start receiving only when the truck physically arrives at your hub.'
+                    : 'Approve the load before the origin hub can release it for departure.'}
+            </p>
+          </div>
+        </div>
+        {view === 'visitors' && (
+          <div className="border-b border-[var(--portal-border)] p-4">
+            <label className="portal-label block max-w-sm">
+              Return schedule
+              <FlatpickrInput
+                className="portal-input mt-2 w-full"
+                value={scheduledFor}
+                onChange={setScheduledFor}
+                options={{
+                  enableTime: true,
+                  time_24hr: true,
+                  dateFormat: 'Y-m-d H:i',
+                  minDate: 'today',
+                  minuteIncrement: 15
+                }}
+              />
+            </label>
+          </div>
+        )}
+        {loading ? (
+          <PortalSkeleton label="Loading inbound trips" />
+        ) : (
+          overview && (
+            <InboundTripTable
+              trips={trips[view]}
+              view={view}
+              busy={busy}
+              onApprove={(trip) =>
+                void post(trip, 'decision', {
+                  accept: true,
+                  expected_revision: trip.revision
+                })
+              }
+              onReject={(trip) => {
+                setReason('')
+                setError('')
+                setRejecting(trip)
+              }}
+              onReceive={(trip) => void startReceiving(trip)}
+              onReturn={scheduleReturn}
+            />
+          )
+        )}
+      </section>
+      {selectedTrip && (
+        <div className="mt-6">
+          <ReceivingWorkspace key={selectedTrip} trip={selectedTrip} />
+        </div>
+      )}
+      {rejecting && (
+        <PortalModal
+          title="Reject transfer request"
+          description={`Explain why the load from ${rejecting.from_hub.name} cannot be accepted.`}
+          busy={busy}
+          onClose={() => setRejecting(null)}
+        >
+          {error && <ErrorNotice message={error} />}
+          <form
+            onSubmit={(event) => {
+              event.preventDefault()
+              if (reason.trim())
+                void post(rejecting, 'decision', {
+                  accept: false,
+                  reason: reason.trim(),
+                  expected_revision: rejecting.revision
+                })
+            }}
+          >
+            <label className="portal-label">
+              Rejection reason
+              <textarea
+                required
+                maxLength={1000}
+                className="portal-input mt-2 min-h-28 w-full py-3"
+                value={reason}
+                disabled={busy}
+                onChange={(event) => setReason(event.target.value)}
+              />
+            </label>
+            <div className="portal-inline-actions mt-4">
+              <PortalButton
+                variant="danger"
+                type="submit"
+                disabled={busy || !reason.trim()}
+              >
+                Reject transfer
+              </PortalButton>
+              <PortalButton disabled={busy} onClick={() => setRejecting(null)}>
+                Cancel
+              </PortalButton>
+            </div>
+          </form>
+        </PortalModal>
+      )}
+    </div>
+  )
 }
