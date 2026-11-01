@@ -22,3 +22,4 @@ export {
   PortalState,
   PortalSkeleton,
 } from './WorkspaceControls'
+export { ProductThumbnail } from './ProductThumbnail'

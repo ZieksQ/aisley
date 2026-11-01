@@ -115,6 +115,7 @@ available = on_hand - reserved
 ### API and DTO rules
 
 - Inventory list responses are paginated and include SKU UUID/code, Product/variant labels, status, `on_hand`, `reserved`, `available`, threshold, and stock state. They never accept a client-supplied balance projection.
+- Product context includes nullable `image: { url, alt_text }`, using the approved product-level default gallery image or first approved gallery image by position. Exclude rejected, deleted and variant media; return only the existing Seller media URL (or existing legacy media URL), never private storage paths. Eager-load gallery media for list reads. Inventory and Products share the same thumbnail presentation and accessible missing/failed-image fallback through `@aisley/ui/portal`.
 - Movement history is append-only and can show type, deltas, resulting quantities, safe reason/reference, actor, and timestamp. Do not include complete Order address, Buyer contact, payment, or private evidence.
 - Adjustment requests require positive quantity, an allow-listed type, a reason, and (when supplied) a UUID/idempotency key. Return the committed movement and balance so the Seller UI can reconcile without local arithmetic.
 - Threshold changes are configuration, not stock adjustments. They must not create a movement or alter `on_hand`/`reserved`; Low Stock Alerts owns their lifecycle.

@@ -48,7 +48,7 @@ export type InventorySku = {
   id: string
   code: string
   status: 'active' | 'inactive'
-  product: { id: string; name: string; status: string }
+  product: { id: string; name: string; status: string; image?: { url: string; alt_text: string | null } | null }
   variant: { id: string; sku: string; option_values: { group: string | null; value: string }[] } | null
   on_hand: number
   reserved: number

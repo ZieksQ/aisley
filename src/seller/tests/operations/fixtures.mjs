@@ -125,7 +125,7 @@ export function installOperationsFixtures() {
 
   const sku = (id, code, name, status, on_hand, reserved, alert_threshold, stock_state, productStatus = 'active', variant = null) => ({
     id, code, status,
-    product: { id: `product-${id}`, name, status: productStatus },
+    product: { id: `product-${id}`, name, status: productStatus, image: id === ids.skuActive ? { url: '/synthetic-product.svg', alt_text: 'Cedar basket front view' } : null },
     variant,
     on_hand, reserved, available: on_hand - reserved,
     alert_threshold,

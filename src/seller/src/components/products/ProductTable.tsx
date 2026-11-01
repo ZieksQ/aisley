@@ -1,21 +1,8 @@
-import { useState } from 'react'
-import { IconButton } from '@aisley/ui/portal'
-import { FaBoxArchive, FaImage, FaPen, FaRotateLeft, FaUpload } from 'react-icons/fa6'
+import { IconButton, ProductThumbnail } from '@aisley/ui/portal'
+import { FaBoxArchive, FaPen, FaRotateLeft, FaUpload } from 'react-icons/fa6'
 import { Link } from 'react-router-dom'
 import { apiAssetUrl } from '../../lib/api'
 import type { Product } from '../../types/operations'
-function ProductThumbnail({ product }: { product: Product }) {
-  const image = product.gallery.find((item) => item.is_default) ?? product.gallery[0]
-  const [failedUrl, setFailedUrl] = useState('')
-  const imageUrl = image?.url ? (/^https?:\/\//i.test(image.url) ? image.url : apiAssetUrl(image.url)) : ''
-  return <div className="product-thumbnail">
-    {imageUrl && failedUrl !== imageUrl ? <img
-      alt={image.alt_text || product.name}
-      src={imageUrl}
-      loading="lazy"
-      onError={() => setFailedUrl(imageUrl)} /> : <FaImage aria-label="No product image" role="img" />}
-  </div>
-}
 export function ProductTable({ products, busy, busyId, onPublish, onArchive, onUnarchive }: {
   products: Product[]
   busy: boolean
@@ -53,10 +40,12 @@ export function ProductTable({ products, busy, busyId, onPublish, onArchive, onU
         <tbody>
           {products.map((product) => {
             const available = product.skus.reduce((count, sku) => count + sku.available, 0)
+            const image = product.gallery.find((item) => item.is_default) ?? product.gallery[0]
+            const imageUrl = image?.url ? (/^https?:\/\//i.test(image.url) ? image.url : apiAssetUrl(image.url)) : null
             return <tr key={product.id} aria-busy={busyId === product.id}>
               <td>
                 <div className="product-table-identity">
-                  <ProductThumbnail product={product} />
+                  <ProductThumbnail src={imageUrl} alt={image?.alt_text || product.name} />
                   <div>
                     <Link className="product-name" to={`/products/${product.id}/edit`}>
                       {product.name}

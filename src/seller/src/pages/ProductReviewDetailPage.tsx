@@ -1,3 +1,5 @@
+import { PortalSkeleton } from '@aisley/ui/portal'
+import '../features/productFeedback/feedback.css'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { FaArrowLeft } from 'react-icons/fa6'
 import { Link, useParams } from 'react-router-dom'
@@ -114,13 +116,13 @@ export function ProductReviewDetailPage() {
   }
 
   if (loading) {
-    return <p className="mx-auto max-w-4xl px-4 py-12 text-sm text-zinc-500 sm:px-6 lg:px-8" role="status">Loading Product review…</p>
+    return <div className="portal-page"><PortalSkeleton label="Loading Product review…" /></div>
   }
 
   if (error) {
     return (
-      <div className="mx-auto max-w-4xl px-4 py-7 sm:px-6 lg:px-8">
-        <Link className="inline-flex items-center gap-2 text-sm font-medium text-[#4C1268] hover:underline dark:text-purple-300" to="/reviews">
+      <div className="portal-page feedback-detail">
+        <Link className="portal-link" to="/reviews">
           <FaArrowLeft aria-hidden="true" /> Back to Product reviews
         </Link>
         <div className="mt-5 border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-400/30 dark:bg-red-400/10 dark:text-red-200" role="alert">
@@ -136,65 +138,65 @@ export function ProductReviewDetailPage() {
   const listingState = review.product.isDeleted ? 'deleted' : review.product.status
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-7 sm:px-6 lg:px-8">
-      <Link className="inline-flex items-center gap-2 text-sm font-medium text-[#4C1268] hover:underline dark:text-purple-300" to="/reviews">
+    <div className="portal-page feedback-detail">
+      <Link className="portal-link" to="/reviews">
         <FaArrowLeft aria-hidden="true" /> Back to Product reviews
       </Link>
 
-      <div className="mt-3 flex flex-wrap items-start justify-between gap-3 border-b border-zinc-200 pb-5 dark:border-white/10">
+      <div className="mt-3 flex flex-wrap items-start justify-between gap-3 border-b border-[var(--portal-border)] pb-5">
         <div>
-          <p className="text-sm text-zinc-500">{review.variant?.name ? `${review.product.name} · ${review.variant.name}` : review.product.name}</p>
-          <h2 className="mt-1 text-2xl font-semibold">Customer review</h2>
-          <p className="mt-1 text-xs capitalize text-zinc-500">Listing status: {listingState ?? 'unavailable'}</p>
+          <p className="text-sm portal-secondary">{review.variant?.name ? `${review.product.name} · ${review.variant.name}` : review.product.name}</p>
+          <h1 className="mt-1 portal-page-heading">Customer review</h1>
+          <p className="mt-1 text-xs capitalize portal-secondary">Listing status: {listingState ?? 'unavailable'}</p>
         </div>
-        <span className={`font-medium ${review.responseState === 'unanswered' ? 'text-amber-700 dark:text-amber-300' : 'text-emerald-700 dark:text-emerald-300'}`}>
+        <span className={`font-medium ${review.responseState === 'unanswered' ? 'portal-tag portal-tag-warning' : 'portal-tag portal-tag-success'}`}>
           {review.responseState === 'unanswered' ? 'Needs response' : 'Responded'}
         </span>
       </div>
 
-      <section aria-labelledby="customer-review-heading" className="mt-6 rounded-lg border border-zinc-200 bg-white p-5 dark:border-white/10 dark:bg-[#18181b]">
+      <section aria-labelledby="customer-review-heading" className="mt-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h3 className="text-lg font-semibold" id="customer-review-heading">{review.authorLabel}</h3>
-            <p className="mt-1 text-xs text-zinc-500">Verified purchase</p>
+            <p className="mt-1 text-xs portal-secondary">Verified purchase</p>
           </div>
-          <time className="text-xs text-zinc-500">{dateTime(review.createdAt)}</time>
+          <time className="text-xs portal-secondary">{dateTime(review.createdAt)}</time>
         </div>
         <div className="mt-4"><ReviewRating rating={review.rating} /></div>
-        <p className="mt-4 whitespace-pre-wrap text-sm leading-7">{review.body}</p>
+        <p className="mt-4 whitespace-pre-wrap break-words text-sm leading-7">{review.body}</p>
         <ReviewPhotos photos={review.photos} />
       </section>
 
       {review.sellerResponse ? (
-        <section aria-labelledby="shop-response-heading" className="mt-5 rounded-lg border border-emerald-200 bg-emerald-50/60 p-5 dark:border-emerald-400/25 dark:bg-emerald-400/10">
+        <section aria-labelledby="shop-response-heading" className="mt-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h3 className="text-lg font-semibold" id="shop-response-heading">Response from {review.sellerResponse.shopName}</h3>
-            <time className="text-xs text-zinc-500">{dateTime(review.sellerResponse.publishedAt)}</time>
+            <time className="text-xs portal-secondary">{dateTime(review.sellerResponse.publishedAt)}</time>
           </div>
-          <p className="mt-4 whitespace-pre-wrap text-sm leading-7">{review.sellerResponse.body}</p>
-          <p className="mt-4 text-xs text-zinc-600 dark:text-zinc-300">Published responses are read-only. Editing and deletion are not enabled.</p>
+          <p className="mt-4 whitespace-pre-wrap break-words text-sm leading-7">{review.sellerResponse.body}</p>
+          <p className="mt-4 text-xs portal-secondary">Published responses are read-only. Editing and deletion are not enabled.</p>
           {success ? <p className="mt-3 text-sm text-emerald-700 dark:text-emerald-300" role="status">{success}</p> : null}
         </section>
       ) : (
-        <section aria-labelledby="shop-response-heading" className="mt-5 rounded-lg border border-zinc-200 bg-white p-5 dark:border-white/10 dark:bg-[#18181b]">
+        <section aria-labelledby="shop-response-heading" className="mt-5">
           <h3 className="text-lg font-semibold" id="shop-response-heading">Write an official Shop response</h3>
-          <p className="mt-1 text-sm text-zinc-500">Your response becomes public immediately and cannot be edited or deleted in this version.</p>
+          <p className="mt-1 text-sm portal-secondary">Your response becomes public immediately and cannot be edited or deleted in this version.</p>
           <form className="mt-4" onSubmit={submit}>
             <label className="text-sm font-medium" htmlFor="review-response">Response</label>
             <textarea
               aria-describedby="response-help"
               aria-invalid={Boolean(submitError)}
-              className="mt-2 min-h-36 w-full resize-y rounded-lg border border-zinc-300 bg-white px-3 py-3 text-sm leading-6 focus:border-[#4C1268] focus:outline-none focus:ring-2 focus:ring-[#4C1268]/20 dark:border-white/15 dark:bg-[#171719]"
+              className="portal-input"
               id="review-response"
               maxLength={2000}
               onChange={(event) => updateResponse(event.target.value)}
               placeholder="Respond to the Customer in plain text"
               value={response}
             />
-            <p className="mt-2 text-xs text-zinc-500" id="response-help">Plain text only. {response.length}/2,000 characters.</p>
+            <p className="mt-2 text-xs portal-secondary" id="response-help">Plain text only. {response.length}/2,000 characters.</p>
             {submitError ? <p className="mt-3 text-sm text-red-700 dark:text-red-300" role="alert">{submitError}</p> : null}
             <div className="mt-4 flex justify-end">
-              <button className="h-10 rounded-lg bg-[#4C1268] px-4 text-sm font-medium text-white hover:bg-[#3d0e54] disabled:opacity-50" disabled={submitting} type="submit">
+              <button className="portal-button portal-button-primary" disabled={submitting} type="submit">
                 {submitting ? 'Publishing…' : 'Publish response'}
               </button>
             </div>

@@ -2,7 +2,7 @@
 // intercepted by the synthetic fixture installed before each document.
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
-import { mkdir, rm } from 'node:fs/promises'
+import { mkdir, rm, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { captureResponsive, closeBrowser, openBrowser, artifacts, origin, sellerRoot } from './support.mjs'
 import { installOperationsFixtures } from './fixtures.mjs'
@@ -20,6 +20,8 @@ const previewArgs = [
   'preview', '--host', '127.0.0.1', '--port', new URL(origin).port || '15175', '--strictPort',
 ]
 if (previewOutDir) previewArgs.push('--outDir', resolve(previewOutDir))
+const syntheticImage = resolve(previewOutDir ?? resolve(sellerRoot, 'dist'), 'synthetic-product.svg')
+await writeFile(syntheticImage, '<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="80" height="80" fill="#eee7db"/><path d="M15 30h50l-5 38H20z" fill="#a98762"/></svg>' )
 const preview = shouldServe
   ? spawn(process.execPath, [resolve(sellerRoot, 'node_modules/vite/bin/vite.js'), ...previewArgs], {
       cwd: sellerRoot,
@@ -190,5 +192,6 @@ try {
       setTimeout(() => { preview.kill('SIGKILL'); done() }, 5000).unref()
     })
   }
+  await rm(syntheticImage, { force: true })
   await rm(resolve(sellerRoot, '../../node_modules/.cache/o'), { recursive: true, force: true })
 }
