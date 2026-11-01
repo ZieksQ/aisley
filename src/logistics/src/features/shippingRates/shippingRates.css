@@ -1,0 +1,37 @@
+/* Flatpickr mounts outside the portal shell; scope Logistics colors to this picker. */
+.flatpickr-calendar.logistics-rate-calendar {
+  border-color: #cbd5e1;
+  border-radius: 0.75rem;
+}
+.flatpickr-calendar.logistics-rate-calendar .flatpickr-day.selected,
+.flatpickr-calendar.logistics-rate-calendar .flatpickr-day.selected:hover,
+.flatpickr-calendar.logistics-rate-calendar .flatpickr-day.selected:focus {
+  border-color: #2563eb;
+  background: #2563eb;
+  color: #fff;
+}
+.flatpickr-calendar.logistics-rate-calendar .flatpickr-day.today {
+  border-color: #2563eb;
+}
+.flatpickr-calendar.logistics-rate-calendar .flatpickr-day.today:not(.selected):is(:hover, :focus) {
+  border-color: #2563eb;
+  background: #eff6ff;
+  color: #1e40af;
+}
+html.dark .flatpickr-calendar.logistics-rate-calendar {
+  border-color: #334155;
+  background: #1e293b;
+  color: #f1f5f9;
+}
+html.dark .flatpickr-calendar.logistics-rate-calendar .flatpickr-day:not(.selected):is(:hover, :focus) {
+  border-color: #334155;
+  background: #273449;
+  color: #f1f5f9;
+}
+html.dark .flatpickr-calendar.logistics-rate-calendar .flatpickr-day.selected,
+html.dark .flatpickr-calendar.logistics-rate-calendar .flatpickr-day.selected:hover,
+html.dark .flatpickr-calendar.logistics-rate-calendar .flatpickr-day.selected:focus {
+  border-color: #2563eb;
+  background: #2563eb;
+  color: #fff;
+}

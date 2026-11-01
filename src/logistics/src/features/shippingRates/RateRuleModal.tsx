@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { FaCircleExclamation, FaXmark } from 'react-icons/fa6'
-import { field } from '../../components/PickupUi'
+
 import { serviceLabels, serviceTypes } from './formatters'
 import type { RateCardDraft, RuleDraft, ServiceType, ShopCategoryOption } from './types'
 
@@ -16,12 +16,46 @@ type RuleErrors = Partial<Record<keyof Omit<RuleDraft, 'key'> | 'general', strin
 
 function HelpTooltip({ id, label, text }: { id: string; label: string; text: string }) {
   const tooltipId = `${id}-help`
+  const trigger = useRef<HTMLButtonElement>(null)
+  const tooltip = useRef<HTMLSpanElement>(null)
+  const positionTooltip = useCallback(() => {
+    if (!trigger.current || !tooltip.current) return
+    const bounds = trigger.current.getBoundingClientRect()
+    const { offsetWidth: width, offsetHeight: height } = tooltip.current
+    const left = Math.max(16, Math.min(bounds.left, window.innerWidth - width - 16))
+    const below = bounds.bottom + 8
+    const top = below + height <= window.innerHeight - 16 ? below : Math.max(16, bounds.top - height - 8)
+    // The dialog scrolls independently; fixed coordinates keep help inside the viewport.
+    tooltip.current.style.left = `${left}px`
+    tooltip.current.style.top = `${top}px`
+  }, [])
+
+  useEffect(() => {
+    window.addEventListener('resize', positionTooltip)
+    window.addEventListener('scroll', positionTooltip, true)
+    return () => {
+      window.removeEventListener('resize', positionTooltip)
+      window.removeEventListener('scroll', positionTooltip, true)
+    }
+  }, [positionTooltip])
 
   return <span className="group relative inline-flex">
-    <button aria-describedby={tooltipId} aria-label={`${label} help: ${text}`} className="peer inline-grid size-5 place-items-center rounded-full text-zinc-500 hover:text-[#4C1268] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4C1268] dark:text-zinc-400 dark:hover:text-purple-300" title={text} type="button">
+    <button
+      ref={trigger}
+      onFocus={positionTooltip}
+      onMouseEnter={positionTooltip}
+      aria-describedby={tooltipId}
+      aria-label={`${label} help: ${text}`}
+      className="peer inline-grid size-11 place-items-center rounded-md text-[var(--portal-muted)] hover:text-[var(--portal-accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand-focus)] dark:text-zinc-400 dark:hover:text-[var(--portal-accent)]"
+      title={text}
+      type="button">
       <FaCircleExclamation aria-hidden="true" className="text-[15px]" />
     </button>
-    <span className="pointer-events-none invisible absolute left-0 top-full z-30 mt-1 w-60 border border-zinc-300 bg-white p-2.5 text-left text-xs font-normal leading-5 text-zinc-800 shadow-md group-hover:visible group-focus-within:visible dark:border-white/20 dark:bg-[#27272a] dark:text-zinc-100" id={tooltipId} role="tooltip">{text}</span>
+    <span
+      className="pointer-events-none invisible fixed left-0 top-0 z-30 w-60 max-w-[calc(100vw-2rem)] border border-zinc-300 bg-white p-2.5 text-left text-xs font-normal leading-5 text-zinc-800 shadow-md group-hover:visible group-focus-within:visible dark:border-white/20 dark:bg-[var(--portal-subtle)] dark:text-zinc-100"
+      ref={tooltip}
+      id={tooltipId}
+      role="tooltip">{text}</span>
   </span>
 }
 
@@ -69,7 +103,17 @@ function NumberField({ error, help, id, label, onChange, step = '0.01', value }:
 }) {
   return <div>
     <TooltipLabel htmlFor={id} id={id} label={label} text={help} />
-    <input aria-invalid={Boolean(error)} className={`${field} ${error ? 'border-red-500' : ''}`} id={id} inputMode="decimal" min="0" onChange={(event) => onChange(event.target.value)} required step={step} type="number" value={value} />
+    <input
+      aria-invalid={Boolean(error)}
+      className={`min-h-11 w-full rounded-lg border border-slate-400 bg-[var(--portal-surface)] px-3 text-sm focus-visible:outline-[var(--brand-focus)] dark:border-slate-500 ${error ? 'border-red-500' : ''}`}
+      id={id}
+      inputMode="decimal"
+      min="0"
+      onChange={(event) => onChange(event.target.value)}
+      required
+      step={step}
+      type="number"
+      value={value} />
     {error ? <p className="mt-1 text-xs leading-5 text-red-700 dark:text-red-300">{error}</p> : null}
   </div>
 }
@@ -106,20 +150,34 @@ export function RateRuleModal({ onCancel, onSave, rule, services, shopCategories
     if (error) setErrors({ general: error })
   }
 
-  return <dialog aria-labelledby="rate-rule-modal-title" className="m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-3xl overflow-y-auto border border-zinc-200 bg-white p-0 text-zinc-950 backdrop:bg-black/55 dark:border-white/15 dark:bg-[#18181b] dark:text-white" onCancel={(event) => { event.preventDefault(); onCancel() }} ref={dialog}>
+  return <dialog
+    aria-labelledby="rate-rule-modal-title"
+    className="m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-3xl overflow-y-auto border border-[var(--portal-border)] bg-white p-0 text-zinc-950 backdrop:bg-black/55 dark:border-slate-500 dark:bg-[var(--portal-surface)] dark:text-white"
+    onCancel={(event) => { event.preventDefault(); onCancel() }}
+    ref={dialog}>
     <form className="space-y-5 p-4 sm:p-6" onSubmit={submit}>
       <div className="flex items-start justify-between gap-4">
         <div>
           <h3 className="text-lg font-semibold" id="rate-rule-modal-title">{rule.shopCategoryId ? 'Edit' : 'Add'} main Shop Category rate rule</h3>
-          <p className="mt-1 text-sm leading-6 text-zinc-600 dark:text-zinc-400">Combined item weight is rated against this Shop Category once for the selected service leg.</p>
+          <p className="mt-1 text-sm leading-6 text-[var(--portal-muted)]">Combined item weight is rated against this Shop Category once for the selected service leg.</p>
         </div>
-        <button aria-label="Close rate rule dialog" className="grid size-9 shrink-0 place-items-center rounded-md text-zinc-600 hover:bg-zinc-100 focus-visible:outline-2 focus-visible:outline-[#4C1268] dark:text-zinc-300 dark:hover:bg-white/10" onClick={onCancel} type="button"><FaXmark aria-hidden="true" /></button>
+        <button
+          aria-label="Close rate rule dialog"
+          className="grid size-11 shrink-0 place-items-center rounded-md text-zinc-600 hover:bg-zinc-100 focus-visible:outline-2 focus-visible:outline-[var(--brand-focus)] dark:text-zinc-300 dark:hover:bg-white/10"
+          onClick={onCancel}
+          type="button"><FaXmark aria-hidden="true" /></button>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label className="mb-1.5 block text-sm font-medium" htmlFor="rate-rule-shop-category">Main Shop Category</label>
-          <select aria-invalid={Boolean(errors.shopCategoryId)} className={`${field} ${errors.shopCategoryId ? 'border-red-500' : ''}`} id="rate-rule-shop-category" onChange={(event) => setField('shopCategoryId', event.target.value)} required value={draft.shopCategoryId}>
+          <select
+            aria-invalid={Boolean(errors.shopCategoryId)}
+            className={`min-h-11 w-full rounded-lg border border-slate-400 bg-[var(--portal-surface)] px-3 text-sm focus-visible:outline-[var(--brand-focus)] dark:border-slate-500 ${errors.shopCategoryId ? 'border-red-500' : ''}`}
+            id="rate-rule-shop-category"
+            onChange={(event) => setField('shopCategoryId', event.target.value)}
+            required
+            value={draft.shopCategoryId}>
             <option value="">Select a Shop Category</option>
             {shopCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
           </select>
@@ -127,26 +185,92 @@ export function RateRuleModal({ onCancel, onSave, rule, services, shopCategories
         </div>
 
         <div>
-          <TooltipLabel htmlFor="rate-rule-service" id="rate-rule-service" label="Service leg" text="The stage of delivery this rate applies to: Seller pickup, hub-to-hub linehaul, or delivery to the customer." />
-          <select aria-invalid={Boolean(errors.serviceType)} className={`${field} ${errors.serviceType ? 'border-red-500' : ''}`} id="rate-rule-service" onChange={(event) => setField('serviceType', event.target.value as ServiceType)} required value={draft.serviceType}>
+          <TooltipLabel
+            htmlFor="rate-rule-service"
+            id="rate-rule-service"
+            label="Service leg"
+            text="The stage of delivery this rate applies to: Seller pickup, hub-to-hub linehaul, or delivery to the customer." />
+          <select
+            aria-invalid={Boolean(errors.serviceType)}
+            className={`min-h-11 w-full rounded-lg border border-slate-400 bg-[var(--portal-surface)] px-3 text-sm focus-visible:outline-[var(--brand-focus)] dark:border-slate-500 ${errors.serviceType ? 'border-red-500' : ''}`}
+            id="rate-rule-service"
+            onChange={(event) => setField('serviceType', event.target.value as ServiceType)}
+            required
+            value={draft.serviceType}>
             {serviceTypes.map((service) => <option key={service} value={service}>{serviceLabels[service]}</option>)}
           </select>
           {errors.serviceType ? <p className="mt-1 text-xs leading-5 text-red-700 dark:text-red-300">{errors.serviceType}</p> : null}
         </div>
 
-        <NumberField error={errors.includedWeightKg} help="The combined billable parcel weight covered before extra weight charges begin." id="rate-rule-included-weight" label="Included weight (kg)" onChange={(value) => setField('includedWeightKg', value)} step="0.001" value={draft.includedWeightKg} />
-        <NumberField error={errors.additionalWeightKg} help="Each weight increment above the included weight adds one extra fee." id="rate-rule-weight-step" label="Additional weight step (kg)" onChange={(value) => setField('additionalWeightKg', value)} step="0.001" value={draft.additionalWeightKg} />
-        <NumberField error={errors.additionalFee} help="The amount charged for each additional weight step." id="rate-rule-extra-fee" label="Extra per weight step (PHP)" onChange={(value) => setField('additionalFee', value)} value={draft.additionalFee} />
-        <NumberField error={errors.maxWeightKg} help="The greatest combined billable weight this service accepts for this Shop Category." id="rate-rule-max-weight" label="Maximum weight (kg)" onChange={(value) => setField('maxWeightKg', value)} step="0.001" value={draft.maxWeightKg} />
-        <NumberField error={errors.maxLengthCm} help="The largest allowed length measurement for an item package in the parcel." id="rate-rule-max-length" label="Maximum length (cm)" onChange={(value) => setField('maxLengthCm', value)} step="0.1" value={draft.maxLengthCm} />
-        <NumberField error={errors.maxWidthCm} help="The largest allowed width measurement for an item package in the parcel." id="rate-rule-max-width" label="Maximum width (cm)" onChange={(value) => setField('maxWidthCm', value)} step="0.1" value={draft.maxWidthCm} />
-        <NumberField error={errors.maxHeightCm} help="The largest allowed height measurement for an item package in the parcel." id="rate-rule-max-height" label="Maximum height (cm)" onChange={(value) => setField('maxHeightCm', value)} step="0.1" value={draft.maxHeightCm} />
+        <NumberField
+          error={errors.includedWeightKg}
+          help="The combined billable parcel weight covered before extra weight charges begin."
+          id="rate-rule-included-weight"
+          label="Included weight (kg)"
+          onChange={(value) => setField('includedWeightKg', value)}
+          step="0.001"
+          value={draft.includedWeightKg} />
+        <NumberField
+          error={errors.additionalWeightKg}
+          help="Each weight increment above the included weight adds one extra fee."
+          id="rate-rule-weight-step"
+          label="Additional weight step (kg)"
+          onChange={(value) => setField('additionalWeightKg', value)}
+          step="0.001"
+          value={draft.additionalWeightKg} />
+        <NumberField
+          error={errors.additionalFee}
+          help="The amount charged for each additional weight step."
+          id="rate-rule-extra-fee"
+          label="Extra per weight step (PHP)"
+          onChange={(value) => setField('additionalFee', value)}
+          value={draft.additionalFee} />
+        <NumberField
+          error={errors.maxWeightKg}
+          help="The greatest combined billable weight this service accepts for this Shop Category."
+          id="rate-rule-max-weight"
+          label="Maximum weight (kg)"
+          onChange={(value) => setField('maxWeightKg', value)}
+          step="0.001"
+          value={draft.maxWeightKg} />
+        <NumberField
+          error={errors.maxLengthCm}
+          help="The largest allowed length measurement for an item package in the parcel."
+          id="rate-rule-max-length"
+          label="Maximum length (cm)"
+          onChange={(value) => setField('maxLengthCm', value)}
+          step="0.1"
+          value={draft.maxLengthCm} />
+        <NumberField
+          error={errors.maxWidthCm}
+          help="The largest allowed width measurement for an item package in the parcel."
+          id="rate-rule-max-width"
+          label="Maximum width (cm)"
+          onChange={(value) => setField('maxWidthCm', value)}
+          step="0.1"
+          value={draft.maxWidthCm} />
+        <NumberField
+          error={errors.maxHeightCm}
+          help="The largest allowed height measurement for an item package in the parcel."
+          id="rate-rule-max-height"
+          label="Maximum height (cm)"
+          onChange={(value) => setField('maxHeightCm', value)}
+          step="0.1"
+          value={draft.maxHeightCm} />
       </div>
 
-      {errors.general ? <p className="border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-400/25 dark:bg-red-400/10 dark:text-red-200" role="alert">{errors.general}</p> : null}
-      <div className="flex flex-wrap justify-end gap-2 border-t border-zinc-200 pt-4 dark:border-white/10">
-        <button className="min-h-10 rounded-md border border-zinc-300 px-3 text-sm font-medium hover:bg-zinc-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4C1268] dark:border-white/20 dark:hover:bg-white/10" onClick={onCancel} type="button">Cancel</button>
-        <button className="min-h-10 rounded-md bg-[#4C1268] px-4 text-sm font-semibold text-white hover:bg-[#3c0e52] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4C1268]" type="submit">Save rate rule</button>
+      {errors.general ? <p
+        className="border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-400/25 dark:bg-red-400/10 dark:text-red-200"
+        role="alert">{errors.general}</p> : null}
+      <div
+        className="flex flex-wrap justify-end gap-2 border-t border-[var(--portal-border)] pt-4 dark:border-[var(--portal-border)]">
+        <button
+          className="min-min-h-11 rounded-md border border-zinc-300 px-3 text-sm font-medium hover:bg-zinc-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand-focus)] dark:border-white/20 dark:hover:bg-white/10"
+          onClick={onCancel}
+          type="button">Cancel</button>
+        <button
+          className="min-min-h-11 rounded-md bg-[var(--brand-primary)] px-4 text-sm font-semibold text-white hover:bg-[#3c0e52] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand-focus)]"
+          type="submit">Save rate rule</button>
       </div>
     </form>
   </dialog>

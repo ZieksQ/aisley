@@ -52,3 +52,9 @@ API and frontend revision: 2026-10-03.
 ## Regional development rates — 2026-10-08
 
 `PhilippinesLogisticsSeeder` creates missing published PHP cards for all current active Shop Categories using ₱35 first-mile, ₱15 per linehaul hop and ₱45 last-mile service bases, 1 kg included weight and documented per-500 g extras. Production execution is disabled by default and requires `ALLOW_DEMO_SEEDERS_IN_PRODUCTION=true`. Existing tariffs/surcharges, revoked acceptances and card history are preserved. Provider selection is separate: only the initial demo Shop is explicitly configured for the NCR regional provider by `InitialSellerLogisticsSeeder`; rate creation never enables all providers. See [the fixture pricing assumptions and credentials](../../../philippines-logistics-seeding.md); these are consolidated development rates, not carrier quotes.
+
+## Logistics workspace redesign — 2026-11-02
+
+- The rate-card version list opens a protected, read-only `/shipping-rates/rate-cards/:cardId` page. Resolve the exact card from the existing organization-scoped index on direct entry and refresh; never substitute another version when the ID is absent. Return to `/shipping-rates?view=rate-cards`.
+- Version details show status, effective/publication timestamps in Manila time, currency/revision, service bases, category weight extras, dimensional ceilings, and legacy rules. Label future-effective published versions explicitly. No API or pricing behavior changes.
+- Shipping views use keyboard-operable URL tabs and Logistics blue/slate controls. Publication and tariff acceptance use explicit accessible confirmations; unsaved draft discard and rule removal also require confirmation. The Flatpickr calendar retains existing datetime conversion with a scoped blue theme. Rate-rule help follows its field within the viewport without widening the dialog.

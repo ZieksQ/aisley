@@ -33,6 +33,7 @@ import { ResetPasswordPage } from './pages/ResetPasswordPage'
 import { SortingPage } from './pages/SortingPage'
 import { SortPlanPage } from './pages/SortPlanPage'
 import { SupportTicketsPage } from './pages/SupportTicketsPage'
+import { RateCardVersionPage } from './pages/RateCardVersionPage'
 import { ShippingRatesPage } from './pages/ShippingRatesPage'
 import { AppearancePage } from './pages/AppearancePage'
 
@@ -79,6 +80,7 @@ export default function App() {
           <Route element={<SupportTicketsPage />} path="/support-tickets" />
           <Route element={<Navigate replace to="/settings/account" />} path="/account" />
           <Route element={<ShippingRatesPage />} path="/shipping-rates" />
+          <Route element={<RateCardVersionPage />} path="/shipping-rates/rate-cards/:cardId" />
           <Route element={<Navigate replace to="/settings/account" />} path="/settings" />
           <Route element={<AccountPage />} path="/settings/account" />
           <Route element={<BillingPage />} path="/settings/billing" />

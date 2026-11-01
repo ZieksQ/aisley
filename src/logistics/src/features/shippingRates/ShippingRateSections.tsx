@@ -12,10 +12,30 @@ export function useShippingRateSection(): [ShippingRateSection, (section: Shippi
   const [params, setParams] = useSearchParams()
   const requested = params.get('view')
   const active = sections.some((section) => section.id === requested) ? requested as ShippingRateSection : 'tariff'
-
   return [active, (section) => setParams(section === 'tariff' ? {} : { view: section })]
 }
 
 export function ShippingRateSections({ active, onChange }: { active: ShippingRateSection; onChange: (section: ShippingRateSection) => void }) {
-  return <div className="overflow-x-auto border-b border-zinc-200 dark:border-white/10"><div aria-label="Shipping rate sections" className="flex min-w-max gap-6" role="tablist">{sections.map((section) => <button aria-controls={`shipping-rates-panel-${section.id}`} aria-selected={active === section.id} className={`border-b-2 px-0.5 pb-3 pt-1 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4C1268] ${active === section.id ? 'border-[#4C1268] text-[#4C1268] dark:border-purple-300 dark:text-purple-300' : 'border-transparent text-zinc-500 hover:text-zinc-950 dark:hover:text-white'}`} id={`shipping-rates-tab-${section.id}`} key={section.id} onClick={() => onChange(section.id)} role="tab" type="button">{section.label}</button>)}</div></div>
+  return <div className="overflow-x-auto border-b border-[var(--portal-border)]">
+    <div aria-label="Shipping rate sections" className="grid grid-cols-3 gap-2 sm:flex sm:gap-6" role="tablist">
+      {sections.map((section, index) => <button
+        aria-controls={`shipping-rates-panel-${section.id}`}
+        aria-selected={active === section.id}
+        className={`min-h-11 border-b-2 px-1 py-3 text-sm font-medium ${active === section.id ? 'border-[var(--brand-primary)] text-[var(--portal-accent)]' : 'border-transparent text-[var(--portal-muted)] hover:text-[var(--portal-text)]'}`}
+        id={`shipping-rates-tab-${section.id}`}
+        key={section.id}
+        onClick={() => onChange(section.id)}
+        onKeyDown={(event) => {
+          const next = event.key === 'ArrowRight' ? (index + 1) % sections.length : event.key === 'ArrowLeft' ? (index + sections.length - 1) % sections.length : event.key === 'Home' ? 0 : event.key === 'End' ? sections.length - 1 : null
+          if (next !== null) {
+            event.preventDefault()
+            onChange(sections[next].id)
+            document.getElementById(`shipping-rates-tab-${sections[next].id}`)?.focus()
+          }
+        }}
+        role="tab"
+        tabIndex={active === section.id ? 0 : -1}
+        type="button">{section.label}</button>)}
+    </div>
+  </div>
 }

@@ -1,8 +1,9 @@
+import './shippingRates.css'
 import { useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { FlatpickrInput } from '../../components/FlatpickrInput'
-import { ActionButton, PrimaryButton, field, panel } from '../../components/PickupUi'
+import { ConfirmationDialog, PortalButton } from '@aisley/ui/portal'
 import { serviceLabels, serviceTypes } from './formatters'
 import { RateRuleModal } from './RateRuleModal'
 import { RateRuleTable } from './RateRuleTable'
@@ -68,14 +69,18 @@ function validate(draft: RateCardDraft): string | null {
 }
 
 export function RateCardForm({ onCancel, onCreate, shopCategories }: Props) {
+  const [initialDate] = useState(localDateTime)
+  const [discarding, setDiscarding] = useState(false)
+  const [removingKey, setRemovingKey] = useState<string | null>(null)
   const [draft, setDraft] = useState<RateCardDraft>({
-    effectiveAt: localDateTime(),
+    effectiveAt: initialDate,
     services: [{ serviceType: 'first_mile', baseFee: '' }],
     rules: [],
   })
   const [ruleBeingEdited, setRuleBeingEdited] = useState<RuleDraft | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const dirty = draft.effectiveAt !== initialDate || draft.rules.length > 0 || draft.services.length !== 1 || draft.services[0]?.serviceType !== 'first_mile' || draft.services[0]?.baseFee !== ''
   const modalReturnTarget = useRef<HTMLElement | null>(null)
 
   function closeRuleModal() {
@@ -148,28 +153,55 @@ export function RateCardForm({ onCancel, onCreate, shopCategories }: Props) {
 
   return <>
     <form className="space-y-4" onSubmit={(event) => void submit(event)}>
-      <section className={panel + ' p-4 sm:p-5'}>
+      <section
+        className={"rounded-xl border border-[var(--portal-border)] bg-[var(--portal-surface)]" + ' p-4 sm:p-5'}>
         <div className="grid gap-4 sm:grid-cols-[minmax(0,22rem)_1fr] sm:items-end">
           <label className="block text-sm font-medium" htmlFor="rate-card-effective">Effective date and time
-            <FlatpickrInput className={field + ' mt-1.5'} id="rate-card-effective" onChange={(value) => setDraft((current) => ({ ...current, effectiveAt: value }))} options={{ dateFormat: 'Y-m-d H:i', enableTime: true, minDate: 'today', minuteIncrement: 15, time_24hr: true }} placeholder="Select date and time" required value={draft.effectiveAt} />
+            <FlatpickrInput
+              className={"min-h-11 w-full rounded-lg border border-slate-400 bg-[var(--portal-surface)] px-3 text-sm focus-visible:outline-[var(--brand-focus)] dark:border-slate-500" + ' mt-1.5'}
+              id="rate-card-effective"
+              onChange={(value) => setDraft((current) => ({ ...current, effectiveAt: value }))}
+              options={{ onReady: (_dates, _value, picker) => picker.calendarContainer.classList.add('logistics-rate-calendar'), dateFormat: 'Y-m-d H:i', enableTime: true, minDate: 'today', minuteIncrement: 15, time_24hr: true }}
+              placeholder="Select date and time"
+              required
+              value={draft.effectiveAt} />
           </label>
-          <p className="text-sm leading-6 text-zinc-600 dark:text-zinc-400">Choose the date and time this immutable rate card starts. Each service base is charged once per leg, including once per linehaul hop.</p>
+          <p className="text-sm leading-6 text-[var(--portal-muted)]">Choose the date and time this immutable rate card starts. Each service base is charged once per leg, including once per linehaul hop.</p>
         </div>
       </section>
 
-      <fieldset className={panel + ' p-4 sm:p-5'}>
-        <legend className="px-1 font-semibold">Service base fees</legend>
-        <p className="mt-1 text-sm leading-6 text-zinc-600 dark:text-zinc-400">Choose the services this card offers and set one base fee for each. Main Shop Category extras are configured in the rate-rule table below.</p>
+      <fieldset
+        className={"rounded-xl border border-[var(--portal-border)] bg-[var(--portal-surface)]" + ' p-4 sm:p-5'}>
+        <legend className="px-1 font-semibold">
+          Service base fees
+        </legend>
+        <p className="mt-1 text-sm leading-6 text-[var(--portal-muted)]">Choose the services this card offers and set one base fee for each. Main Shop Category extras are configured in the rate-rule table below.</p>
         <div className="mt-4 grid gap-3 md:grid-cols-3">
           {serviceTypes.map((serviceType) => {
             const selected = draft.services.find((service) => service.serviceType === serviceType)
             const inputId = 'service-base-' + serviceType
-            return <div className="border border-zinc-200 p-3 dark:border-white/10" key={serviceType}>
-              <label className="flex min-h-8 items-center gap-2 text-sm font-medium" htmlFor={inputId + '-enabled'}>
-                <input checked={Boolean(selected)} className="size-4 accent-[#4C1268]" id={inputId + '-enabled'} onChange={(event) => updateService(serviceType, event.target.checked)} type="checkbox" />
+            return <div
+              className="border border-[var(--portal-border)] p-3 dark:border-[var(--portal-border)]"
+              key={serviceType}>
+              <label className="flex min-h-11 items-center gap-2 text-sm font-medium" htmlFor={inputId + '-enabled'}>
+                <input
+                  checked={Boolean(selected)}
+                  className="size-4 accent-[var(--brand-primary)]"
+                  id={inputId + '-enabled'}
+                  onChange={(event) => updateService(serviceType, event.target.checked)}
+                  type="checkbox" />
                 {serviceLabels[serviceType]}
               </label>
-              {selected ? <label className="mt-3 block text-sm font-medium" htmlFor={inputId}>Base fee (PHP)<input className={field + ' mt-1.5'} id={inputId} inputMode="decimal" min="0" onChange={(event) => updateServiceBase(serviceType, event.target.value)} required step="0.01" type="number" value={selected.baseFee} /></label> : <p className="mt-3 text-sm text-zinc-500">Not offered on this card.</p>}
+              {selected ? <label className="mt-3 block text-sm font-medium" htmlFor={inputId}>Base fee (PHP)<input
+                className={"min-h-11 w-full rounded-lg border border-slate-400 bg-[var(--portal-surface)] px-3 text-sm focus-visible:outline-[var(--brand-focus)] dark:border-slate-500" + ' mt-1.5'}
+                id={inputId}
+                inputMode="decimal"
+                min="0"
+                onChange={(event) => updateServiceBase(serviceType, event.target.value)}
+                required
+                step="0.01"
+                type="number"
+                value={selected.baseFee} /></label> : <p className="mt-3 text-sm text-[var(--portal-muted)]">Not offered on this card.</p>}
             </div>
           })}
         </div>
@@ -179,25 +211,49 @@ export function RateCardForm({ onCancel, onCreate, shopCategories }: Props) {
         disabled={busy}
         onAdd={openAddRule}
         onEdit={openEditRule}
-        onRemove={(key) => {
-          if (window.confirm('Remove this unsaved rate rule?')) {
-            setDraft((current) => ({ ...current, rules: current.rules.filter((rule) => rule.key !== key) }))
-          }
-        }}
+        onRemove={setRemovingKey}
         rules={draft.rules}
         shopCategories={shopCategories}
       />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <ActionButton disabled={busy} onClick={onCancel} type="button">Cancel</ActionButton>
-        <PrimaryButton busy={busy} disabled={!shopCategories.length} type="submit">Create draft</PrimaryButton>
+        <PortalButton disabled={busy} onClick={() => dirty ? setDiscarding(true) : onCancel()} type="button">
+          Cancel
+        </PortalButton>
+        <PortalButton variant="primary" isLoading={busy} disabled={!shopCategories.length} type="submit">
+          Create draft
+        </PortalButton>
       </div>
-      {error ? <p className="border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-400/25 dark:bg-red-400/10 dark:text-red-200" role="alert">{error}</p> : null}
+      {error ? <p
+        className="border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-400/25 dark:bg-red-400/10 dark:text-red-200"
+        role="alert">{error}</p> : null}
     </form>
 
+    {discarding ? <ConfirmationDialog
+      title="Discard this rate card draft?"
+      confirmLabel="Discard changes"
+      destructive
+      onClose={() => setDiscarding(false)}
+      onConfirm={onCancel}>
+      <p>Your unsaved service bases and category rules will be discarded.</p>
+    </ConfirmationDialog> : null}
+    {removingKey ? <ConfirmationDialog
+      title="Remove this rule?"
+      confirmLabel="Remove rule"
+      destructive
+      onClose={() => setRemovingKey(null)}
+      onConfirm={() => { setDraft((current) => ({ ...current, rules: current.rules.filter((rule) => rule.key !== removingKey) })); setRemovingKey(null) }}>
+      <p>This removes the rule from your unsaved draft.</p>
+    </ConfirmationDialog> : null}
     {ruleBeingEdited && typeof document !== 'undefined' ? createPortal(
-      <RateRuleModal key={ruleBeingEdited.key} onCancel={closeRuleModal} onSave={saveRule} rule={ruleBeingEdited} services={draft.services} shopCategories={shopCategories} />,
-      document.body,
+      <RateRuleModal
+        key={ruleBeingEdited.key}
+        onCancel={closeRuleModal}
+        onSave={saveRule}
+        rule={ruleBeingEdited}
+        services={draft.services}
+        shopCategories={shopCategories} />,
+      document.querySelector('.portal-shell') ?? document.body,
     ) : null}
   </>
 }

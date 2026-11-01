@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
-import { FaArrowsRotate, FaMagnifyingGlass, FaUserCheck } from 'react-icons/fa6'
+import { LuArrowUpRight, LuRefreshCw, LuSearch } from 'react-icons/lu'
+import { PortalButton, PortalField, PortalPagination, PortalSkeleton, PortalState, PortalTable } from '@aisley/ui/portal'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
-import { ActionButton, ErrorNotice, link, manilaDate, panel } from '../components/PickupUi'
+import { manilaDate } from '../components/PickupUi'
 import { ApiError, requestWithTimeout } from '../lib/api'
 import type { CourierApplicationPage } from '../types/courierApplications'
 
@@ -21,24 +22,28 @@ function missingLabel(value: string): string {
 export function CourierApplicationsPage() {
   const [params, setParams] = useSearchParams()
   const navigate = useNavigate()
-  const { logout } = useAuth()
+  const { logistics, logout } = useAuth()
+  const loadId = useRef(0)
   const [applications, setApplications] = useState<CourierApplicationPage | null>(null)
   const [query, setQuery] = useState(params.get('search') ?? '')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  const page = Number(params.get('page') ?? '1')
+  const page = Math.max(1, Number(params.get('page') ?? '1') || 1)
   const search = params.get('search') ?? ''
 
   const load = useCallback(async () => {
+    const id = ++loadId.current
+    setApplications(null)
     setLoading(true)
     setError('')
     const queryString = new URLSearchParams({ page: String(page), per_page: '20' })
     if (search) queryString.set('search', search)
     try {
       const result = await requestWithTimeout<CourierApplicationPage>(`/api/v1/logistics/courier-applications?${queryString.toString()}`)
-      setApplications(result)
+      if (id === loadId.current) setApplications(result)
     } catch (caught) {
+      if (id !== loadId.current) return
       if (caught instanceof ApiError && caught.status === 401) {
         await logout()
         navigate('/login', { replace: true })
@@ -50,13 +55,16 @@ export function CourierApplicationsPage() {
       }
       setError(listError(caught))
     } finally {
-      setLoading(false)
+      if (id === loadId.current) setLoading(false)
     }
-  }, [logout, navigate, page, search])
+  }, [logistics?.id, logout, navigate, page, search])
+
+  useEffect(() => { setQuery(search) }, [search])
 
   useEffect(() => {
     document.title = 'Courier applications | Aisley Logistics'
     void load()
+    return () => { loadId.current += 1 }
   }, [load])
 
   function submitSearch(event: FormEvent<HTMLFormElement>) {
@@ -75,29 +83,102 @@ export function CourierApplicationsPage() {
     setParams(next)
   }
 
-  return <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-    <div className="flex flex-wrap items-start justify-between gap-4 border-b border-zinc-200 pb-5 dark:border-white/10">
+  return <div className="portal-page space-y-6">
+    <header className="portal-page-header">
       <div>
-        <div className="flex items-center gap-2 text-sm text-zinc-500"><FaUserCheck aria-hidden="true" /><span>Review queue</span></div>
-        <h2 className="mt-2 text-xl font-semibold">Courier applications</h2>
-        <p className="mt-1 max-w-2xl text-sm text-zinc-600 dark:text-zinc-400">Review applicants assigned to your organization before they can access Courier operations.</p>
+        <h2 className="portal-page-heading">Courier applications</h2>
+        <p className="portal-page-description">Review registration details and private evidence before approving Couriers for your organization.</p>
       </div>
-      <ActionButton busy={loading} onClick={() => void load()}><FaArrowsRotate aria-hidden="true" />Refresh</ActionButton>
-    </div>
-
-    <form className="mt-5 flex flex-col gap-2 sm:flex-row" onSubmit={submitSearch} role="search">
-      <label className="sr-only" htmlFor="courier-application-search">Search Courier applications</label>
-      <div className="relative min-w-0 flex-1"><FaMagnifyingGlass aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" /><input className="h-10 w-full rounded-md border border-zinc-300 bg-white pl-9 pr-3 text-sm outline-none focus:border-[#4C1268] focus:ring-2 focus:ring-[#4C1268]/15 dark:border-white/15 dark:bg-[#111113] dark:focus:border-purple-400" id="courier-application-search" onChange={(event) => setQuery(event.target.value)} placeholder="Search by name or email" value={query} /></div>
-      <button className="h-10 rounded-md bg-[#4C1268] px-4 text-sm font-semibold text-white hover:bg-[#3d0e54] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4C1268]" type="submit">Search</button>
-    </form>
-
-    {error ? <div className="mt-5"><ErrorNotice message={error} retry={() => void load()} /></div> : null}
-    {loading && !applications ? <div className={`${panel} mt-5 p-6 text-sm`} role="status">Loading pending applications…</div> : null}
-    {!loading && !error && applications && applications.data.length === 0 ? <section className={`${panel} mt-5 p-10 text-center`}><FaUserCheck aria-hidden="true" className="mx-auto text-2xl text-zinc-400" /><h3 className="mt-3 font-semibold">No pending applications</h3><p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">New Courier applications assigned to your organization will appear here.</p></section> : null}
-    {applications && applications.data.length > 0 ? <section className={`${panel} mt-5 overflow-hidden`}>
-      <div className="hidden overflow-x-auto md:block"><table className="w-full text-left text-sm"><caption className="sr-only">Pending Courier applications</caption><thead className="border-b border-zinc-200 bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500 dark:border-white/10 dark:bg-white/[0.03]"><tr><th className="px-5 py-3 font-medium" scope="col">Applicant</th><th className="px-5 py-3 font-medium" scope="col">Submitted</th><th className="px-5 py-3 font-medium" scope="col">Readiness</th><th className="px-5 py-3 text-right font-medium" scope="col"><span className="sr-only">Action</span></th></tr></thead><tbody className="divide-y divide-zinc-200 dark:divide-white/10">{applications.data.map((application) => <tr key={application.id}><td className="px-5 py-4"><p className="font-medium">{application.courier.name}</p><p className="mt-1 text-xs text-zinc-500">{application.courier.email}</p></td><td className="whitespace-nowrap px-5 py-4 text-zinc-600 dark:text-zinc-400">{manilaDate(application.application.submitted_at ?? application.created_at)}</td><td className="px-5 py-4">{application.completeness.complete ? <span className="text-emerald-700 dark:text-emerald-300">Complete</span> : <span className="text-amber-700 dark:text-amber-300">Missing {application.completeness.missing.map(missingLabel).join(', ')}</span>}</td><td className="px-5 py-4 text-right"><Link className={link} to={`/courier-applications/${application.id}`}>Review<span className="sr-only"> {application.courier.name}</span></Link></td></tr>)}</tbody></table></div>
-      <ul className="divide-y divide-zinc-200 md:hidden dark:divide-white/10">{applications.data.map((application) => <li className="p-4" key={application.id}><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="font-medium">{application.courier.name}</p><p className="mt-1 truncate text-xs text-zinc-500">{application.courier.email}</p></div><span className="shrink-0 text-xs text-zinc-500">Pending</span></div><p className="mt-3 text-xs text-zinc-600 dark:text-zinc-400">Submitted {manilaDate(application.application.submitted_at ?? application.created_at)}</p><p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">{application.completeness.complete ? 'Registration details complete' : `Missing ${application.completeness.missing.map(missingLabel).join(', ')}`}</p><Link className={`${link} mt-3 inline-block text-sm`} to={`/courier-applications/${application.id}`}>Review application<span className="sr-only"> for {application.courier.name}</span></Link></li>)}</ul>
-      {applications.meta.last_page > 1 ? <div className="flex items-center justify-between border-t border-zinc-200 px-5 py-3 text-sm dark:border-white/10"><button className="rounded-md border border-zinc-300 px-3 py-2 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/15" disabled={applications.meta.current_page <= 1} onClick={() => goToPage(applications.meta.current_page - 1)} type="button">Previous</button><span className="text-xs text-zinc-500">Page {applications.meta.current_page} of {applications.meta.last_page}</span><button className="rounded-md border border-zinc-300 px-3 py-2 disabled:cursor-not-allowed disabled:opacity-40 dark:border-white/15" disabled={applications.meta.current_page >= applications.meta.last_page} onClick={() => goToPage(applications.meta.current_page + 1)} type="button">Next</button></div> : null}
-    </section> : null}
+      <PortalButton isLoading={loading} onClick={() => void load()}>
+        <LuRefreshCw aria-hidden="true" />
+        Refresh
+      </PortalButton>
+    </header>
+    <section className="portal-panel">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h3 className="font-semibold">Pending review</h3>
+          <p className="portal-secondary mt-1 text-sm">Oldest applications appear first. Uploaded evidence still needs your review.</p>
+        </div>
+        {applications && !loading && !error ? <span className="portal-tag portal-tag-brand">{applications.meta.total} pending{search ? ' matching search' : ''}</span> : null}
+      </div>
+      <form className="mt-5 flex flex-wrap items-end gap-3" onSubmit={submitSearch} role="search">
+        <PortalField
+          className="min-w-0 flex-1 basis-64"
+          label="Find an applicant"
+          id="courier-application-search"
+          placeholder="Name or email address"
+          maxLength={100}
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          type="search" />
+        <PortalButton variant="primary" type="submit">
+          <LuSearch aria-hidden="true" />
+          Search
+        </PortalButton>
+        {search ? <PortalButton onClick={() => { setQuery(''); setParams({}) }}>
+          Clear search
+        </PortalButton> : null}
+      </form>
+    </section>
+    {error ? <PortalState
+      title="Applications could not be loaded"
+      description={error}
+      error
+      action={<PortalButton onClick={() => void load()}>
+        Try again
+      </PortalButton>} /> : loading ? <PortalSkeleton label="Loading pending applications" /> : applications?.data.length ? <>
+        <PortalTable label="Pending Courier applications">
+          <thead>
+            <tr>
+              <th scope="col">
+                Applicant
+              </th>
+              <th scope="col">
+                Submitted
+              </th>
+              <th scope="col">
+                Registration details
+              </th>
+              <th scope="col">
+                Action
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {applications.data.map((application) => <tr key={application.id}>
+              <td className="portal-table-name">
+                <span className="font-medium">{application.courier.name}</span>
+                <span className="portal-table-meta">{application.courier.email}</span>
+              </td>
+              <td className="whitespace-nowrap">
+                {manilaDate(application.application.submitted_at ?? application.created_at)}
+                <span className="portal-table-meta">Pending review</span>
+              </td>
+              <td>
+                <span
+                  className={`portal-tag ${application.completeness.complete ? 'portal-tag-success' : 'portal-tag-warning'}`}>{application.completeness.complete ? 'Details complete' : 'Details missing'}</span>
+                {!application.completeness.complete ? <span className="portal-table-meta">Missing {application.completeness.missing.map(missingLabel).join(', ')}</span> : <span className="portal-table-meta">Private evidence review required</span>}
+              </td>
+              <td className="portal-row-action">
+                <Link
+                  className="portal-button portal-button-ghost whitespace-nowrap"
+                  to={`/courier-applications/${application.id}?${params.toString()}`}>
+                  Review
+                  <LuArrowUpRight aria-hidden="true" />
+                  <span className="sr-only"> {application.courier.name}</span>
+                </Link>
+              </td>
+            </tr>)}
+          </tbody>
+        </PortalTable>
+        <PortalPagination
+          page={applications.meta.current_page}
+          lastPage={applications.meta.last_page}
+          total={applications.meta.total}
+          onPage={goToPage} />
+      </> : applications ? <PortalState
+        title={search ? 'No matching applicants' : 'No pending applications'}
+        description={search ? 'Try another name or email address, or clear your search.' : 'New Courier applications assigned to your organization will appear here.'} /> : null}
   </div>
 }
