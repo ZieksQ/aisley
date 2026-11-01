@@ -3,12 +3,15 @@ import { Link } from 'react-router-dom'
 import { LuRefreshCw, LuSearch } from 'react-icons/lu'
 import {
   IconButton,
+  ProductThumbnail,
   PortalField,
   PortalPagination,
   PortalState,
   PortalSkeleton,
   PortalTable,
 } from '@aisley/ui/portal'
+import { apiAssetUrl } from '../lib/api'
+import '../features/inventory/inventory.css'
 import { useSellerRead } from '../lib/useSellerRead'
 import { StockState } from '../features/inventory/StockState'
 import { variantLabel } from '../features/inventory/model'
@@ -30,10 +33,10 @@ export function InventoryPage() {
   }, [])
 
   return (
-    <main className="portal-page">
+    <main className="portal-page seller-inventory">
       <header className="portal-page-header">
         <div>
-          <h2 className="portal-page-heading">Inventory</h2>
+          <h1 className="portal-page-heading">Inventory</h1>
           <p className="portal-page-description">
             Track physical stock, reserved units and what’s available to sell.
           </p>
@@ -129,45 +132,40 @@ export function InventoryPage() {
               </tr>
             </thead>
             <tbody>
-              {state.data.data.map((sku) => (
-                <tr key={sku.id}>
-                  <td className="portal-table-name">
-                    <Link
-                      className="portal-link font-medium"
-                      to={`/inventory/${sku.id}`}
-                    >
-                      {sku.product.name}
-                    </Link>
-                    {sku.variant && (
-                      <span className="portal-table-meta">
-                        {variantLabel(sku.variant)}
-                      </span>
-                    )}
-                    <span className="portal-table-meta font-mono">
-                      {sku.code}
-                    </span>
-                    {sku.status === 'inactive' ||
-                    sku.product.status === 'archived' ? (
-                      <span className="portal-table-meta">
-                        {sku.product.status === 'archived'
-                          ? 'Archived product'
-                          : 'Inactive SKU'}
-                      </span>
-                    ) : null}
-                  </td>
-                  <td className="portal-number">{sku.on_hand}</td>
-                  <td className="portal-number">{sku.reserved}</td>
-                  <td className="portal-number font-semibold">
-                    {sku.available}
-                  </td>
-                  <td className="portal-number">
-                    {sku.alert_threshold ?? 'Off'}
-                  </td>
-                  <td>
-                    <StockState state={sku.stock_state} />
-                  </td>
-                </tr>
-              ))}
+              {state.data.data.map((sku) => {
+                const image = sku.product.image
+                const imageUrl = image?.url
+                  ? (/^https?:\/\//i.test(image.url) ? image.url : apiAssetUrl(image.url))
+                  : null
+                return (
+                  <tr key={sku.id}>
+                    <td className="portal-table-name">
+                      <div className="inventory-product">
+                        <ProductThumbnail src={imageUrl} alt={image?.alt_text || sku.product.name} />
+                        <div>
+                          <Link className="portal-link font-medium" to={`/inventory/${sku.id}`}>
+                            {sku.product.name}
+                          </Link>
+                          {sku.variant && (
+                            <span className="portal-table-meta">{variantLabel(sku.variant)}</span>
+                          )}
+                          <span className="portal-table-meta">{sku.code}</span>
+                          {sku.status === 'inactive' || sku.product.status === 'archived' ? (
+                            <span className="portal-table-meta">
+                              {sku.product.status === 'archived' ? 'Archived product' : 'Inactive SKU'}
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="portal-number">{sku.on_hand}</td>
+                    <td className="portal-number">{sku.reserved}</td>
+                    <td className="portal-number inventory-available">{sku.available}</td>
+                    <td className="portal-number">{sku.alert_threshold ?? 'Off'}</td>
+                    <td><StockState state={sku.stock_state} /></td>
+                  </tr>
+                )
+              })}
             </tbody>
           </PortalTable>
           <PortalPagination

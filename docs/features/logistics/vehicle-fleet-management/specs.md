@@ -166,3 +166,8 @@ The Courier-owned one-vehicle registry below remains implemented and separate. [
 - Update external Flutter copies for these newly implemented API routes before shipping the mobile flow; no Courier web UI belongs in this repository.
 - Keep any future Flutter acceptance criteria unchecked until the external client rollout and end-to-end verification establish the behavior.
 - Append documentation and implementation results separately to `docs/PROGRESS.md`.
+
+## Logistics registry presentation — 2026-11-02
+
+- Vehicles uses shared portal search, tables, loading/error/empty states, and pagination with Logistics blue/slate tokens. Separate OR and CR availability columns say Uploaded or Missing without claiming verification.
+- Preserve search/page on detail Back navigation. Current details and on-demand private previews retain their read-only ownership and cleanup behavior. Company fleet is linked as a separate registry; no Courier vehicle mutation or API changes.

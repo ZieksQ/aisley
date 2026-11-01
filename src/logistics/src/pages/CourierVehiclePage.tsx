@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { FaArrowLeft, FaArrowsRotate } from 'react-icons/fa6'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
-import { ActionButton, ErrorNotice, link, panel } from '../components/PickupUi'
+import { ErrorNotice } from '../components/PickupUi'
+import { PortalButton } from '@aisley/ui/portal'
 import { ApiError, blob, requestWithTimeout } from '../lib/api'
 import type { CourierVehicle, CourierVehicleResponse, VehicleDocument } from '../types/vehicles'
 
@@ -83,13 +84,51 @@ function VehicleDocumentCard({ courierId, document, kind, label }: { courierId: 
     setState('unavailable')
   }
 
-  return <div className="border-t border-zinc-200 py-4 first:border-t-0 first:pt-0 last:pb-0 dark:border-white/10">
-    <div className="flex flex-wrap items-center justify-between gap-2"><h4 className="text-sm font-medium">{label}</h4><span className="text-xs text-zinc-600 dark:text-zinc-400">{document ? 'Uploaded' : 'Not uploaded'}</span></div>
-    {!document ? <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">Not uploaded</p> : state === 'ready' && previewUrl ? <div className="mt-3 space-y-3"><div className="border border-zinc-200 bg-zinc-50 p-2 dark:border-white/10 dark:bg-[#111113]"><img alt={`${label} for the current Courier vehicle`} className="mx-auto max-h-80 max-w-full object-contain" onError={previewFailed} src={previewUrl} /></div><div className="flex flex-wrap gap-4 text-sm"><a className={link} download={`${kind}-${document.id}.${extension}`} href={previewUrl}>Download image</a><button className={link} onClick={() => void preview()} type="button">Reload preview</button></div></div> : state === 'loading' ? <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400" role="status">Loading private document…</p> : state === 'forbidden' ? <p className="mt-2 text-sm text-red-700 dark:text-red-300" role="alert">This document is not available to your Logistics account.</p> : state === 'unavailable' ? <div className="mt-2 flex flex-wrap items-center gap-3"><p className="text-sm text-amber-800 dark:text-amber-300" role="alert">The document is unavailable right now.</p><button className={link} onClick={() => void preview()} type="button">Try again</button></div> : <button className="mt-3 h-10 rounded-md border border-zinc-300 px-3 text-sm font-medium hover:bg-zinc-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4C1268] dark:border-white/15 dark:hover:bg-white/10" onClick={() => void preview()} type="button">Preview private document</button>}
+  return <div
+    className="border-t border-[var(--portal-border)] py-4 first:border-t-0 first:pt-0 last:pb-0 dark:border-[var(--portal-border)]">
+    <div className="flex flex-wrap items-center justify-between gap-2">
+      <h4 className="text-sm font-medium">{label}</h4>
+      <span className="text-xs text-[var(--portal-muted)]">{document ? 'Uploaded' : 'Not uploaded'}</span>
+    </div>
+    {!document ? <p className="mt-2 text-sm text-[var(--portal-muted)]">Not uploaded</p> : state === 'ready' && previewUrl ? <div className="mt-3 space-y-3">
+      <div
+        className="border border-[var(--portal-border)] bg-[var(--portal-subtle)] p-2 dark:border-[var(--portal-border)] dark:bg-[var(--portal-page)]">
+        <img
+          alt={`${label} for the current Courier vehicle`}
+          className="mx-auto max-h-80 max-w-full object-contain"
+          onError={previewFailed}
+          src={previewUrl} />
+      </div>
+      <div className="flex flex-wrap gap-4 text-sm">
+        <a
+          className="inline-flex min-h-11 items-center font-medium text-[var(--portal-accent)] underline-offset-4 hover:underline"
+          download={`${kind}-${document.id}.${extension}`}
+          href={previewUrl}>Download image</a>
+        <button
+          className="inline-flex min-h-11 items-center font-medium text-[var(--portal-accent)] underline-offset-4 hover:underline"
+          onClick={() => void preview()}
+          type="button">Reload preview</button>
+      </div>
+    </div> : state === 'loading' ? <p className="mt-2 text-sm text-[var(--portal-muted)]" role="status">Loading private document…</p> : state === 'forbidden' ? <p className="mt-2 text-sm text-red-700 dark:text-red-300" role="alert">This document is not available to your Logistics account.</p> : state === 'unavailable' ? <div className="mt-2 flex flex-wrap items-center gap-3">
+      <p className="text-sm text-amber-800 dark:text-amber-300" role="alert">The document is unavailable right now.</p>
+      <button
+        className="inline-flex min-h-11 items-center font-medium text-[var(--portal-accent)] underline-offset-4 hover:underline"
+        onClick={() => void preview()}
+        type="button">Try again</button>
+    </div> : <button
+      className="mt-3 min-h-11 rounded-md border border-zinc-300 px-3 text-sm font-medium hover:bg-zinc-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand-focus)] dark:border-slate-500 dark:hover:bg-white/10"
+      onClick={() => void preview()}
+      type="button">Preview private document</button>}
   </div>
 }
 
 export function CourierVehiclePage() {
+  const [listParams] = useSearchParams()
+  const backParams = new URLSearchParams()
+  for (const key of ['search', 'page']) {
+    const value = listParams.get(key)
+    if (value) backParams.set(key, value)
+  }
   const { courierId = '' } = useParams()
   const { logistics, logout } = useAuth()
   const navigate = useNavigate()
@@ -125,14 +164,85 @@ export function CourierVehiclePage() {
     return () => { active = false }
   }, [courierId, scope, refresh, logout, navigate])
 
-  return <div className="mx-auto w-full max-w-5xl px-4 py-5 sm:px-6 lg:px-8">
-    <nav aria-label="Vehicle navigation" className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm"><Link className={`${link} inline-flex items-center gap-2`} to="/vehicles"><FaArrowLeft aria-hidden="true" />Back to vehicles</Link><Link className={link} to="/notifications">Back to notifications</Link></nav>
-    <div className="mt-4 flex flex-wrap items-start justify-between gap-3 border-b border-zinc-200 pb-4 dark:border-white/10"><div><h2 className="text-xl font-semibold">Courier vehicle</h2><p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Current details for an affiliated Courier.</p></div><ActionButton busy={loading} onClick={() => setRefresh((value) => value + 1)}><FaArrowsRotate aria-hidden="true" />Refresh</ActionButton></div>
-    {loading ? <p className="mt-5 text-sm text-zinc-600 dark:text-zinc-400" role="status">Loading Courier vehicle…</p> : null}
-    {error ? <div className="mt-5"><ErrorNotice message={error} retry={() => setRefresh((value) => value + 1)} /></div> : null}
+  return <div className="portal-page">
+    <nav aria-label="Vehicle navigation" className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
+      <Link
+        className={`inline-flex min-h-11 items-center font-medium text-[var(--portal-accent)] underline-offset-4 hover:underline inline-flex items-center gap-2`}
+        to={`/vehicles?${backParams.toString()}`}>
+        <FaArrowLeft aria-hidden="true" />
+        Back to vehicles
+      </Link>
+      <Link
+        className="inline-flex min-h-11 items-center font-medium text-[var(--portal-accent)] underline-offset-4 hover:underline"
+        to="/notifications">
+        Back to notifications
+      </Link>
+    </nav>
+    <div
+      className="mt-4 flex flex-wrap items-start justify-between gap-3 border-b border-[var(--portal-border)] pb-4 dark:border-[var(--portal-border)]">
+      <div>
+        <h2 className="portal-page-heading">Courier vehicle</h2>
+        <p className="mt-1 text-sm text-[var(--portal-muted)]">Current details for an affiliated Courier.</p>
+      </div>
+      <PortalButton isLoading={loading} onClick={() => setRefresh((value) => value + 1)}>
+        <FaArrowsRotate aria-hidden="true" />
+        Refresh
+      </PortalButton>
+    </div>
+    {loading ? <p className="mt-5 text-sm text-[var(--portal-muted)]" role="status">Loading Courier vehicle…</p> : null}
+    {error ? <div className="mt-5">
+      <ErrorNotice message={error} retry={() => setRefresh((value) => value + 1)} />
+    </div> : null}
     {vehicle ? <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.8fr)]">
-      <section className={`${panel} p-4 sm:p-5`} aria-labelledby="vehicle-details-title"><h3 className="font-semibold" id="vehicle-details-title">Vehicle details</h3><dl className="mt-4 grid gap-x-6 gap-y-4 sm:grid-cols-2"><div><dt className="text-xs text-zinc-600 dark:text-zinc-400">Type</dt><dd className="mt-1 text-sm capitalize">{vehicle.vehicle_type.replaceAll('_', ' ')}</dd></div><div><dt className="text-xs text-zinc-600 dark:text-zinc-400">Plate number</dt><dd className="mt-1 break-all font-mono text-sm">{vehicle.plate_number}</dd></div><div><dt className="text-xs text-zinc-600 dark:text-zinc-400">Make</dt><dd className="mt-1 text-sm">{vehicle.make || 'Not provided'}</dd></div><div><dt className="text-xs text-zinc-600 dark:text-zinc-400">Model</dt><dd className="mt-1 text-sm">{vehicle.model || 'Not provided'}</dd></div><div><dt className="text-xs text-zinc-600 dark:text-zinc-400">Revision</dt><dd className="mt-1 text-sm">{vehicle.revision}</dd></div></dl><p className="mt-5 border-t border-zinc-200 pt-4 text-xs leading-5 text-zinc-600 dark:border-white/10 dark:text-zinc-400">These are the current saved details. The notification describes a past update and does not confirm document authenticity or reapproval.</p></section>
-      <section className={`${panel} p-4 sm:p-5`} aria-labelledby="vehicle-documents-title"><h3 className="font-semibold" id="vehicle-documents-title">Vehicle documents</h3><p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Private images load when you request a preview.</p><div className="mt-4"><VehicleDocumentCard courierId={courierId} document={vehicle.official_receipt} key={`or-${vehicle.revision}-${vehicle.official_receipt?.id ?? 'none'}`} kind="official_receipt" label="Official Receipt (OR)" /><VehicleDocumentCard courierId={courierId} document={vehicle.certificate_of_registration} key={`cr-${vehicle.revision}-${vehicle.certificate_of_registration?.id ?? 'none'}`} kind="certificate_of_registration" label="Certificate of Registration (CR)" /></div></section>
+      <section
+        className={`rounded-xl border border-[var(--portal-border)] bg-[var(--portal-surface)] p-4 sm:p-5`}
+        aria-labelledby="vehicle-details-title">
+        <h3 className="font-semibold" id="vehicle-details-title">Vehicle details</h3>
+        <dl className="mt-4 grid gap-x-6 gap-y-4 sm:grid-cols-2">
+          <div>
+            <dt className="text-xs text-[var(--portal-muted)]">Type</dt>
+            <dd className="mt-1 text-sm capitalize">{vehicle.vehicle_type.replaceAll('_', ' ')}</dd>
+          </div>
+          <div>
+            <dt className="text-xs text-[var(--portal-muted)]">Plate number</dt>
+            <dd className="mt-1 break-all font-mono text-sm">{vehicle.plate_number}</dd>
+          </div>
+          <div>
+            <dt className="text-xs text-[var(--portal-muted)]">Make</dt>
+            <dd className="mt-1 text-sm">{vehicle.make || 'Not provided'}</dd>
+          </div>
+          <div>
+            <dt className="text-xs text-[var(--portal-muted)]">Model</dt>
+            <dd className="mt-1 text-sm">{vehicle.model || 'Not provided'}</dd>
+          </div>
+          <div>
+            <dt className="text-xs text-[var(--portal-muted)]">Revision</dt>
+            <dd className="mt-1 text-sm">{vehicle.revision}</dd>
+          </div>
+        </dl>
+        <p
+          className="mt-5 border-t border-[var(--portal-border)] pt-4 text-xs leading-5 text-zinc-600 dark:border-[var(--portal-border)] dark:text-zinc-400">These are the current saved details. The notification describes a past update and does not confirm document authenticity or reapproval.</p>
+      </section>
+      <section
+        className={`rounded-xl border border-[var(--portal-border)] bg-[var(--portal-surface)] p-4 sm:p-5`}
+        aria-labelledby="vehicle-documents-title">
+        <h3 className="font-semibold" id="vehicle-documents-title">Vehicle documents</h3>
+        <p className="mt-1 text-sm text-[var(--portal-muted)]">Private images load when you request a preview.</p>
+        <div className="mt-4">
+          <VehicleDocumentCard
+            courierId={courierId}
+            document={vehicle.official_receipt}
+            key={`or-${vehicle.revision}-${vehicle.official_receipt?.id ?? 'none'}`}
+            kind="official_receipt"
+            label="Official Receipt (OR)" />
+          <VehicleDocumentCard
+            courierId={courierId}
+            document={vehicle.certificate_of_registration}
+            key={`cr-${vehicle.revision}-${vehicle.certificate_of_registration?.id ?? 'none'}`}
+            kind="certificate_of_registration"
+            label="Certificate of Registration (CR)" />
+        </div>
+      </section>
     </div> : null}
   </div>
 }

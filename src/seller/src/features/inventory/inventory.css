@@ -1,0 +1,17 @@
+.seller-inventory .portal-table {
+  min-width: 54rem;
+}
+.inventory-product {
+  display: flex;
+  align-items: center;
+  gap: .875rem;
+  min-width: 16rem;
+}
+.inventory-product > div:last-child {
+  min-width: 0;
+}
+.seller-inventory .inventory-available {
+  color: var(--portal-accent);
+  font-weight: 600;
+  background: color-mix(in srgb, var(--brand-tint) 30%, var(--portal-surface));
+}

@@ -1,9 +1,11 @@
+import '../features/transport.css'
+import { PortalButton as ActionButton, PortalSkeleton } from '@aisley/ui/portal'
 import { LinehaulTripList } from './LinehaulTripList'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { FaArrowsRotate, FaTruckFast } from 'react-icons/fa6'
+import { FaArrowsRotate } from 'react-icons/fa6'
 import { FlatpickrInput } from './FlatpickrInput'
 import { LinehaulOptionPicker } from './LinehaulOptionPicker'
-import { ActionButton, ErrorNotice, PrimaryButton, field, manilaDate, panel } from './PickupUi'
+import { ErrorNotice, field, manilaDate, panel } from './PickupUi'
 import { ApiError, csrf, requestWithTimeout } from '../lib/api'
 import { defaultLinehaulTime } from '../types/linehaulTrips'
 import type { LinehaulLaneGroup, LinehaulOverview, LinehaulReadyParcel, LinehaulTrip } from '../types/linehaulTrips'
@@ -157,24 +159,24 @@ export function LinehaulDispatch() {
   const allVisibleSelected = visibleSelectableParcels.length > 0 && visibleSelectableParcels.every((parcel) => selected.includes(parcel.shipment_id))
   const canSelectVisible = Boolean(selectedDestination || visibleDestinations.size === 1)
 
-  return <div className="mx-auto max-w-[1400px] px-4 py-4 sm:px-6">
-    <div className="flex flex-wrap items-start justify-between gap-3 border-b border-zinc-200 pb-3 dark:border-white/10"><div><div className="flex items-center gap-3"><FaTruckFast aria-hidden="true" className="text-[#4C1268] dark:text-purple-300" /><h2 className="text-xl font-semibold">Linehaul dispatch</h2></div><p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Select sorted parcels across lane groups for one destination, then assign a company truck and qualified driver.</p></div><ActionButton busy={loading} onClick={() => void load()}><FaArrowsRotate aria-hidden="true" />Refresh</ActionButton></div>
+  return <div className="transport-workspace">
+    <div className="transport-heading"><div><h1>Linehaul dispatch</h1><p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Select sorted parcels across lane groups for one destination, then assign a company truck and qualified driver.</p></div><ActionButton isLoading={loading} onClick={() => void load()}><FaArrowsRotate aria-hidden="true" />Refresh</ActionButton></div>
     {error ? <div className="mt-3"><ErrorNotice message={error} retry={() => void load()} /></div> : null}
     {notice ? <p className="mt-3 border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-200" role="status">{notice}</p> : null}
 
-    <div className="mt-3 grid min-w-0 items-start gap-3 lg:grid-cols-[minmax(0,1fr)_21rem]">
+    <div className="mt-2 grid min-w-0 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_21rem]">
       <section aria-labelledby="available-linehaul-parcels" className={`${panel} overflow-hidden`}>
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-200 p-3 dark:border-white/10"><div><h3 className="font-semibold" id="available-linehaul-parcels">Available for dispatch</h3><p className="mt-1 text-xs text-zinc-500">{parcels.length} parcels · {selected.length} selected{selectedDestination ? ` · ${selectedDestination.nextHub}` : ''}</p></div><ActionButton disabled={busy || loading || !visibleGroups.length || !canSelectVisible} onClick={toggleVisible}>{allVisibleSelected ? 'Clear visible' : 'Select all visible'}</ActionButton></div>
         <div className="border-b border-zinc-200 p-3 dark:border-white/10"><label className="block text-sm font-medium" htmlFor="linehaul-lane-group">Lane group<select className={`${field} mt-1`} id="linehaul-lane-group" onChange={(event) => setLaneGroupKey(event.target.value)} value={laneGroupKey}><option value="">All lane groups</option>{overview?.ready_groups.map((destination) => <optgroup key={destination.next_hub_id} label={destination.next_hub}>{destination.lane_groups.map((lane) => { const key = `${destination.next_hub_id}:${lane.lane_id ?? 'unassigned'}`; return <option key={key} value={key}>{lane.lane_code ?? 'Unassigned'} · {lane.lane_name ?? 'No lane'} · {lane.parcels.length}</option> })}</optgroup>)}</select></label>{!selectedDestination && visibleDestinations.size > 1 ? <p className="mt-2 text-xs text-zinc-500">Choose a lane group or one parcel first to set the destination before selecting all.</p> : null}</div>
-        {loading ? <p className="p-4 text-sm">Loading available parcels…</p> : visibleGroups.length ? <div className="divide-y divide-zinc-200 dark:divide-white/10">{visibleGroups.map((group) => {
+        {loading ? <PortalSkeleton label="Loading available parcels" /> : visibleGroups.length ? <div className="divide-y divide-zinc-200 dark:divide-white/10">{visibleGroups.map((group) => {
           const compatible = canSelect(group)
           const selectedInGroup = group.parcels.filter((parcel) => selected.includes(parcel.shipment_id)).length
           return <section aria-labelledby={`lane-${group.key}`} key={group.key}>
-            <div className="flex flex-wrap items-center justify-between gap-3 bg-zinc-50 px-3 py-2 dark:bg-white/[0.03]"><div><h4 className="text-sm font-semibold" id={`lane-${group.key}`}>{laneLabel(group)}</h4><p className="mt-0.5 text-xs text-zinc-500">To {group.nextHub} · {selectedInGroup}/{group.parcels.length} selected</p></div><button className="text-sm font-medium text-[#4C1268] disabled:cursor-not-allowed disabled:opacity-50 dark:text-purple-300" disabled={busy || !compatible} onClick={() => toggleGroup(group)} type="button">{selectedInGroup === group.parcels.length ? 'Clear group' : 'Select all'}</button></div>
+            <div className="flex flex-wrap items-center justify-between gap-3 bg-zinc-50 px-3 py-2 dark:bg-white/[0.03]"><div><h4 className="text-sm font-semibold" id={`lane-${group.key}`}>{laneLabel(group)}</h4><p className="mt-0.5 text-xs text-zinc-500">To {group.nextHub} · {selectedInGroup}/{group.parcels.length} selected</p></div><button className="text-sm font-medium text-[#2563EB] disabled:cursor-not-allowed disabled:opacity-50 dark:text-blue-300" disabled={busy || !compatible} onClick={() => toggleGroup(group)} type="button">{selectedInGroup === group.parcels.length ? 'Clear group' : 'Select all'}</button></div>
             <ul className="divide-y divide-zinc-200 dark:divide-white/10">{group.parcels.map((parcel) => {
               const checked = selected.includes(parcel.shipment_id)
               const atCapacity = !checked && selected.length >= capacity
-              return <li className={checked ? 'bg-purple-50/70 dark:bg-purple-400/10' : ''} key={parcel.shipment_id}><label className={`flex items-start gap-3 px-3 py-2.5 ${compatible && !atCapacity ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}><input checked={checked} className="mt-1 size-4 shrink-0 accent-[#4C1268]" disabled={busy || (!checked && (!compatible || atCapacity))} onChange={() => toggle(parcel, group)} type="checkbox" /><span className="min-w-0"><span className="block break-all font-medium">{parcel.parcel_reference ?? parcel.reference}</span><span className="mt-1 block break-all font-mono text-xs text-zinc-500">{parcel.reference}</span><span className="mt-1 block text-xs text-zinc-500">Received {parcel.received_at ? manilaDate(parcel.received_at) : 'time unavailable'}</span></span></label></li>
+              return <li className={checked ? 'bg-blue-50/70 dark:bg-blue-400/10' : ''} key={parcel.shipment_id}><label className={`flex items-start gap-3 px-3 py-2.5 ${compatible && !atCapacity ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}><input checked={checked} className="mt-1 size-4 shrink-0 accent-[#2563EB]" disabled={busy || (!checked && (!compatible || atCapacity))} onChange={() => toggle(parcel, group)} type="checkbox" /><span className="min-w-0"><span className="block break-all font-medium">{parcel.parcel_reference ?? parcel.reference}</span><span className="mt-1 block break-all font-mono text-xs text-zinc-500">{parcel.reference}</span><span className="mt-1 block text-xs text-zinc-500">Received {parcel.received_at ? manilaDate(parcel.received_at) : 'time unavailable'}</span></span></label></li>
             })}</ul>
           </section>
         })}</div> : <p className="p-5 text-sm text-zinc-500">No sorted parcels are available for linehaul dispatch.</p>}
@@ -188,7 +190,7 @@ export function LinehaulDispatch() {
         <label className="mt-3 block text-sm font-medium">Departure schedule<FlatpickrInput className={`${field} mt-1`} value={scheduledFor} onChange={setScheduledFor} options={{ enableTime: true, time_24hr: true, dateFormat: 'Y-m-d H:i', minDate: 'today', minuteIncrement: 15 }} /></label>
         <dl className="mt-3 grid grid-cols-3 gap-2 border-y border-zinc-200 py-3 text-sm dark:border-white/10"><div><dt className="text-xs text-zinc-500">Capacity</dt><dd className="mt-1 font-semibold">{truck?.max_parcels ?? '—'}</dd></div><div><dt className="text-xs text-zinc-500">Selected</dt><dd className="mt-1 font-semibold">{selected.length}</dd></div><div><dt className="text-xs text-zinc-500">Remaining</dt><dd className="mt-1 font-semibold">{truck ? Math.max(0, truck.max_parcels - selected.length) : '—'}</dd></div></dl>
         {capacityExceeded ? <p className="mt-2 text-xs text-red-700 dark:text-red-300">Remove {selected.length - capacity} parcel{selected.length - capacity === 1 ? '' : 's'} or choose a larger truck.</p> : null}
-        <PrimaryButton busy={busy} className="mt-3 w-full" disabled={!overview?.enabled || !selected.length || !selectedDestination || !truckId || !driverId || !scheduledFor || capacityExceeded} onClick={() => void schedule()}>Send request for {selected.length || ''} parcel{selected.length === 1 ? '' : 's'}</PrimaryButton>
+        <ActionButton variant="primary" isLoading={busy} className="mt-3 w-full" disabled={!overview?.enabled || !selected.length || !selectedDestination || !truckId || !driverId || !scheduledFor || capacityExceeded} onClick={() => void schedule()}>Send request for {selected.length || ''} parcel{selected.length === 1 ? '' : 's'}</ActionButton>
       </aside>
     </div>
 

@@ -9,6 +9,7 @@ use App\Models\InventorySku;
 use App\Models\User;
 use App\Services\Seller\InventoryService;
 use App\Services\Seller\SellerShopService;
+use App\Support\MediaUrl;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -19,7 +20,7 @@ class InventoryController extends Controller
         /** @var User $seller */ $seller = $request->user();
         $shop = $shops->for($seller);
         $skus = InventorySku::query()->whereHas('product', fn ($q) => $q->where('shop_id', $shop->id))
-            ->with(['product:id,name,status', 'variant:id,product_id,sku', 'variant.optionValues.optionGroup', 'balance'])
+            ->with(['product:id,name,status', 'product.galleryMedia', 'variant:id,product_id,sku', 'variant.optionValues.optionGroup', 'balance'])
             ->when($request->string('search')->toString(), fn ($q, $search) => $q->where(fn ($inner) => $inner->whereRaw('LOWER(code) LIKE ?', ['%'.strtolower($search).'%'])->orWhereHas('product', fn ($products) => $products->whereRaw('LOWER(name) LIKE ?', ['%'.strtolower($search).'%']))))
             ->when($request->string('stock')->toString() === 'out', fn ($q) => $q->whereHas('balance', fn ($b) => $b->whereColumn('on_hand', '<=', 'reserved')))
             ->when($request->string('stock')->toString() === 'low', fn ($q) => $q->whereHas('balance', fn ($b) => $b->whereNotNull('alert_threshold')->whereRaw('(on_hand - reserved) <= alert_threshold')->whereColumn('on_hand', '>', 'reserved')))
@@ -32,7 +33,7 @@ class InventoryController extends Controller
     public function show(Request $request, InventorySku $inventorySku, SellerShopService $shops): JsonResponse
     {
         $this->assertOwned($request, $inventorySku, $shops);
-        $inventorySku->load(['product:id,name,status', 'variant:id,product_id,sku', 'variant.optionValues.optionGroup', 'balance']);
+        $inventorySku->load(['product:id,name,status', 'product.galleryMedia', 'variant:id,product_id,sku', 'variant.optionValues.optionGroup', 'balance']);
 
         return response()->json(['data' => $this->payload($inventorySku)]);
     }
@@ -72,11 +73,18 @@ class InventoryController extends Controller
     private function payload(InventorySku $sku): array
     {
         $balance = $sku->balance;
+        $sku->product->loadMissing('galleryMedia');
+        $image = $sku->product->galleryMedia->firstWhere('is_default', true) ?? $sku->product->galleryMedia->first();
         $available = $balance->available();
 
         return [
             'id' => $sku->id, 'code' => $sku->code, 'status' => $sku->status->value,
-            'product' => ['id' => $sku->product->id, 'name' => $sku->product->name, 'status' => $sku->product->status->value],
+            'product' => ['id' => $sku->product->id, 'name' => $sku->product->name, 'status' => $sku->product->status->value,
+                'image' => $image ? [
+                    'url' => $image->mime_type ? url('/api/v1/seller/product-media/'.$image->id) : MediaUrl::from($image->disk, $image->path),
+                    'alt_text' => $image->alt_text,
+                ] : null,
+            ],
             'variant' => $sku->variant ? [
                 'id' => $sku->variant->id,
                 'sku' => $sku->variant->sku,

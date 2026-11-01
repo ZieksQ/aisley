@@ -50,10 +50,10 @@ export function LogisticsLayout() {
       ? 'Sort plan'
     : location.pathname.startsWith('/linehaul-dispatch')
       ? 'Linehaul dispatch'
-    : location.pathname.startsWith('/linehaul')
-      ? 'Linehaul'
+    : location.pathname.startsWith('/network') || location.pathname === '/linehaul'
+      ? 'Network'
     : location.pathname.startsWith('/inbound-linehaul')
-      ? 'Inbound linehaul'
+      ? 'Linehaul inbound'
     : location.pathname.startsWith('/sorting')
       ? 'Sorting'
     : location.pathname.startsWith('/dispatch')

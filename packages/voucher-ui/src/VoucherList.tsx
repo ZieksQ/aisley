@@ -1,10 +1,19 @@
 import { useEffect, useState } from 'react'
+import { PortalSkeleton, PortalState } from '@aisley/ui/portal'
 import { Button, TextField, SelectField } from '@aisley/ui'
 import { benefit, date, denied, statuses, titleCase } from './model'
 import { Pagination } from './Pagination'
 import type { Failure, Page, Voucher, VoucherProps } from './types'
 
+function sellerStatusClass(status: Voucher['status']) {
+  if (status === 'active') return 'portal-tag portal-tag-success'
+  if (status === 'paused' || status === 'exhausted') return 'portal-tag portal-tag-warning'
+  if (status === 'scheduled') return 'portal-tag portal-tag-brand'
+  return 'portal-tag'
+}
+
 export function VoucherList(props: VoucherProps) {
+  const sellerList = props.role === 'seller'
   const [search, setSearch] = useState('')
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('')
@@ -45,7 +54,7 @@ export function VoucherList(props: VoucherProps) {
     return () => controller.abort()
   }, [props.request, props.prefix, page, query, status, kind, reload])
   return (
-    <main className="vouchers">
+    <main className={`vouchers ${sellerList ? 'seller-voucher-list' : ''}`}>
       <header>
         <div>
           <h1>Vouchers</h1>
@@ -110,7 +119,7 @@ export function VoucherList(props: VoucherProps) {
         </div>
       </form>
       {loading ? (
-        <p role="status">Loading vouchers…</p>
+        sellerList ? <PortalSkeleton label="Loading vouchers…" /> : <p role="status">Loading vouchers…</p>
       ) : error ? (
         <div className="voucher-error" role="alert">
           <p>{error.message}</p>
@@ -127,17 +136,17 @@ export function VoucherList(props: VoucherProps) {
         result && (
           <>
             {result.data.length === 0 ? (
-              <p>No vouchers match these filters.</p>
+              sellerList ? <PortalState title="No vouchers match these filters." description="Try another name, code or status, or create a voucher for your Shop." /> : <p>No vouchers match these filters.</p>
             ) : (
               <div
-                className="voucher-table"
+                className={`voucher-table ${sellerList ? 'portal-table-region' : ''}`}
                 tabIndex={0}
                 role="region"
                 aria-label="Voucher list"
               >
-                <table>
+                <table className={sellerList ? 'portal-table' : undefined}>
                   <caption>
-                    Voucher definitions · Schedules in Asia/Manila
+                    {sellerList ? `${result.meta.total} vouchers · ` : 'Voucher definitions · '}Schedules in Asia/Manila
                   </caption>
                   <thead>
                     <tr>
@@ -152,6 +161,7 @@ export function VoucherList(props: VoucherProps) {
                           {label}
                         </th>
                       ))}
+                      {sellerList && <th scope="col" className="portal-row-action">Action</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -170,7 +180,9 @@ export function VoucherList(props: VoucherProps) {
                         </td>
                         <td>{benefit(voucher.terms)}</td>
                         <td>
-                          {titleCase(voucher.status)}
+                          <span className={sellerList ? sellerStatusClass(voucher.status) : undefined}>
+                            {titleCase(voucher.status)}
+                          </span>
                           {voucher.draft && voucher.lifecycle === 'published'
                             ? ' · Pending draft'
                             : ''}
@@ -183,6 +195,13 @@ export function VoucherList(props: VoucherProps) {
                           {voucher.redeemed_count} /{' '}
                           {voucher.terms.global_limit ?? 'Unlimited'}
                         </td>
+                        {sellerList && (
+                          <td className="portal-row-action">
+                            <button className="portal-button portal-button-ghost" onClick={() => props.navigate(`/vouchers/${voucher.id}`)}>
+                              View
+                            </button>
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>

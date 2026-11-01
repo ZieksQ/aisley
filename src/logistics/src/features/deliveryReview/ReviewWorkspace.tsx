@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
-import { Button } from '@aisley/ui'
+import { PortalButton as Button } from '@aisley/ui/portal'
 import { ErrorNotice, field, panel } from '../../components/PickupUi'
-import { date, money, workflowButton } from '../logisticsFinance/presentation'
+import { date, money } from '../logisticsFinance/presentation'
 import type { useDeliveryReview } from './useDeliveryReview'
 
 type ReviewState = ReturnType<typeof useDeliveryReview>
@@ -42,7 +42,7 @@ export function ReviewWorkspace({ state, history }: { state: ReviewState; histor
       }
     })
   }
-  return <section className={`${panel} min-w-0 p-4 sm:p-5`} aria-label="POD review">
+  return <section className={`${panel} transport-review min-w-0 p-4 sm:p-6`} aria-label="POD review">
     <h3 className="break-words font-semibold">
       {row.order.reference}
     </h3>
@@ -91,11 +91,11 @@ export function ReviewWorkspace({ state, history }: { state: ReviewState; histor
         <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">Select the photo to enlarge.</p>
         <dialog
           ref={dialog}
-          className="m-auto max-h-[90dvh] w-[min(95vw,70rem)] overflow-auto border border-zinc-300 bg-white p-4 text-zinc-900 backdrop:bg-black/60 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+          className="m-auto rounded-xl max-h-[90dvh] w-[min(95vw,70rem)] overflow-auto border border-zinc-300 bg-white p-4 text-zinc-900 backdrop:bg-black/60 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
           aria-label="Enlarged delivery proof"
         >
           <div className="mb-3 flex justify-end">
-            <Button variant="outline" className={workflowButton} onClick={() => dialog.current?.close()}>Close photo</Button>
+            <Button variant="default" onClick={() => dialog.current?.close()}>Close photo</Button>
           </div>
           <img
             className="max-h-[75dvh] w-full object-contain"
@@ -130,7 +130,7 @@ export function ReviewWorkspace({ state, history }: { state: ReviewState; histor
       {row.cod && <label className="flex items-start gap-3 text-sm">
         <input
           type="checkbox"
-          className="mt-1 size-4 accent-[#4C1268]"
+          className="mt-1 size-4 accent-[#2563EB]"
           disabled={state.locked}
           checked={codConfirmed}
           onChange={(event) => setCodConfirmed(event.target.checked)}
@@ -138,8 +138,7 @@ export function ReviewWorkspace({ state, history }: { state: ReviewState; histor
         <span>I confirm the Courier collected {money(Number(row.cod.declared_amount) * 100, row.cod.currency)} from the Customer.<span className="mt-1 block text-zinc-600 dark:text-zinc-400">Cash handover from the Courier is recorded separately in Courier cash remittance.</span></span>
       </label>}
       <Button
-        variant="secondary"
-        className={workflowButton}
+        variant="primary"
         disabled={state.locked || !state.photoUrl || Boolean(row.cod && (!codConfirmed || !row.cod.collected))}
         onClick={approve}
       >Approve delivery</Button>
@@ -156,8 +155,7 @@ export function ReviewWorkspace({ state, history }: { state: ReviewState; histor
           placeholder="Explain what the Courier needs to correct."
         />
         <Button
-          variant="outline"
-          className={workflowButton}
+          variant="default"
           disabled={state.locked || reason.trim().length < 3}
           onClick={correct}
         >Request correction</Button>

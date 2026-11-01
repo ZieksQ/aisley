@@ -132,3 +132,15 @@ The owner and home hub never change. Confirmed operational events, not GPS, dete
 ## Regional development fleet — 2026-10-08
 
 `PhilippinesLogisticsSeeder` creates two available home-hub company trucks per region (250/500 fixture parcel-count capacities), five approved affiliated Couriers per hub and truck-driver capability on the first two newly created affiliations. It is disabled in production unless `ALLOW_DEMO_SEEDERS_IN_PRODUCTION=true` is explicitly configured. Existing reviews, capability removals, truck locations and availability remain unchanged. No trip, manifest, driver online session or regulatory document is fabricated. See [the regional fixture catalogue and account list](../../../philippines-logistics-seeding.md). Existing dispatch/approval/receipt contracts are unchanged.
+
+## Transport workspace redesign — 2026-11-01
+
+- Linehaul dispatch uses the Logistics blue/slate workspace with a parcel selection area, adjacent desktop scheduling panel, shared truck/driver selection modals, and an active-trip table. Preserve destination compatibility, truck capacity, stored source lanes, release/departure distinction, and request retry identities.
+- Rename the inbound screen and navigation label to **Linehaul inbound** while retaining `/inbound-linehaul` deep links. Separate Approval requests, Arriving trips, Receiving, and Visiting trucks into URL-backed tabs and readable tables. A trip-specific receipt link selects Receiving; retain driver arrival timestamps, discrepancy links, physical receipt actions, and cargo/empty returns.
+- Transfer rejection collects its reason in a focus-contained modal. Failed reads show recoverable errors; initially loading data is never displayed as an empty queue. No API, custody, Courier mobile, or receiving/offline contract changes.
+
+## Company fleet presentation — 2026-11-02
+
+- `/fleet` uses shared portal tables for company truck location, availability, reservations/capacity, current trip, and approved driver capability. Distinguish loading, failed reads, authoritative empty results, and successful mutations in both themes.
+- Register/edit use a labelled, viewport-bounded dialog instead of browser prompts. Validate whole parcel limits (1–10,000), preserve safe values and field-addressable server errors on failure, confirm unsaved discard, and restore trigger focus. Make/model remain optional; registration and optimistic revision payloads are unchanged.
+- Truck activation/deactivation requires explicit confirmation. Driver capability and truck changes retain server resource/active-work checks and CSRF/session authorization; this redesign changes no API or external Courier contract.

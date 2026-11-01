@@ -156,3 +156,7 @@ The dispatch confirmation must show the task/leg, pickup and destination summari
 
 - Test role/tenant/sole-hub isolation, readiness gates, independent legs, candidate bounds, stale/missing location, advisory metrics, rejection/re-offer, duplicate/concurrent offers, IDOR, privacy, and failure recovery on SQLite and PostgreSQL.
 - Canonical references: `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, both role domains, and `docs/features/shared/shipment-fulfillment/spec.md`.
+
+## Last-mile dispatch redesign — 2026-11-01
+
+The existing `/dispatch` workspace adopts shared Logistics portal controls, blue selection, slate surfaces, a clearer task header, and matching loading skeletons. Parcel selection and the Courier/schedule panel remain separate, stacking on narrow screens. Recent dispatch schedules use a labeled horizontally scrollable table with schedule, Courier contact, time, source lanes, and parcel count. Preserve the 15-parcel limit, explicit lane combining, revision checks, Courier acceptance, rejected-offer recovery, and unchanged-payload idempotency.

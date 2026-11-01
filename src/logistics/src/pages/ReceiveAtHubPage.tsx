@@ -32,7 +32,7 @@ function formatDate(value: string): string {
 export function ReceiveAtHubPage() {
   const [params] = useSearchParams()
   const trip = params.get('trip')
-  if (trip) return <div className="portal-page hub-workspace"><h2 className="portal-page-heading">Receive at hub</h2><Link className="mt-2 inline-block text-sm underline" to="/inbound-linehaul">Inbound linehaul</Link><ReceivingWorkspace trip={trip} scanning /></div>
+  if (trip) return <div className="portal-page hub-workspace"><h2 className="portal-page-heading">Receive at hub</h2><Link className="mt-2 inline-block text-sm underline" to="/inbound-linehaul">Linehaul inbound</Link><ReceivingWorkspace trip={trip} scanning /></div>
   return <OriginReceiving />
 }
 

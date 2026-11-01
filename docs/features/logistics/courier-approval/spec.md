@@ -142,3 +142,8 @@ Courier registers under Logistics → pending affiliation
 - `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, and `docs/domains/Logistics.md` define shared authority.
 - `docs/references/user-registration-requirements.md` and `docs/references/file-upload-requirements.md` are mandatory.
 - Additional notification channels, long-term evidence retention, resubmission, and approval reversal remain separately specified extensions.
+
+## Logistics review presentation — 2026-11-02
+
+- Pending applications use the shared portal search, loading, state, table, and pagination components with blue/slate theme tokens. Show the authoritative matching pending total separately from registration completeness; uploaded evidence is not proof of completed review.
+- Preserve name/email search and page parameters in review links and Back navigation. Guard stale list responses during search or organization changes. Keep decisions, private evidence, approval authority, and uncertain-result recovery unchanged; decision dialogs stay viewport-bounded and block Escape while saving.

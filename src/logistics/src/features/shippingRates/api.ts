@@ -15,10 +15,14 @@ const servicePayload = (service: ServiceDraft) => ({
   base_fee_cents: cents(service.baseFee),
 })
 
+export async function loadRateCards() {
+  return requestWithTimeout<RateCardsResponse>('/api/v1/logistics/rate-cards')
+}
+
 export async function loadShippingRates() {
   const [tariffs, cards] = await Promise.all([
     requestWithTimeout<{ data: TariffAcceptance[] }>('/api/v1/logistics/shipping-rates'),
-    requestWithTimeout<RateCardsResponse>('/api/v1/logistics/rate-cards'),
+    loadRateCards(),
   ])
 
   return { tariffs: tariffs.data, cards: cards.data, shopCategories: cards.meta.shop_categories }

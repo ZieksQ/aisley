@@ -9,6 +9,7 @@ import { CourierVehiclesPage } from './pages/CourierVehiclesPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { BillingPage } from './pages/BillingPage'
 import { CourierCashPage } from './pages/CourierCashPage'
+import { DeliveryConfirmationDetailPage } from './pages/DeliveryConfirmationDetailPage'
 import { DeliveryConfirmationsPage } from './pages/DeliveryConfirmationsPage'
 import { DispatchPage } from './pages/DispatchPage'
 import { FinancePaymentsPage } from './pages/FinancePaymentsPage'
@@ -32,6 +33,7 @@ import { ResetPasswordPage } from './pages/ResetPasswordPage'
 import { SortingPage } from './pages/SortingPage'
 import { SortPlanPage } from './pages/SortPlanPage'
 import { SupportTicketsPage } from './pages/SupportTicketsPage'
+import { RateCardVersionPage } from './pages/RateCardVersionPage'
 import { ShippingRatesPage } from './pages/ShippingRatesPage'
 import { AppearancePage } from './pages/AppearancePage'
 
@@ -56,8 +58,10 @@ export default function App() {
           <Route element={<FinancePaymentsPage />} path="/finance/payment-settings" />
           <Route element={<FulfillmentOperationsPage />} path="/operations" />
           <Route element={<DeliveryConfirmationsPage />} path="/delivery-confirmations" />
+          <Route element={<DeliveryConfirmationDetailPage />} path="/delivery-confirmations/:proofId" />
           <Route element={<ReceiveAtHubPage />} path="/receive-at-hub" />
-          <Route element={<LinehaulPage />} path="/linehaul" />
+          <Route element={<LinehaulPage />} path="/network" />
+          <Route element={<Navigate replace to="/network" />} path="/linehaul" />
           <Route element={<LinehaulDispatchPage />} path="/linehaul-dispatch" />
           <Route element={<InboundLinehaulPage />} path="/inbound-linehaul" />
           <Route element={<SortingPage />} path="/sorting" />
@@ -76,6 +80,7 @@ export default function App() {
           <Route element={<SupportTicketsPage />} path="/support-tickets" />
           <Route element={<Navigate replace to="/settings/account" />} path="/account" />
           <Route element={<ShippingRatesPage />} path="/shipping-rates" />
+          <Route element={<RateCardVersionPage />} path="/shipping-rates/rate-cards/:cardId" />
           <Route element={<Navigate replace to="/settings/account" />} path="/settings" />
           <Route element={<AccountPage />} path="/settings/account" />
           <Route element={<BillingPage />} path="/settings/billing" />

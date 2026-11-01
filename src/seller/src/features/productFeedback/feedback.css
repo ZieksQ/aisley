@@ -1,0 +1,67 @@
+.seller-feedback .feedback-filters {
+  grid-template-columns: minmax(0, 1fr);
+}
+.seller-feedback .feedback-filters > label {
+  margin-bottom: 0;
+}
+.seller-feedback .feedback-product-search {
+  display: flex;
+  align-items: end;
+  gap: .75rem;
+  min-width: 0;
+}
+.feedback-product-search > label {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+.seller-feedback .portal-input {
+  margin-top: .5rem;
+  width: 100%;
+}
+.seller-feedback .portal-table {
+  min-width: 52rem;
+}
+.feedback-text {
+  min-width: 15rem;
+  max-width: 26rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.65;
+}
+.feedback-date {
+  white-space: nowrap;
+  color: var(--portal-muted);
+  font-size: .75rem;
+}
+.feedback-detail > a:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  min-height: 2.75rem;
+  margin-bottom: 1rem;
+}
+.feedback-detail section {
+  padding: 1.5rem;
+  border: 1px solid var(--portal-border);
+  border-radius: .75rem;
+  background: var(--portal-surface);
+}
+.feedback-detail section h3 {
+  font-size: 1rem;
+  font-weight: 600;
+}
+.feedback-detail textarea.portal-input {
+  min-height: 10rem;
+  margin-top: .5rem;
+  padding: .875rem;
+  resize: vertical;
+}
+@media (min-width: 768px) {
+  .seller-feedback .feedback-filters {
+    grid-template-columns: minmax(10rem, .5fr) minmax(0, 1fr);
+  }
+  .seller-feedback .feedback-review-filters {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

@@ -8,6 +8,7 @@ use App\Enums\UserRole;
 use App\Enums\UserStatus;
 use App\Models\Category;
 use App\Models\InventoryMovement;
+use App\Models\Product;
 use App\Models\Shop;
 use App\Models\ShopCategory;
 use App\Models\User;
@@ -126,6 +127,43 @@ class SellerProductInventoryTest extends TestCase
 
         $this->assertDatabaseHas('inventory_skus', ['id' => $skuId, 'status' => 'active']);
         $this->postJson("/api/v1/seller/products/{$productId}/unarchive")->assertConflict();
+    }
+
+    public function test_inventory_projects_only_the_approved_product_gallery_thumbnail(): void
+    {
+        [$seller, , $category] = $this->sellerShop();
+        $created = $this->actingAs($seller)->postJson('/api/v1/seller/products', [
+            'name' => 'Canvas Backpack', 'category_id' => $category->id, 'sku' => 'THUMB-1',
+            'price' => 150, 'opening_stock' => 4, ...$this->shipping(),
+        ])->assertCreated();
+        $skuId = $created->json('data.skus.0.id');
+        $product = Product::findOrFail($created->json('data.id'));
+        $this->getJson('/api/v1/seller/inventory')->assertOk()->assertJsonPath('data.0.product.image', null);
+
+        $first = $product->media()->create([
+            'disk' => 'local', 'path' => 'private/first.png', 'mime_type' => 'image/png',
+            'alt_text' => 'Backpack front', 'position' => 0, 'is_default' => false, 'scan_status' => 'approved',
+        ]);
+        $preferred = $product->media()->create([
+            'disk' => 'local', 'path' => 'private/preferred.png', 'mime_type' => 'image/png',
+            'alt_text' => 'Backpack side', 'position' => 1, 'is_default' => true, 'scan_status' => 'approved',
+        ]);
+        $product->media()->create([
+            'disk' => 'local', 'path' => 'private/rejected.png', 'mime_type' => 'image/png',
+            'position' => -1, 'is_default' => true, 'scan_status' => 'rejected',
+        ]);
+        $this->getJson('/api/v1/seller/inventory')->assertOk()
+            ->assertJsonPath('data.0.product.image.url', url('/api/v1/seller/product-media/'.$preferred->id))
+            ->assertJsonPath('data.0.product.image.alt_text', 'Backpack side')
+            ->assertJsonMissing(['path' => 'private/preferred.png']);
+        $this->getJson('/api/v1/seller/inventory/'.$skuId)->assertOk()
+            ->assertJsonPath('data.product.image.url', url('/api/v1/seller/product-media/'.$preferred->id));
+
+        $preferred->delete();
+        $this->getJson('/api/v1/seller/inventory')->assertOk()
+            ->assertJsonPath('data.0.product.image.url', url('/api/v1/seller/product-media/'.$first->id));
+        $first->delete();
+        $this->getJson('/api/v1/seller/inventory')->assertOk()->assertJsonPath('data.0.product.image', null);
     }
 
     private function sellerShop(string $suffix = 'one'): array

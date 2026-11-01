@@ -356,3 +356,46 @@
     border-bottom: 0;
   }
 }
+
+/* Seller list follows the same operational table treatment as inventory. */
+.seller-voucher-workspace .seller-voucher-list .voucher-table {
+  border-radius: .75rem;
+}
+.seller-voucher-workspace .seller-voucher-list table {
+  min-width: 62rem;
+  font-size: .8125rem;
+}
+.seller-voucher-workspace .seller-voucher-list td:first-child button {
+  color: var(--portal-text);
+  font-weight: 600;
+}
+.seller-voucher-workspace .seller-voucher-list td:first-child button:hover {
+  color: var(--portal-accent);
+  text-decoration: underline;
+}
+.seller-voucher-workspace .seller-voucher-list .voucher-code {
+  display: block;
+  margin-top: .25rem;
+  font-family: inherit;
+  font-size: .75rem;
+}
+.seller-voucher-workspace .seller-voucher-list tbody tr:hover {
+  background: color-mix(in srgb, var(--portal-subtle) 50%, transparent);
+}
+.seller-voucher-workspace .seller-voucher-list td:nth-child(4) {
+  max-width: 16rem;
+  color: var(--portal-muted);
+  font-size: .75rem;
+}
+.seller-voucher-workspace .seller-voucher-list td:nth-child(5) {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.seller-voucher-workspace .seller-voucher-list td.portal-row-action {
+  min-width: 5rem;
+  text-align: right;
+}
+.seller-voucher-workspace .seller-voucher-list .portal-button-ghost {
+  color: var(--portal-accent);
+  border-color: transparent;
+}
