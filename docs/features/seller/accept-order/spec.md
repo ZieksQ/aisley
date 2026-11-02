@@ -3,7 +3,7 @@ feature: order-approval
 title: Seller Order Approval
 system: AISLEY
 type: Feature Specification
-version: 1.10
+version: 1.11
 status: Seller Order approval/rejection and frozen-provider pickup/waybill implemented; release gates remain
 role: Seller
 scope: Seller Web Application and Laravel API
@@ -35,7 +35,7 @@ OrderController and Seller OrderApproval/OrderPickup pages implement owned reads
 - **Payment decision:** COD is the only current payment method. A valid COD Order may be approved while `payment_status = pending`; payment becomes `paid` only when delivery is completed by the downstream delivery/payment transition. Seller approval never changes payment state.
 - **Waybill decision:** Aisley creates one immutable shared waybill per Order in the Seller's pickup-request transaction; Seller and selected Logistics receive role-scoped access.
 - **Project boundary:** One Customer checkout creates one Seller/Shop Order per Shop. Seller reads and mutations are always scoped to the authenticated Seller's one Shop.
-- **Order navigation:** The collapsible Seller sidebar Orders group retains separate Monitoring, Approval, and Pickup links. Monitoring provides status counts, search, a status filter, a modal sort chooser, and a paginated order table; Approval defaults to oldest-first approve/reject decisions and offers modal sorting by order total; Pickup owns multi-Order readiness requests and the paginated pickup-request table. Each request's separate parcel action opens its Orders, where the Seller can print one or all available waybills and open order detail. Detail and preparation routes reopen the group without creating a fourth workflow.
+- **Order navigation:** The collapsible Seller sidebar Orders group retains separate Monitoring, Approval, and Pickup links. Monitoring provides status counts, search, a status filter, a modal sort chooser, and a paginated order table; Approval defaults to oldest-first approve/reject decisions and offers modal sorting by oldest/newest placement, recent activity, and highest/lowest order total; Pickup owns multi-Order readiness requests and the paginated pickup-request table. Each request's separate parcel action opens its Orders, where the Seller can print one or all available waybills and open order detail. Detail and preparation routes reopen the group without creating a fourth workflow.
 - **Non-goals:** payment collection, editable/client-generated waybill data, Courier assignment, Courier pickup confirmation, Logistics scans/transfers, delivery completion, Buyer address editing, and arbitrary Order edits.
 
 ## MUST
@@ -136,6 +136,7 @@ POST /api/v1/seller/notifications/{notification}/read
 GET  /api/v1/seller/orders/{order}/waybill
 ```
 
+- Approval offers `oldest` (default), `newest`, `activity_desc`, `amount_high`, and `amount_low` through the existing sort dialog. Applying a sort resets pagination and retains the choice in the URL; unsupported Approval URL values fall back to `oldest`. Newest uses `placed_at` descending, recent activity uses the latest status-event timestamp, and existing placement/ID tie-breakers keep pagination stable. The Seller orders API also retains its existing `status` sort for Monitoring.
 - Order list/detail responses expose `status`, payment facts, immutable snapshots, `can_approve`, `can_reject`, `can_prepare`, pickup state, `can_view_waybill`, safe notification references, and Shop-scoped status counts computed by Laravel.
 - Monitoring accepts a bounded, case-insensitive `search` (maximum 120 characters) over the owned Order reference and purchased item name/SKU snapshots. Search combines with status/sort filters before pagination, treats SQL wildcard characters literally, and never changes the Shop-wide status counts. Submitting or clearing search resets the result page; URL state and detail Back navigation retain the current filters.
 - Monitoring shows four primary workflow KPI cards and a complete expandable status-count summary. Monitoring, Approval, preparation, request history, and parcel tables use the shared compact table treatment and portal theme tokens. View/review actions use buttons without hover underlines; keyboard focus remains visible.

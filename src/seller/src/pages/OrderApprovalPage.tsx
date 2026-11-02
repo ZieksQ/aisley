@@ -12,6 +12,8 @@ type ApprovalLocationState = { decision?: 'approved' | 'rejected'; reference?: s
 
 const approvalSortOptions: OrderSortOption[] = [
   { value: 'oldest', label: 'Oldest placed', description: 'Orders waiting the longest first.' },
+  { value: 'newest', label: 'Newest placed', description: 'Most recently placed orders first.' },
+  { value: 'activity_desc', label: 'Recent activity', description: 'Most recently updated orders first.' },
   { value: 'amount_high', label: 'Highest total', description: 'Largest order totals first.' },
   { value: 'amount_low', label: 'Lowest total', description: 'Smallest order totals first.' },
 ]

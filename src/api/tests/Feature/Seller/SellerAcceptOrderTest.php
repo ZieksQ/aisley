@@ -202,6 +202,45 @@ class SellerAcceptOrderTest extends TestCase
         $this->getJson('/api/v1/seller/orders?sort=unsafe')->assertUnprocessable();
     }
 
+    public function test_approval_sorts_owned_placed_orders_before_pagination_with_stable_ties(): void
+    {
+        [$seller, $shop] = $this->sellerShop('sort-owner');
+        [, $foreignShop] = $this->sellerShop('sort-foreign');
+        $oldest = $this->order($shop, 'OLD');
+        $one = $this->order($shop, 'TIE-ONE');
+        $two = $this->order($shop, 'TIE-TWO');
+        $cancelled = $this->order($shop, 'CANCELLED');
+        $this->order($foreignShop, 'FOREIGN');
+        $cancelled->update(['status' => OrderStatus::Cancelled]);
+        $oldest->update(['placed_at' => '2026-10-01 10:00:00', 'payable_total' => '9.00']);
+        $one->update(['placed_at' => '2026-10-02 10:00:00', 'payable_total' => '100.00']);
+        $two->update(['placed_at' => '2026-10-02 10:00:00', 'payable_total' => '20.00']);
+        $oldest->statusEvents()->update(['occurred_at' => '2026-10-05 10:00:00']);
+        $one->statusEvents()->update(['occurred_at' => '2026-10-03 10:00:00']);
+        $two->statusEvents()->update(['occurred_at' => '2026-10-04 10:00:00']);
+        $ties = [$one->id, $two->id];
+        rsort($ties, SORT_STRING);
+        $expected = [
+            'oldest' => [$oldest->id, ...$ties],
+            'newest' => [...$ties, $oldest->id],
+            'activity_desc' => [$oldest->id, $two->id, $one->id],
+            'amount_high' => [$one->id, $two->id, $oldest->id],
+            'amount_low' => [$oldest->id, $two->id, $one->id],
+        ];
+
+        $this->actingAs($seller);
+        foreach ($expected as $sort => $ids) {
+            $url = '/api/v1/seller/orders?status=placed&sort='.$sort.'&per_page=2';
+            $first = $this->getJson($url)->assertOk()->assertJsonPath('meta.total', 3)
+                ->assertJsonCount(2, 'data')->json('data');
+            $second = $this->getJson($url.'&page=2')->assertOk()->assertJsonPath('meta.total', 3)
+                ->assertJsonCount(1, 'data')->json('data');
+            $this->assertSame($ids, array_column([...$first, ...$second], 'id'), $sort);
+        }
+        $this->getJson('/api/v1/seller/orders?status=placed&sort=unsafe')
+            ->assertUnprocessable()->assertJsonValidationErrors('sort');
+    }
+
     public function test_seller_can_reject_before_processing_and_release_only_that_order_reservation(): void
     {
         [$seller, $shop] = $this->sellerShop();
