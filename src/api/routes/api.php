@@ -155,7 +155,7 @@ Route::prefix('v1/admin')->name('admin.')->middleware(['auth:sanctum', 'admin.ac
         Route::get('/{ticket}', [AdminSupportTicketController::class, 'show'])->middleware('admin.permission:support-tickets.view')->whereUuid('ticket')->name('show');
         Route::post('/{ticket}/claim', [AdminSupportTicketController::class, 'claim'])->middleware('admin.permission:support-tickets.manage')->whereUuid('ticket')->name('claim');
         Route::post('/{ticket}/assign', [AdminSupportTicketController::class, 'assign'])->middleware('admin.permission:support-tickets.manage')->whereUuid('ticket')->name('assign');
-        Route::post('/{ticket}/replies', [AdminSupportTicketController::class, 'reply'])->middleware(['admin.permission:support-tickets.manage', 'throttle:30,1'])->whereUuid('ticket')->name('replies.store');
+        Route::post('/{ticket}/replies', [AdminSupportTicketController::class, 'reply'])->middleware(['admin.permission:support-tickets.manage', 'throttle:support-ticket-reply'])->whereUuid('ticket')->name('replies.store');
         Route::post('/{ticket}/status', [AdminSupportTicketController::class, 'status'])->middleware('admin.permission:support-tickets.manage')->whereUuid('ticket')->name('status');
         Route::post('/{ticket}/read', [AdminSupportTicketController::class, 'read'])->middleware('admin.permission:support-tickets.view')->whereUuid('ticket')->name('read');
     });
@@ -366,9 +366,9 @@ Route::prefix('v1/seller')->name('seller.')->middleware(['auth:sanctum', 'seller
     Route::get('/chat-notifications', SellerChatNotificationController::class)->name('chat-notifications');
     Route::prefix('support-tickets')->name('support-tickets.')->group(function () {
         Route::get('/', [RequesterSupportTicketController::class, 'index'])->name('index');
-        Route::post('/', [RequesterSupportTicketController::class, 'store'])->middleware('throttle:10,1')->name('store');
+        Route::post('/', [RequesterSupportTicketController::class, 'store'])->middleware('throttle:support-ticket-create')->name('store');
         Route::get('/{ticket}', [RequesterSupportTicketController::class, 'show'])->whereUuid('ticket')->name('show');
-        Route::post('/{ticket}/replies', [RequesterSupportTicketController::class, 'reply'])->middleware('throttle:30,1')->whereUuid('ticket')->name('replies.store');
+        Route::post('/{ticket}/replies', [RequesterSupportTicketController::class, 'reply'])->middleware('throttle:support-ticket-reply')->whereUuid('ticket')->name('replies.store');
         Route::post('/{ticket}/read', [RequesterSupportTicketController::class, 'read'])->whereUuid('ticket')->name('read');
     });
     Route::prefix('chat-attachments')->group(function () {
@@ -520,9 +520,9 @@ Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', '
     Route::get('/chat-notifications', LogisticsChatNotificationController::class)->name('chat-notifications');
     Route::prefix('support-tickets')->name('support-tickets.')->group(function () {
         Route::get('/', [RequesterSupportTicketController::class, 'index'])->name('index');
-        Route::post('/', [RequesterSupportTicketController::class, 'store'])->middleware('throttle:10,1')->name('store');
+        Route::post('/', [RequesterSupportTicketController::class, 'store'])->middleware('throttle:support-ticket-create')->name('store');
         Route::get('/{ticket}', [RequesterSupportTicketController::class, 'show'])->whereUuid('ticket')->name('show');
-        Route::post('/{ticket}/replies', [RequesterSupportTicketController::class, 'reply'])->middleware('throttle:30,1')->whereUuid('ticket')->name('replies.store');
+        Route::post('/{ticket}/replies', [RequesterSupportTicketController::class, 'reply'])->middleware('throttle:support-ticket-reply')->whereUuid('ticket')->name('replies.store');
         Route::post('/{ticket}/read', [RequesterSupportTicketController::class, 'read'])->whereUuid('ticket')->name('read');
     });
     Route::prefix('chat-attachments')->group(function () {
@@ -696,9 +696,9 @@ Route::prefix('v1/courier/auth')->name('courier.auth.')->group(function () {
 Route::prefix('v1/courier')->name('courier.')->middleware(['auth:sanctum', 'courier.active', 'policy.consent'])->group(function () {
     Route::prefix('support-tickets')->name('support-tickets.')->group(function () {
         Route::get('/', [RequesterSupportTicketController::class, 'index'])->name('index');
-        Route::post('/', [RequesterSupportTicketController::class, 'store'])->middleware('throttle:10,1')->name('store');
+        Route::post('/', [RequesterSupportTicketController::class, 'store'])->middleware('throttle:support-ticket-create')->name('store');
         Route::get('/{ticket}', [RequesterSupportTicketController::class, 'show'])->whereUuid('ticket')->name('show');
-        Route::post('/{ticket}/replies', [RequesterSupportTicketController::class, 'reply'])->middleware('throttle:30,1')->whereUuid('ticket')->name('replies.store');
+        Route::post('/{ticket}/replies', [RequesterSupportTicketController::class, 'reply'])->middleware('throttle:support-ticket-reply')->whereUuid('ticket')->name('replies.store');
         Route::post('/{ticket}/read', [RequesterSupportTicketController::class, 'read'])->whereUuid('ticket')->name('read');
     });
     Route::prefix('chat-attachments')->group(function () {
@@ -821,9 +821,9 @@ Route::prefix('v1/customer')->name('customer.')->middleware('throttle:120,1')->g
         Route::get('/chat-notifications', CustomerChatNotificationController::class)->name('chat-notifications');
         Route::prefix('support-tickets')->name('support-tickets.')->group(function () {
             Route::get('/', [RequesterSupportTicketController::class, 'index'])->name('index');
-            Route::post('/', [RequesterSupportTicketController::class, 'store'])->middleware('throttle:10,1')->name('store');
+            Route::post('/', [RequesterSupportTicketController::class, 'store'])->middleware('throttle:support-ticket-create')->name('store');
             Route::get('/{ticket}', [RequesterSupportTicketController::class, 'show'])->whereUuid('ticket')->name('show');
-            Route::post('/{ticket}/replies', [RequesterSupportTicketController::class, 'reply'])->middleware('throttle:30,1')->whereUuid('ticket')->name('replies.store');
+            Route::post('/{ticket}/replies', [RequesterSupportTicketController::class, 'reply'])->middleware('throttle:support-ticket-reply')->whereUuid('ticket')->name('replies.store');
             Route::post('/{ticket}/read', [RequesterSupportTicketController::class, 'read'])->whereUuid('ticket')->name('read');
         });
         Route::prefix('chat-attachments')->group(function () {

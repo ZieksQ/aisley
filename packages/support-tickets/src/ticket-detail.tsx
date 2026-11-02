@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Button } from '@aisley/ui'
+import { TicketHistory } from '@aisley/ui/chat'
 import type { TicketClient, TicketDetail, TicketDraftState } from './types'
 
 const statusLabel: Record<string, string> = {
@@ -68,22 +69,7 @@ export function TicketDetailView({ client, detail, olderBusy, onLoadOlder, onCha
     <p className="support-ticket-meta">
       {ticket.category.charAt(0).toUpperCase() + ticket.category.slice(1)} · Updated {new Date(ticket.last_activity_at).toLocaleString('en-PH', { timeZone: 'Asia/Manila' })}
     </p>
-    {detail.next_cursor &&
-      <button className="support-ticket-secondary" disabled={olderBusy} onClick={onLoadOlder} type="button">
-        {olderBusy ? 'Loading…' : 'Older history'}
-      </button>}
-    <ol className="support-ticket-timeline">
-      {detail.events.map((event) => <li key={event.id}>
-        <div className="support-ticket-event-top">
-          <strong>{event.is_mine ? 'You' : event.actor_role === 'admin' ? 'Support team' : 'Requester'}</strong>
-          <time dateTime={event.created_at}>{new Date(event.created_at).toLocaleString('en-PH', { timeZone: 'Asia/Manila' })}</time>
-        </div>
-        {event.type === 'reply' && <p className="support-ticket-message">{event.body}</p>}
-        {event.type === 'status' &&
-          <p>Status changed to {statusLabel[event.to_status ?? ''] ?? event.to_status}. {event.body}</p>}
-        {event.type === 'assignment' && <p>Ticket assignment changed.</p>}
-      </li>)}
-    </ol>
+    <TicketHistory events={detail.events} hasOlder={Boolean(detail.next_cursor)} loadingOlder={olderBusy} onLoadOlder={onLoadOlder} requester />
     <form className="support-ticket-form" onSubmit={submit}>
       <label htmlFor="ticket-reply">Reply</label>
       <textarea
@@ -93,12 +79,13 @@ export function TicketDetailView({ client, detail, olderBusy, onLoadOlder, onCha
         minLength={1}
         onChange={(event) => { setBody(event.target.value); setKey(null) }}
         required
-        rows={4}
+        rows={2}
         value={body}
       />
       {error && <p className="support-ticket-error" role="alert">{error}</p>}
       {uncertain && <p className="support-ticket-hint">The reply may have been saved. Retry the same submission to check safely.</p>}
       <div className="support-ticket-actions">
+        <span className="support-ticket-hint">{body.length}/2,000</span>
         <Button disabled={busy || body.trim().length === 0} type="submit">
           {busy ? 'Sending…' : uncertain ? 'Retry reply' : 'Send reply'}
         </Button>

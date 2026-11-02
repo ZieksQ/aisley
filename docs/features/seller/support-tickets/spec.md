@@ -15,3 +15,10 @@ An active, Admin-approved Seller uses the Seller dashboard's `/support-tickets` 
 - Ticket creation and requester replies notify eligible Admins; Admin replies and explicit public status changes notify the active requester. These database inbox alerts use the `Support tickets` category and safe ticket-only copy; ticket and notification read states remain separate.
 - The Seller page has its own navigation entry and keeps support separate from Shop and Logistics message inboxes. It polls/refetches visible history, keeps uncertain drafts and keys for safe retry, and renders public text without HTML interpretation.
 - Ineligible-account appeals, attachments, linked records, and proactive Admin outreach are deferred.
+
+## Web conversation presentation — 2026-10-31
+
+- Match the existing messaging hierarchy: ticket inbox, subject/status header, scrollable public history, and visible reply composer. At narrow widths, show one pane with All tickets navigation and restore focus on return.
+- Present replies as incoming/outgoing bubbles with sender labels, Manila date separators and timestamps. Keep public status/assignment events visually distinct, including their reasons and actor/time history. Older history preserves reading position; new activity offers a Latest action when reading earlier entries.
+- New ticket opens the existing form on demand. Keep drafts in memory, protect unsent/uncertain submissions, and retain exact idempotent retries. Ticket selection, unread state, privacy, and lifecycle remain separate from ordinary chat.
+- Follow `docs/design.md` and the consuming role's theme; reuse ticket history/viewport presentation through `@aisley/ui/chat`. No attachment or API contract changes. Controlled presentation checks: `packages/support-tickets/tests/README.md`; live integration and external client status remain separate.

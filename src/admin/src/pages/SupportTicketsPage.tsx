@@ -28,6 +28,10 @@ function SupportTicketsWorkspace() {
   const [searchParams, setSearchParams] = useSearchParams()
   const filters = useMemo(() => readSupportTicketFilters(searchParams), [searchParams])
   const listRevision = useRef(0)
+  const selectedTicket = useRef(ticketId)
+  selectedTicket.current = ticketId
+  const historyPaged = useRef(false)
+  useEffect(() => { historyPaged.current = false }, [ticketId])
   const [items, setItems] = useState<SupportTicket[]>([])
   const [cursor, setCursor] = useState<string | null>(null)
   const [detail, setDetail] = useState<TicketDetail | null>(null)
@@ -35,6 +39,10 @@ function SupportTicketsWorkspace() {
   const [loading, setLoading] = useState(true)
   const [loadingOlder, setLoadingOlder] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  useEffect(() => {
+    const target = document.querySelector<HTMLElement>(ticketId ? '.admin-ticket-detail h2' : '[aria-label="Support queue"] h2')
+    if (target) { target.tabIndex = -1; target.focus() }
+  }, [ticketId, detail?.data.id])
   const canManage = admin?.permissions.includes('support-tickets.manage') ?? false
 
   const refreshList = useCallback(async () => {
@@ -56,7 +64,12 @@ function SupportTicketsWorkspace() {
   const refreshDetail = useCallback(async (id: string) => {
     try {
       const response = await getSupportTicket(id)
-      setDetail(response)
+      if (selectedTicket.current !== id) return
+      setDetail(current => historyPaged.current && current?.data.id === id ? {
+        ...response,
+        events: [...current.events.filter(event => !response.events.some(fresh => fresh.id === event.id)), ...response.events].sort((a, b) => a.sequence - b.sequence),
+        next_cursor: current.next_cursor,
+      } : response)
       const latest = response.events.at(-1)?.sequence
       if (latest !== undefined) {
         void markSupportTicketRead(id, latest).then(() => {
@@ -109,6 +122,8 @@ function SupportTicketsWorkspace() {
     setLoadingOlder(true)
     try {
       const older = await getSupportTicket(ticketId, detail.next_cursor)
+      if (selectedTicket.current !== ticketId) return
+      historyPaged.current = true
       setDetail((current) => current?.data.id === ticketId ? {
         ...current,
         events: [...older.events, ...current.events.filter((event) => !older.events.some((prior) => prior.id === event.id))],
@@ -135,7 +150,8 @@ function SupportTicketsWorkspace() {
     {error && <p className="mb-4 border border-red-300 bg-red-50 p-3 text-sm text-red-800 dark:border-red-700 dark:bg-red-950/30 dark:text-red-200" role="alert">
       {error} <button className="underline" onClick={changed} type="button">Retry</button>
     </p>}
-    <div className="grid items-start gap-5 lg:grid-cols-[minmax(300px,420px)_minmax(0,1fr)]">
+    <div className="grid overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-600 dark:bg-slate-800 min-[1000px]:grid-cols-[320px_minmax(0,1fr)]">
+      <div className={ticketId ? 'hidden min-[1000px]:block' : 'block'}>
       <SupportTicketQueue
         filters={filters}
         hasMore={Boolean(cursor)}
@@ -146,7 +162,10 @@ function SupportTicketsWorkspace() {
         selectedId={ticketId ?? null}
         tickets={items}
       />
-      <div>
+      </div>
+      <div className={ticketId ? 'min-w-0' : 'hidden min-[1000px]:block'}>
+        {ticketId && <button className="min-h-11 px-4 text-sm font-semibold min-[1000px]:hidden" onClick={() => navigate({ pathname: '/support-tickets', search: searchParams.toString() })}>← All tickets</button>}
+        {!ticketId && <p className="p-8 text-center text-sm text-slate-600 dark:text-slate-300">Select a ticket to view the conversation.</p>}
         {ticketId && !detail && <p className="text-sm text-slate-500 dark:text-slate-400">Loading ticket…</p>}
         {detail && detail.data.id === ticketId && <SupportTicketDetail
           assignees={assignees}

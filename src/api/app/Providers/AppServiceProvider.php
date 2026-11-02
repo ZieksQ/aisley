@@ -38,6 +38,15 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(SellerOrderBecameActionable::class, SendSellerOrderActionableNotification::class);
         Event::listen(CustomerOrderStatusChanged::class, SendCustomerOrderStatusNotification::class);
 
+        // Support writes have separate budgets from browsing, polling, and each other.
+        foreach (['support-ticket-create' => 10, 'support-ticket-reply' => 30] as $name => $attempts) {
+            RateLimiter::for($name, fn (Request $request): Limit => Limit::perMinute($attempts)
+                ->by(implode('|', [
+                    $request->user()?->role->value ?? 'guest',
+                    $request->user()?->getAuthIdentifier() ?? $request->ip(),
+                ])));
+        }
+
         // Chat mutations must not share counters with browsing or polling.
         foreach ([
             'customer-shop-chat-start' => 15,

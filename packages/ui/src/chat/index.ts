@@ -27,3 +27,6 @@ export { ChatAvatar, ChatThreadHeader, ChatEmptyState } from "./presentation";
 
 export { ChatProfileCard, ChatShopAvailability, type ShopAvailability } from "./profile-card";
 export { ChatLoadingThread } from "./loading";
+export { TicketHistory, ticketStatusLabel } from './ticket-history';
+export type { TicketHistoryEvent } from './ticket-history';
+export { TicketViewport } from './ticket-workspace';

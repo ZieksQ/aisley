@@ -1,0 +1,6 @@
+@import '../../../src/logistics/src/index.css';
+@source '../../../src/admin/src';
+@source '../src';
+@source '../../ui/src';
+body { margin: 0; font-family: Geist, sans-serif; background: #f7f5f7; color: #231429; }
+.dark body { background: #0f172a; color: #f1f5f9; }
