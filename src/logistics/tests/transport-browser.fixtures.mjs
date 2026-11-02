@@ -300,7 +300,8 @@ export function installTransportFixtures() {
             courier_id: 'driver-1',
             name: 'Rafael Mendoza',
             email: 'driver@example.test',
-            contact_number: '09171234827'
+            contact_number: '09171234827',
+            vehicle: { vehicle_type: 'motorcycle', plate_number: 'MC 4827' }
           }
         ]
       })

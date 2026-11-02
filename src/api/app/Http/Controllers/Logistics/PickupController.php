@@ -12,6 +12,7 @@ use App\Http\Requests\Logistics\ListPickupCouriersRequest;
 use App\Http\Requests\Logistics\ListPickupSchedulesRequest;
 use App\Http\Requests\Logistics\ListPickupsRequest;
 use App\Http\Requests\Logistics\RevisePickupScheduleRequest;
+use App\Http\Resources\Logistics\CourierAssignmentVehicleResource;
 use App\Models\CourierLogisticsAffiliation;
 use App\Models\PickupSchedule;
 use App\Models\SellerPickupRequest;
@@ -151,7 +152,7 @@ class PickupController extends Controller
             ->where('logistics_hub_id', $org->hub->id)
             ->where('status', CourierAffiliationStatus::Approved)
             ->whereHas('courier', fn ($query) => $query->where('status', UserStatus::Active))
-            ->with('courier.courierProfile')
+            ->with('courier.courierProfile.vehicles')
             ->orderBy('created_at')
             ->get()
             ->map(function ($affiliation) use ($schedulesByCourier, $startsAt, $endsAt): array {
@@ -163,6 +164,7 @@ class PickupController extends Controller
                     'name' => trim(($affiliation->courier->courierProfile?->first_name ?? '').' '.($affiliation->courier->courierProfile?->last_name ?? '')),
                     'email' => $affiliation->courier->email,
                     'contact_number' => $affiliation->courier->courierProfile?->contact_number,
+                    'vehicle' => CourierAssignmentVehicleResource::forProfile($affiliation->courier->courierProfile),
                     'status' => $affiliation->courier->status instanceof UserStatus ? $affiliation->courier->status->value : $affiliation->courier->status,
                     'availability' => $startsAt && $endsAt ? ($hasConflict ? 'scheduled' : 'available') : 'not_checked',
                     'schedules' => $schedules->map(fn (PickupSchedule $schedule): array => [

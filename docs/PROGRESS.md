@@ -81,3 +81,8 @@ Short, dated log of what has been implemented across the whole app. Append new e
 ## 2026-11-02 — Support branch rebase resolution
 
 - Resolved the progress-log conflict by preserving both upstream and support-ticket entries, then completed both commits onto `92e3093c`. No application code required conflict edits. Verified the rebased diff has no whitespace errors or remaining conflict markers.
+
+## 2026-11-03 — Courier vehicle details during Logistics assignment
+
+- Added safe, eager-loaded personal vehicle type/plate summaries to the scoped pickup and dispatch Courier APIs, with null for missing or ambiguous records. Pickup creation/rescheduling and last-mile dispatch/re-offer pickers show vehicle details in options and selected summaries and search by type/plate. Preserved contact/availability, approval and tenant boundaries, assignment limits and separate company-truck linehaul selection; updated canonical specs.
+- Verification: isolated SQLite API suites passed (42 tests, 1,057 assertions); Logistics TypeScript/production build, Oxlint, scoped Pint and diff whitespace checks passed. Synthetic Chromium passed 18 picker scenarios across 320/768/1440px and light/dark themes, covering four vehicle types, missing data, searches, keyboard selection and selected summaries, plus six re-offer checks; narrow/desktop screenshots reviewed. The broader transport smoke repeatedly timed out on Delivery confirmations during its viewport sweep. Existing bundle-size warning and live/deployed/assistive-technology acceptance remain open.

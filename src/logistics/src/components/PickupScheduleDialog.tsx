@@ -4,6 +4,7 @@ import type { RefObject } from 'react'
 import { FaArrowsRotate, FaMagnifyingGlass, FaTruckFast, FaXmark } from 'react-icons/fa6'
 import type { CourierAvailabilityOption } from '../types/pickups'
 import { formatPhtDateTime, localParts, PICKUP_TIME_ZONE, type ScheduleWindow } from '../lib/pickupSchedule'
+import { courierVehicleLabel } from '../lib/courierVehicle'
 import { FlatpickrInput } from './FlatpickrInput'
 
 
@@ -90,7 +91,19 @@ export function CourierPicker({ couriers, courierId, setCourierId, courierLoadin
   return <>
     <span className="block text-sm font-medium">Courier</span>
     <button ref={trigger} aria-controls={`${idPrefix}-courier-picker`} aria-expanded={open} aria-haspopup="dialog" className="mt-1 flex min-h-11 w-full items-center justify-between gap-3 rounded-md border border-slate-300 bg-white px-3 py-2 text-left text-sm outline-none hover:bg-slate-50 focus:border-[#2563EB] focus:ring-2 focus:ring-[#2563EB]/15 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-600 dark:bg-slate-800 dark:hover:bg-white/5 dark:focus:border-blue-400" disabled={couriers.length === 0} onClick={() => { setSearch(''); setOpen(true) }} type="button">
-      {selected ? <span className="min-w-0"><span className="block truncate font-medium">{selected.name || 'Courier'}</span><span className="mt-0.5 block truncate text-xs text-slate-600 dark:text-slate-400">{selected.email}</span></span> : <span className="text-slate-600 dark:text-slate-400">{couriers.length === 0 ? 'No eligible Couriers' : 'Choose a Courier'}</span>}
+      {selected ? (
+        <span className="min-w-0">
+          <span className="block truncate font-medium">{selected.name || 'Courier'}</span>
+          <span className="mt-0.5 block break-words text-sm text-slate-700 dark:text-slate-300">
+            {courierVehicleLabel(selected.vehicle)}
+          </span>
+          <span className="mt-0.5 block truncate text-xs text-slate-600 dark:text-slate-400">{selected.email}</span>
+        </span>
+      ) : (
+        <span className="text-slate-600 dark:text-slate-400">
+          {couriers.length === 0 ? 'No eligible Couriers' : 'Choose a Courier'}
+        </span>
+      )}
       <span className="shrink-0 text-xs font-medium text-[#2563EB] dark:text-blue-300">{selected ? 'Change' : 'Select'}</span>
     </button>
     {selected ? <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">{selected.contact_number ? `${selected.contact_number} · ` : ''}{selected.status === 'active' ? 'Account active' : `Account ${selected.status}`}</p> : null}
@@ -127,7 +140,7 @@ function CourierPickerModal({ couriers, courierId, courierLoading, courierError,
   const filtered = useMemo(() => {
     const needle = search.trim().toLowerCase()
     if (!needle) return couriers
-    return couriers.filter((courier) => `${courier.name} ${courier.email} ${courier.contact_number ?? ''}`.toLowerCase().includes(needle))
+    return couriers.filter((courier) => `${courier.name} ${courier.email} ${courier.contact_number ?? ''} ${courier.vehicle ? courierVehicleLabel(courier.vehicle) : ''}`.toLowerCase().includes(needle))
   }, [couriers, search])
   const checkedWindow = Boolean(startDateTime && endDateTime)
   const windowLabel = checkedWindow ? `${formatPhtDateTime(startDateTime)}–${formatPhtDateTime(endDateTime)} PHT` : ''
@@ -148,7 +161,7 @@ function CourierPickerModal({ couriers, courierId, courierLoading, courierError,
           <label className="relative min-w-0 flex-1">
             <span className="sr-only">Search Couriers</span>
             <FaMagnifyingGlass aria-hidden="true" className="pointer-events-none absolute left-3 top-3 text-slate-400" />
-            <input autoFocus className={`portal-input pl-10!`} onChange={(event) => setSearch(event.target.value)} placeholder="Search name, email, or contact number" type="search" value={search} />
+            <input autoFocus className={`portal-input pl-10!`} onChange={(event) => setSearch(event.target.value)} placeholder="Search name, contact, vehicle type, or plate" type="search" value={search} />
           </label>
           {onRefreshCouriers ? <button aria-label="Refresh Couriers" aria-busy={courierLoading} className="grid size-11 shrink-0 place-items-center rounded-md border border-slate-300 bg-white text-slate-600 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-600 dark:bg-transparent dark:text-slate-300 dark:hover:bg-white/10" disabled={courierLoading} onClick={onRefreshCouriers} title="Refresh Couriers" type="button"><FaArrowsRotate className={courierLoading ? 'animate-spin' : ''} aria-hidden="true" /></button> : null}
         </div>
@@ -160,6 +173,7 @@ function CourierPickerModal({ couriers, courierId, courierLoading, courierError,
                 <FaTruckFast aria-hidden="true" className="mt-1 shrink-0 text-[#2563EB] dark:text-blue-300" />
                 <span className="min-w-0 flex-1">
                   <span className="flex flex-wrap items-start justify-between gap-3"><strong className="font-medium">{courier.name || 'Courier'}</strong><span className={`text-xs font-semibold ${courier.status === 'active' ? 'text-emerald-700 dark:text-emerald-300' : 'text-red-700 dark:text-red-300'}`}>{courier.status === 'active' ? 'Active' : courier.status}</span></span>
+                  <span className="mt-1 block break-words text-sm font-medium text-slate-700 dark:text-slate-300">{courierVehicleLabel(courier.vehicle)}</span>
                   <span className="mt-1 block text-sm text-slate-600 dark:text-slate-300">{courier.email}{courier.contact_number ? ` · ${courier.contact_number}` : ''}</span>
                   <span className={`mt-2 block text-xs font-medium ${courier.availability === 'available' ? 'text-emerald-700 dark:text-emerald-300' : courier.availability === 'scheduled' ? 'text-amber-700 dark:text-amber-300' : 'text-slate-600 dark:text-slate-400'}`}>{availabilityLabel(courier.availability)}</span>
                   {courier.schedules.length > 0 ? <span className="mt-2 block text-xs leading-5 text-slate-600 dark:text-slate-400"><span className="font-medium text-slate-700 dark:text-slate-300">Schedules affecting these dates:</span> {courier.schedules.map((schedule) => `${formatPhtDateTime(schedule.starts_at)}–${formatPhtDateTime(schedule.ends_at)} PHT`).join(' · ')}</span> : null}

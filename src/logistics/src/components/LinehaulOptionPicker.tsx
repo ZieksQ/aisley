@@ -73,9 +73,14 @@ export function LinehaulOptionPicker({
         {selected ? (
           <span className="min-w-0">
             <span className="block truncate font-medium">{selected.title}</span>
-            <span className="mt-0.5 block truncate text-xs text-zinc-500">
+            <span className="mt-0.5 block break-words text-xs text-zinc-600 dark:text-zinc-300">
               {selected.description}
             </span>
+            {selected.detail ? (
+              <span className="mt-0.5 block break-words text-xs text-zinc-500">
+                {selected.detail}
+              </span>
+            ) : null}
           </span>
         ) : (
           <span className="text-zinc-500">
@@ -126,11 +131,11 @@ export function LinehaulOptionPicker({
                       <strong className="block truncate font-medium">
                         {option.title}
                       </strong>
-                      <span className="mt-1 block text-sm text-zinc-600 dark:text-zinc-300">
+                      <span className="mt-1 block break-words text-sm text-zinc-600 dark:text-zinc-300">
                         {option.description}
                       </span>
                       {option.detail ? (
-                        <span className="mt-1 block text-xs text-zinc-500">
+                        <span className="mt-1 block break-words text-xs text-zinc-500">
                           {option.detail}
                         </span>
                       ) : null}

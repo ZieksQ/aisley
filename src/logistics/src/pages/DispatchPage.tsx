@@ -1,3 +1,4 @@
+import { courierVehicleLabel } from '../lib/courierVehicle'
 import '../features/transport.css'
 import { PortalButton as ActionButton, PortalSkeleton } from '@aisley/ui/portal'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -166,7 +167,22 @@ export function DispatchPage() {
       <aside className={`${panel} p-3 lg:sticky lg:top-20`}>
         <h3 className="font-semibold">Create delivery schedule</h3>
         <div className="mt-3">
-          <LinehaulOptionPicker id="dispatch-courier" label="Courier" emptyLabel="Choose a Courier" modalTitle="Choose a Courier" modalDescription="Active, approved Couriers from this Logistics hub. Eligibility is rechecked when the dispatch is created." options={couriers.map((courier) => ({ id: courier.courier_id, title: courier.name, description: courier.email, detail: courier.contact_number ?? undefined }))} value={courierId} onChange={setCourierId} disabled={busy || loading} />
+          <LinehaulOptionPicker
+            id="dispatch-courier"
+            label="Courier"
+            emptyLabel="Choose a Courier"
+            modalTitle="Choose a Courier"
+            modalDescription="Active, approved Couriers from this Logistics hub. Eligibility is rechecked when the dispatch is created."
+            options={couriers.map((courier) => ({
+              id: courier.courier_id,
+              title: courier.name,
+              description: courierVehicleLabel(courier.vehicle),
+              detail: [courier.email, courier.contact_number].filter(Boolean).join(' · '),
+            }))}
+            value={courierId}
+            onChange={setCourierId}
+            disabled={busy || loading}
+          />
         </div>
         <label className="mt-3 block text-sm font-medium" htmlFor="dispatch-schedule">Delivery schedule</label>
         <FlatpickrInput id="dispatch-schedule" className={`${field} mt-1`} value={scheduledFor} onChange={setScheduledFor} options={{ enableTime: true, time_24hr: true, dateFormat: 'Y-m-d H:i', minDate: 'today', minuteIncrement: 15 }} />

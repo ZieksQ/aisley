@@ -160,3 +160,8 @@ The dispatch confirmation must show the task/leg, pickup and destination summari
 ## Last-mile dispatch redesign — 2026-11-01
 
 The existing `/dispatch` workspace adopts shared Logistics portal controls, blue selection, slate surfaces, a clearer task header, and matching loading skeletons. Parcel selection and the Courier/schedule panel remain separate, stacking on narrow screens. Recent dispatch schedules use a labeled horizontally scrollable table with schedule, Courier contact, time, source lanes, and parcel count. Preserve the 15-parcel limit, explicit lane combining, revision checks, Courier acceptance, rejected-offer recovery, and unchanged-payload idempotency.
+
+## Courier vehicle selection — 2026-11-03
+
+- `GET /api/v1/logistics/dispatch/couriers` adds `vehicle: { vehicle_type, plate_number } | null` for the Courier's sole registered personal vehicle. Supported types are `motorcycle`, `car`, `van`, and `truck`. Missing profiles, missing vehicles, or ambiguous cardinality yield `null`; private evidence and storage fields are excluded. Vehicle loading remains eager and organization/hub, active-account and approval scope remain enforced.
+- Last-mile dispatch and rejected-offer reassignment show the vehicle type and plate in the Courier picker and selected summary, preserve contact information, and allow searching by type or plate. Missing summaries show **Vehicle information unavailable**. Assignment rules and the 15-parcel limit remain unchanged. Linehaul retains its separate company-truck selection.

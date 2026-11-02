@@ -1,3 +1,5 @@
+import type { CourierAssignmentVehicle } from './vehicles'
+
 export type PickupStatus = 'pending_logistics' | 'partially_scheduled' | 'scheduled'
 
 export type PickupSchedule = {
@@ -50,6 +52,7 @@ export type CourierOption = { id: string; name: string; email: string }
 export type CourierSchedule = { id: string; reference: string; starts_at: string; ends_at: string }
 export type CourierAvailabilityOption = CourierOption & {
   contact_number: string | null
+  vehicle: CourierAssignmentVehicle | null
   status: string
   availability: 'available' | 'scheduled' | 'not_checked'
   schedules: CourierSchedule[]
