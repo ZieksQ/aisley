@@ -109,6 +109,12 @@
 - Processing requires PHP CLI/GD JPEG/PNG/WebP support, subprocess execution and writable private staging storage. Temporary files are removed on success/failure. Store the new object before transactional replacement; failed storage/database writes preserve the prior photo and clean up the new object best-effort. Old-object deletion after commit remains best-effort.
 - This processing is validation, not a new malware scanner, derivative pipeline, public-media policy or upload replay contract.
 
+## Customer account ID images
+
+- Optional Customer ID images use the same strict under-10-MiB JPEG/PNG/WebP input policy and 8,000-pixel edge / 40-megapixel bounds as Customer profile photos, including isolated decode/rewrite, metadata removal, and validation of stored bytes.
+- ID images are private personal documents, stored separately from profile photos and registration evidence. Serve only through the authenticated active-Customer owner endpoint with `private, no-store` and `nosniff` headers; do not expose storage paths, public or signed URLs, ID numbers, or review status.
+- Replacement preserves the previous image on processing or persistence failure. Successful replacement/removal deletes the former object best-effort; the app does not retain version history. This feature does not add malware scanning or manual verification.
+
 ## HOW
 
 - Laravel Form Requests should enforce the baseline extension/MIME/size allowlist; a dedicated upload service should perform image decoding, generated naming, storage, metadata persistence, and optional scanning.

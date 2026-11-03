@@ -891,6 +891,13 @@ Route::prefix('v1/customer')->name('customer.')->middleware('throttle:120,1')->g
             ->name('account.photo.show');
         Route::delete('/account/profile-photo', [CustomerAccountController::class, 'removeProfilePhoto'])
             ->name('account.photo.destroy');
+        Route::post('/account/id-image', [CustomerAccountController::class, 'uploadIdImage'])
+            ->middleware('throttle:customer-id-image')
+            ->name('account.id-image.store');
+        Route::get('/account/id-image', [CustomerAccountController::class, 'idImage'])
+            ->name('account.id-image.show');
+        Route::delete('/account/id-image', [CustomerAccountController::class, 'removeIdImage'])
+            ->name('account.id-image.destroy');
         Route::get('/addresses', [CustomerAddressController::class, 'index'])->name('addresses.index');
         Route::post('/addresses', [CustomerAddressController::class, 'store'])->name('addresses.store');
         Route::patch('/addresses/{address}', [CustomerAddressController::class, 'update'])

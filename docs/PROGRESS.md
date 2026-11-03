@@ -116,3 +116,8 @@ Short, dated log of what has been implemented across the whole app. Append new e
 
 - Added a branded, responsive fallback for unmatched storefront URLs with the existing marketplace header/footer and a home recovery link. Documented the 404 contract; existing resource-specific not-found screens and protected-route gates remain in place.
 - Verification: storefront TypeScript, targeted ESLint, and production build passed. An unknown public URL returned HTTP 404 with the home action and noindex metadata. Chromium at 320/390/768/1440px found no horizontal overflow; the 44px home action received visible keyboard focus. The local API was unavailable during visual review, so the existing session-check banner appeared; deployed acceptance remains open.
+
+## 2026-11-03 — Customer account ID image
+
+- Added an optional single private ID image to Customer Account Settings, separate from profile photos and registration evidence. Added owner-only upload/read/remove APIs, private storage metadata, image processing, and the Buyer API contract without adding ID-number/type or review-status fields or a Flutter UI.
+- Verification: Customer ID-image and profile-photo API suites passed (39 tests, 281 assertions); storefront TypeScript, targeted ESLint, Webpack production build, Pint, route listing, portable JSON parsing, and diff checks passed. The Chromium smoke passed selection, preview, upload progress, success/error feedback focus, failed-upload preservation, replacement, confirmed removal, and overflow checks at 320/390/768/1440px with synthetic API responses. Deployed storage ACL and device acceptance remain open.

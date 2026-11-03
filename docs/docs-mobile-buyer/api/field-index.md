@@ -82,6 +82,7 @@ Use [operation contracts](operations.md) for envelopes and [machine-readable def
 | `birthDate` | `date` | null allowed; required |
 | `age` | `int` | null allowed; required |
 | `profilePhotoUrl` | `URL` | null allowed; required |
+| `idImageUrl` | `URL` | null allowed; required; private authenticated Customer delivery |
 
 ## Security
 

@@ -57,6 +57,28 @@ export async function removeCustomerProfilePhoto() {
   });
 }
 
+export function uploadCustomerIdImage(
+  image: File,
+  onProgress?: (percent: number) => void,
+) {
+  const body = new FormData();
+  body.append("id_image", image);
+
+  return apiUploadRequest<CustomerPhotoMutationResponse>(
+    `${accountPath}/id-image`,
+    body,
+    onProgress,
+  );
+}
+
+export async function removeCustomerIdImage() {
+  await initializeCsrf();
+
+  return apiRequest<CustomerPhotoMutationResponse>(`${accountPath}/id-image`, {
+    method: "DELETE",
+  });
+}
+
 export async function requestCustomerPasswordCode(payload: PasswordDraft, context?: PasswordRequestContext) {
   await initializeCsrf(context?.signal);
   if (context && (!context.isCurrent() || context.signal.aborted)) throw new Error("This password request is no longer current.");

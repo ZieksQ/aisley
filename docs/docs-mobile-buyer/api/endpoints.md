@@ -30,6 +30,9 @@ Customer feature routes generally include `throttle:120,1`; focused throttles ar
 | `POST` | `/api/v1/customer/account/profile-photo` | Active Customer + consent | 120,1, customer-profile-photo | `Customer\AccountController@uploadProfilePhoto` |
 | `GET` | `/api/v1/customer/account/profile-photo` | Active Customer + consent | 120,1 | `Customer\AccountController@profilePhoto` |
 | `DELETE` | `/api/v1/customer/account/profile-photo` | Active Customer + consent | 120,1 | `Customer\AccountController@removeProfilePhoto` |
+| `POST` | `/api/v1/customer/account/id-image` | Active Customer + consent | 120,1 + 10/min per Customer/IP | `Customer\AccountController@uploadIdImage` |
+| `GET` | `/api/v1/customer/account/id-image` | Active Customer + consent | 120,1 | `Customer\AccountController@idImage` |
+| `DELETE` | `/api/v1/customer/account/id-image` | Active Customer + consent | 120,1 | `Customer\AccountController@removeIdImage` |
 
 ## Customer / addresses
 
@@ -255,7 +258,7 @@ the role's `{key,label}` category options and each notification DTO includes `ca
 - There is no Buyer push-device registration, notification unread-count/read-all, voucher code-entry, native-reset-link, applicant-status, live-location, delivery-POD, online-payment, returns/refunds or arbitrary-user messaging API promised by this inventory.
 - Customer methods differ from other roles: account password is PATCH, avatar part is photo, review part image, Q&A part question, support description part body, Shop read sequence versus operational read last_read_sequence.
 
-The current [111 typed operation records](operation-index.json) cover the 95 historical operations, logistics-options and seven chat-media operations with synthetic JSON or binary metadata examples. Auxiliary address-options remain optional; media consumes returned URLs. [Standalone requests/envelopes](operations.md) are authoritative local definitions, with no monorepo reading dependency.
+The current [114 typed operation records](operation-index.json) cover the 95 historical operations, logistics-options, seven chat-media operations and three Customer ID-image operations with synthetic JSON or binary metadata examples. Auxiliary address-options remain optional; media consumes returned URLs. [Standalone requests/envelopes](operations.md) are authoritative local definitions, with no monorepo reading dependency.
 
 ## Additive chat media endpoints — 2026-10-06
 

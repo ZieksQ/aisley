@@ -2,7 +2,7 @@
 
 > **Status:** Implemented foundation, marketplace/order schema, Product Q&A, Customer Product Reviews, Seller Review Management, Seller-to-Logistics pickup scheduling, shared waybills, first-mile pickup confirmation, and final-mile fulfillment flow
 >
-> **Last synchronized:** 2026-10-03 (Courier/Flutter contracts, company-truck transfer, and COD delivery wording; no schema change)
+> **Last synchronized:** 2026-11-03 (Customer private ID-image metadata and delivery)
 >
 > **Database:** PostgreSQL 18.3
 >
@@ -299,6 +299,12 @@ Each profile has a UUID primary key and a unique UUID `user_id`, enforcing at mo
 | `profile_photo_size` | BIGINT          | Yes      | Image bytes                                 |
 | `profile_photo_width` | INTEGER        | Yes      | Image width in pixels                       |
 | `profile_photo_height` | INTEGER       | Yes      | Image height in pixels                      |
+| `id_image_disk` | VARCHAR | Yes | Customer-only configured private filesystem disk |
+| `id_image_path` | TEXT | Yes | Customer-only generated private ID-image path |
+| `id_image_mime` | VARCHAR(127) | Yes | Customer-only server-detected image MIME |
+| `id_image_size` | BIGINT | Yes | Customer-only rewritten image bytes |
+| `id_image_width` | INTEGER | Yes | Customer-only image width in pixels |
+| `id_image_height` | INTEGER | Yes | Customer-only image height in pixels |
 | `promotional_in_app_opted_in` | BOOLEAN | No | Customer-only, default `false`; explicit in-app marketing opt-in |
 | `promotional_in_app_opted_in_at` | TIMESTAMP | Yes | Customer-only latest opt-in time; cleared on opt-out |
 | `created_at`         | TIMESTAMP       | Yes      | Managed by Eloquent                         |
@@ -311,6 +317,8 @@ Additional relationships:
 - Age is calculated from `birth_date`; it is not stored as a column.
 
 A Customer, Seller, and Courier profile photo is stored on the configured Laravel filesystem (Azure Blob when `FILESYSTEM_DISK=azure`). Each profile table stores nullable `profile_photo_disk`, `profile_photo_mime`, `profile_photo_size`, `profile_photo_width`, and `profile_photo_height` metadata alongside the generated relative `profile_photo_path`. The APIs never expose these storage fields; authenticated delivery uses each role's current-account profile-photo endpoint with private, no-store response headers. Courier photo metadata is added by `2026_09_10_000008_add_courier_profile_photo_metadata.php` without modifying the executed Courier-profile creation migration.
+
+Customer ID images have separate nullable disk/path/MIME/size/dimension columns on `customer_profiles`. They are optional private account documents, separate from profile photos and registration `documents`, and are served only through authenticated owner delivery with `private, no-store` and `nosniff`. The API exposes only nullable `idImageUrl`; no ID number, storage path, signed URL, review status, or image history is stored. Additive migration: `2026_11_03_000002_add_customer_id_image_metadata.php`.
 
 #### `admin_profiles`
 
@@ -1498,6 +1506,7 @@ Repository migrations are listed below in filename execution order; this invento
 90. `2026_09_27_000001_add_route_based_shipping_rates.php` — Admin destination-region surcharges, Seller Shop provider allow-lists, versioned Logistics category/service rate cards, selected-provider and frozen-route pricing snapshots, quoted allocation weights, and audited route reconciliation.
 91. `2026_10_03_000001_add_logistics_service_base_fees.php` — organization/card-owned service base fees and a string-backed snapshot pricing-model marker; backfills one highest legacy category base per service without altering existing rules or Order totals.
 92. `2026_10_03_000002_use_shop_categories_for_logistics_rate_rules.php` — adds main Shop Category rate-rule references while retaining legacy Product Category rules and preserving placed Order snapshots.
+93. `2026_11_03_000002_add_customer_id_image_metadata.php` — nullable private configured-disk path and validated image metadata for one optional Customer account ID image.
 
 ### Route-based shipping and allocation extension
 

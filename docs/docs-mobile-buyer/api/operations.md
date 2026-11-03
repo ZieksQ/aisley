@@ -1190,6 +1190,39 @@ Stable `voucher-collection-001` through `voucher-collection-007` in [operation i
 - Notes: [Registration email contract](../registration-email.md).
 - [Synthetic examples](examples/customer-auth.json).
 
+## op-115
+
+`GET /api/v1/customer/account/id-image`
+
+- Access: Active Customer + consent; scoped bearer or web session.
+- Request: No body; optional version query from the account DTO. Never put a bearer token in the URL.
+- Response: HTTP 200; private image bytes. Missing image returns 404.
+- Retry: Bounded authenticated read retry; reject obsolete session/query generations.
+- Notes: `private, no-store` and `nosniff`; synthetic binary metadata only.
+- [Synthetic examples](operation-index.json).
+
+## op-116
+
+`POST /api/v1/customer/account/id-image`
+
+- Access: Active Customer + consent; scoped bearer or web session/CSRF.
+- Request: Multipart `id_image`; JPEG/PNG/WebP, strictly under 10 MiB, matching single extension, no more than 8,000 pixels per edge or 40 megapixels. Server decodes and rewrites before private storage; invalid input returns 422 on `id_image`.
+- Response: HTTP 200; `{message:string,account:Account,customer:Navigation}`.
+- Retry: No replay key. After timeout/cancellation, reread account state before a deliberate new upload.
+- Notes: One optional ID image, separate from profile photo and registration evidence. Upload limit: 10 per minute per Customer/IP. No review/verified status.
+- [Synthetic examples](operation-index.json).
+
+## op-117
+
+`DELETE /api/v1/customer/account/id-image`
+
+- Access: Active Customer + consent; scoped bearer or web session/CSRF.
+- Request: No body; the Customer comes from authentication.
+- Response: HTTP 200; `{message:string,account:Account,customer:Navigation}` with nullable `idImageUrl` cleared.
+- Retry: No replay key. After timeout/cancellation, reread account state before deciding whether to repeat removal.
+- Notes: Metadata clears transactionally; object deletion is best-effort and no image history remains.
+- [Synthetic examples](operation-index.json).
+
 ### Atomic policy acceptance — policy-consent-batch-v1
 
 `POST /api/v1/policy-consent/accept` accepts one or two pending, explicitly confirmed current Terms/Privacy versions in one transaction. See the [shared policy contract](../features/shared/policy-viewing-consent/spec.md#combined-acceptance--policy-consent-batch-v1-2026-11-03) for exact JSON, response, authorization, conflict, cache and retry behavior. The single-policy operation remains compatible with older clients.
