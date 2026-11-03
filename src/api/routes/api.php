@@ -435,6 +435,9 @@ Route::prefix('v1/seller')->name('seller.')->middleware(['auth:sanctum', 'seller
     Route::post('/account/profile-photo', [SellerAccountController::class, 'uploadProfilePhoto'])->middleware('throttle:10,1')->name('account.photo.store');
     Route::get('/account/profile-photo', [SellerAccountController::class, 'profilePhoto'])->name('account.photo.show');
     Route::delete('/account/profile-photo', [SellerAccountController::class, 'removeProfilePhoto'])->name('account.photo.destroy');
+    Route::post('/account/shop-cover', [SellerAccountController::class, 'uploadShopCover'])->middleware('throttle:10,1')->name('account.shop-cover.store');
+    Route::get('/account/shop-cover', [SellerAccountController::class, 'shopCover'])->name('account.shop-cover.show');
+    Route::delete('/account/shop-cover', [SellerAccountController::class, 'removeShopCover'])->name('account.shop-cover.destroy');
     Route::get('/pickup-addresses', [SellerPickupAddressController::class, 'index'])->name('pickup-addresses.index');
     Route::post('/pickup-addresses', [SellerPickupAddressController::class, 'store'])->name('pickup-addresses.store');
     Route::patch('/pickup-addresses/{address}', [SellerPickupAddressController::class, 'update'])->whereUuid('address')->name('pickup-addresses.update');
@@ -813,6 +816,7 @@ Route::prefix('v1/customer')->name('customer.')->middleware('throttle:120,1')->g
     Route::post('/products/resolve', [RecentlyViewedController::class, 'resolve'])->name('products.resolve');
     Route::get('/shops', [ShopBrowseController::class, 'index'])->name('shops.index');
     Route::get('/shops/{slug}', [ShopBrowseController::class, 'show'])->name('shops.show');
+    Route::get('/shops/{slug}/cover', [ShopBrowseController::class, 'cover'])->name('shops.cover');
     Route::get('/shops/{slug}/products', [ShopBrowseController::class, 'products'])->name('shops.products.index');
     Route::get('/vouchers', [CustomerVoucherController::class, 'index'])->name('vouchers.index');
     Route::get('/vouchers/{voucher}', [CustomerVoucherController::class, 'show'])->whereUuid('voucher')->name('vouchers.show');

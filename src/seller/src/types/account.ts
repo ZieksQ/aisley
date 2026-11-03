@@ -23,6 +23,7 @@ export type SellerAccount = {
     contact_email: string | null
     contact_number: string | null
     website: string | null
+    cover_url: string | null
     is_on_vacation: boolean
     vacation_message: string | null
   }

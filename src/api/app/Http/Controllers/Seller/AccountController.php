@@ -8,6 +8,7 @@ use App\Http\Requests\Seller\UpdateOwnPasswordRequest;
 use App\Http\Requests\Seller\UpdateOwnProfileRequest;
 use App\Http\Requests\Seller\UpdateOwnStorefrontRequest;
 use App\Http\Requests\Seller\UploadOwnProfilePhotoRequest;
+use App\Http\Requests\Seller\UploadOwnShopCoverRequest;
 use App\Http\Resources\Seller\SellerAccountResource;
 use App\Http\Resources\Seller\SellerUserResource;
 use App\Models\User;
@@ -86,6 +87,34 @@ class AccountController extends Controller
         return $this->updated(
             $this->accounts->removeProfilePhoto($this->seller($request), $this->context($request)),
             'Profile photo removed successfully.',
+        );
+    }
+
+    public function uploadShopCover(UploadOwnShopCoverRequest $request): JsonResponse
+    {
+        return $this->updated(
+            $this->accounts->updateShopCover($this->seller($request), $request->file('photo'), $this->context($request)),
+            'Shop cover updated successfully.',
+        );
+    }
+
+    public function shopCover(Request $request): StreamedResponse
+    {
+        $shop = $this->seller($request)->shop;
+        abort_unless($shop?->banner_disk && $shop->banner_path, 404);
+
+        return Storage::disk($shop->banner_disk)->response($shop->banner_path, null, [
+            'Content-Type' => $shop->banner_mime ?? 'application/octet-stream',
+            'Cache-Control' => 'private, no-store',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
+    }
+
+    public function removeShopCover(Request $request): JsonResponse
+    {
+        return $this->updated(
+            $this->accounts->removeShopCover($this->seller($request), $this->context($request)),
+            'Shop cover removed successfully.',
         );
     }
 

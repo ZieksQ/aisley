@@ -4,6 +4,7 @@ namespace App\Services\Seller;
 
 use App\Models\User;
 use App\Services\Account\PasswordChangeVerification;
+use App\Services\Customer\ProfilePhoto\ImageRewriter;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -125,6 +126,88 @@ class SellerAccountService
             $this->securityLog($seller, 'seller_account.profile_photo_removed', ['profile_photo'], $context);
         });
 
+        $this->deleteQuietly($disk, $path);
+
+        return $this->load($seller);
+    }
+
+    public function updateShopCover(User $seller, UploadedFile $photo, array $context): User
+    {
+        $source = file_get_contents($photo->getRealPath(), false, null, 0, ImageRewriter::MAX_BYTES);
+        if (! is_string($source) || strlen($source) >= ImageRewriter::MAX_BYTES) {
+            throw ValidationException::withMessages(['photo' => 'The Shop cover must be smaller than 10 MiB.']);
+        }
+        $rewriter = new ImageRewriter;
+        try {
+            $metadata = $rewriter->inspect($source);
+            $parts = explode('.', basename(str_replace('\\', '/', $photo->getClientOriginalName())));
+            $extension = strtolower(end($parts));
+            $extension = $extension === 'jpeg' ? 'jpg' : $extension;
+            if (count($parts) !== 2 || $extension !== $metadata['extension']) {
+                throw ValidationException::withMessages(['photo' => 'The Shop cover filename must have one extension matching its image type.']);
+            }
+            $bytes = $rewriter->rewrite($source);
+        } catch (RuntimeException $exception) {
+            throw ValidationException::withMessages(['photo' => [$exception->getMessage()]]);
+        }
+        unset($source);
+        $metadata = $rewriter->inspect($bytes);
+        $disk = (string) config('filesystems.default', 'local');
+        $path = 'shop-covers/'.$seller->id.'/'.Str::uuid().'.'.$metadata['extension'];
+        if (! Storage::disk($disk)->put($path, $bytes)) {
+            throw new RuntimeException('The Shop cover could not be stored.');
+        }
+        unset($bytes);
+
+        $oldDisk = null;
+        $oldPath = null;
+        try {
+            DB::transaction(function () use ($seller, $disk, $path, $metadata, $context, &$oldDisk, &$oldPath): void {
+                $shop = $seller->shop()->lockForUpdate()->firstOrFail();
+                $oldDisk = $shop->banner_disk;
+                $oldPath = $shop->banner_path;
+                $shop->update([
+                    'banner_disk' => $disk,
+                    'banner_path' => $path,
+                    'banner_mime' => $metadata['mime'],
+                    'banner_size' => $metadata['size'],
+                    'banner_width' => $metadata['width'],
+                    'banner_height' => $metadata['height'],
+                    'banner_version' => (string) Str::uuid(),
+                ]);
+                $this->securityLog($seller, 'seller_account.shop_cover_updated', ['shop_cover'], $context);
+            });
+        } catch (Throwable $exception) {
+            Storage::disk($disk)->delete($path);
+            throw $exception;
+        }
+        $this->deleteQuietly($oldDisk, $oldPath);
+
+        return $this->load($seller);
+    }
+
+    public function removeShopCover(User $seller, array $context): User
+    {
+        $disk = null;
+        $path = null;
+        DB::transaction(function () use ($seller, $context, &$disk, &$path): void {
+            $shop = $seller->shop()->lockForUpdate()->firstOrFail();
+            if (! $shop->banner_path) {
+                return;
+            }
+            $disk = $shop->banner_disk;
+            $path = $shop->banner_path;
+            $shop->update([
+                'banner_disk' => null,
+                'banner_path' => null,
+                'banner_mime' => null,
+                'banner_size' => null,
+                'banner_width' => null,
+                'banner_height' => null,
+                'banner_version' => null,
+            ]);
+            $this->securityLog($seller, 'seller_account.shop_cover_removed', ['shop_cover'], $context);
+        });
         $this->deleteQuietly($disk, $path);
 
         return $this->load($seller);

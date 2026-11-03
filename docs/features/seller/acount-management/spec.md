@@ -13,9 +13,9 @@ scope: Seller Web Application and Laravel API
 
 ## WHAT
 
-- **Purpose:** Let an approved active Seller manage their own profile, the one Shop's storefront details, login email/password, vacation state, and profile photo.
+- **Purpose:** Let an approved active Seller manage their own profile, the one Shop's storefront details and cover photo, login email/password, vacation state, and profile photo.
 - **Authority:** React/Vite owns forms and feedback; Laravel owns allow-lists, validation, Seller/Shop scope, re-authentication, storage, and safe DTOs.
-- **Current implementation:** profile/storefront editing, vacation fields, current-password-protected email/password changes, private profile-photo upload/view/replace/remove, and a Seller pickup-address book are available at `/account`.
+- **Current implementation:** profile/storefront editing, vacation fields, current-password-protected email/password changes, private profile-photo upload/view/replace/remove, Shop cover upload/preview/replace/remove, and a Seller pickup-address book are available at `/account`.
 - **One-Shop rule:** a Seller edits the registration-created Shop. Account Management never creates a second Shop; incomplete required storefront data is surfaced as `SHOP_SETUP_REQUIRED` by the Dashboard.
 - **Boundaries:** Seller Auth owns sessions/recovery; Admin owns status, approval, compliance, and controlled review; Product/Catalog owns product data; Inventory owns balances; payout integrations own provider secrets.
 - **Non-goals:** role/status/permission changes, Admin decisions, another Seller's data, arbitrary column patches, Seller closure, MFA, payouts without an approved provider, notification preferences, or replacement evidence review.
@@ -59,6 +59,16 @@ scope: Seller Web Application and Laravel API
 - Store bytes on the configured filesystem (including Azure Blob when selected) and only validated disk/path metadata on `SellerProfile`. Return an authorized application URL with private/no-store headers, never the raw path or public blob URL.
 - Replacing a photo updates metadata transactionally and removes the previous object only after the new record commits. A failed persistence operation removes the newly stored object.
 
+### Shop cover photo
+
+- An active Seller manages one optional cover for the Shop resolved from their authenticated account. Profile photos and Shop covers have independent controls and storage keys.
+- Follow the shared image upload requirements: accept JPEG/JPG, PNG, and WebP, strictly below 10 MiB; verify bytes, type, filename extension, and successful decoding server-side; reject corrupt or spoofed files with a `422` `photo` error.
+- Apply the existing Customer profile-image processing bounds (8,000 pixels per edge, 40 megapixels total, bounded reads, isolated rewrite with timeout and memory ceiling). Strip source metadata and store the verified rewritten image.
+- Store generated asset keys and disk/MIME/size/dimension metadata on the Shop. Never accept a Seller-selected Shop ID, disk, or path. Keep the previous cover until its replacement commits; remove the old object after commit and best-effort delete a new object after persistence failure.
+- The Seller receives an authenticated, private/no-store preview URL. Buyer `bannerUrl` remains nullable and uses a versioned public application route for new covers; that route resolves the active, Buyer-visible Shop before streaming bytes and never exposes storage paths.
+- Existing Shop banners without new metadata retain their current public URL behavior. Uploading or removing a cover only changes the cover fields and does not alter Shop visibility, status, vacation state, or logo.
+- Seller settings show the current or selected-file preview, upload progress, format/size help, retryable errors, replace, and confirmed removal. The responsive storefront uses a centered crop; it does not promise a seller-controlled focal point.
+
 ### Notices, audit, and concurrency
 
 - Seller security activity is a safe operational log; it is not an Admin-only audit-ledger mutation. Do not record passwords, hashes, complete emails/payout data, files, or private URLs.
@@ -73,16 +83,17 @@ scope: Seller Web Application and Laravel API
 - [x] The Shop vacation state/message and current-password email/password flows are enforced by Laravel.
 - [x] Role, status, slug, category, Admin decisions, and other protected fields cannot be self-edited.
 - [x] Profile-photo replacement/removal is authorized, validated, private, and path-safe.
+- [x] Shop cover replacement/removal is owner-scoped, validated and rewritten, with private Seller preview and visibility-gated Buyer delivery.
 - [x] Account DTOs mask security-sensitive data and account mutations emit secret-free operational logs.
 - [x] A Seller manages multiple isolated pickup addresses with one default and selects one saved address for each solo or bulk pickup request.
 - [ ] Controlled review, payout tokenization, preference matrix, MFA, document replacement, notification delivery policy, and Seller-initiated closure are approved and implemented.
 
 ## HOW
 
-- Current routes are `GET/PATCH /api/v1/seller/account`, profile/storefront/email updates, `PUT /account/password`, and `POST/GET/DELETE /account/profile-photo` under `auth:sanctum,seller.active`.
+- Current routes are `GET/PATCH /api/v1/seller/account`, profile/storefront/email updates, `PUT /account/password`, and `POST/GET/DELETE /account/profile-photo` and `/account/shop-cover` under `auth:sanctum,seller.active`.
 - Pickup address routes are `GET/POST /api/v1/seller/pickup-addresses` and `PATCH/DELETE /api/v1/seller/pickup-addresses/{address}` under the same active-Seller boundary.
 - Current implementation is `src/api/app/Http/Controllers/Seller/AccountController.php`, `SellerAccountService`, Seller Form Requests/Resources, and the configured filesystem. `SellerAccountService` locks profile rows, stores generated photo keys, redacts logs, and cleans up replaced objects.
-- The Seller `/account` pages consume the credentialed API and show profile, storefront, vacation, security, and photo controls. Do not add unsupported payout/preference panels as if they were live.
+- The Seller `/account` pages consume the credentialed API and show profile, storefront, vacation, security, profile-photo, and Shop-cover controls. Do not add unsupported payout/preference panels as if they were live.
 - Keep migrations additive; enum-like values remain strings with PHP enum casts. Add controlled-change or asset metadata tables only after their policies are approved.
 - Test Seller isolation, protected-field rejection, validation, current-password failures, role-scoped email uniqueness, password hashing/token invalidation, photo MIME/extension/size spoofing, private delivery, replacement rollback, and stale writes. Run Seller lint, TypeScript, build, and API tests on SQLite/PostgreSQL.
 
@@ -92,14 +103,17 @@ scope: Seller Web Application and Laravel API
 - `PATCH /account/profile` accepts only profile fields; `PATCH /account/storefront` accepts only storefront/vacation fields. Neither route accepts status, slug, category, reviewer, or ownership values.
 - `PATCH /account/email` and `PUT /account/password` require `current_password` and return no credential material. Password changes delete applicable personal access tokens; the shared web-session reset policy remains open.
 - `POST /account/profile-photo` accepts one `photo` field; `GET` streams the authorized private object; `DELETE` removes metadata and the old object. Responses expose a versioned application URL, not a storage path.
+- `POST /account/shop-cover` accepts one multipart `photo`; `GET` streams the authenticated Seller's private cover for preview; `DELETE` removes its metadata and object. Account resources expose a versioned private preview URL, not a disk path.
 - The Seller SPA keeps saving, validation, upload, retry, and account-status feedback in the Account page; it must not present deferred payout, preferences, or controlled-review controls as live.
 
 ### Data and privacy boundaries
 
 - Profile and Shop writes are separate allow-listed operations so an unexpected field cannot mass-assign `users`, `seller_profiles`, or `shops` columns.
 - A private profile photo is not a public Shop asset. It is available only to the authenticated owner, with `private, no-store` delivery and `nosniff` headers.
+- A Shop cover is stored privately. The public delivery endpoint returns bytes only after the existing `Shop::storefrontVisible()` check succeeds; it sets the stored image MIME type and `nosniff`, and the immutable version query permits bounded public caching.
 - Shop description and vacation message are untrusted text. Buyer surfaces sanitize/render them through their owning storefront contract.
 - A profile-photo replacement keeps the old object until the new metadata commits; a failed transaction deletes only the newly uploaded object.
+- A cover replacement keeps the previous cover available until the new metadata commits. Generated version identifiers prevent image caches from showing a prior cover after replacement.
 - Security logs contain action/result, changed field names, request ID, and safe actor context only. Admin audit history is not a substitute for Seller self-service logs.
 
 ### Future policy gates

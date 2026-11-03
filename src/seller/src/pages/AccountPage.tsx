@@ -6,7 +6,8 @@ import { FaCamera, FaCircleCheck, FaRotateRight, FaTrashCan } from 'react-icons/
 import { useAuth } from '../auth/useAuth'
 import { SellerAvatar } from '../components/SellerAvatar'
 import { PickupAddressBook } from '../components/PickupAddressBook'
-import { ApiError, apiRequest } from '../lib/api'
+import { ApiError, apiRequest, uploadForm } from '../lib/api'
+import { ShopCoverPreview } from '../components/ShopCoverPreview'
 import type { SellerAccount, SellerAccountMutationResponse, SellerAccountResponse } from '../types/account'
 
 type ProfileForm = {
@@ -39,6 +40,8 @@ export function AccountPage() {
   const [email, setEmail] = useState('')
   const [emailPassword, setEmailPassword] = useState('')
   const [photo, setPhoto] = useState<File | null>(null)
+  const [shopCover, setShopCover] = useState<File | null>(null)
+  const [coverProgress, setCoverProgress] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [busy, setBusy] = useState<string | null>(null)
   const [errors, setErrors] = useState<Record<string, string[]>>({})
@@ -179,6 +182,42 @@ export function AccountPage() {
     } catch (error) { fail(error) } finally { setBusy(null) }
   }
 
+  function chooseShopCover(event: ChangeEvent<HTMLInputElement>) {
+    const selected = event.target.files?.[0] ?? null
+    setErrors({})
+    setMessage('')
+    if (selected && selected.size >= 10 * 1024 * 1024) {
+      setErrors({ photo: ['The Shop cover must be smaller than 10 MB.'] })
+      setShopCover(null)
+      return
+    }
+    setShopCover(selected)
+  }
+
+  async function uploadShopCover(event: FormEvent) {
+    event.preventDefault()
+    if (!shopCover) return
+    begin('shop-cover')
+    setCoverProgress(0)
+    const body = new FormData()
+    body.append('photo', shopCover)
+    try {
+      const response = await uploadForm<SellerAccountMutationResponse>('/api/v1/seller/account/shop-cover', body, setCoverProgress)
+      applyResponse(response)
+      setShopCover(null)
+    } catch (error) { fail(error) } finally { setBusy(null); setCoverProgress(0) }
+  }
+
+  async function removeShopCover() {
+    if (!window.confirm('Remove the current Shop cover?')) return
+    begin('shop-cover')
+    try {
+      const response = await apiRequest<SellerAccountMutationResponse>('/api/v1/seller/account/shop-cover', { method: 'DELETE' })
+      applyResponse(response)
+      setShopCover(null)
+    } catch (error) { fail(error) } finally { setBusy(null) }
+  }
+
   if (isLoading) return <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8"><div className="h-96 animate-pulse rounded-lg border border-zinc-200 bg-white dark:border-white/10 dark:bg-[#18181b]" /></div>
   if (loadError || !account) return <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8"><div className="rounded-lg border border-red-200 bg-red-50 p-5 text-red-900 dark:border-red-400/20 dark:bg-red-400/10 dark:text-red-200"><p>{loadError || 'Account settings are unavailable.'}</p><button className="mt-4 inline-flex items-center gap-2 rounded-lg border border-red-300 px-3 py-2 text-sm font-semibold dark:border-red-400/30" onClick={() => setReload((value) => value + 1)}><FaRotateRight />Try again</button></div></div>
 
@@ -206,6 +245,24 @@ export function AccountPage() {
               <button className={primaryButtonClass} disabled={!photo || busy === 'photo'}>{busy === 'photo' ? 'Uploading…' : 'Upload'}</button>
               {account.profile.profile_photo_url ? <button className="inline-flex h-10 items-center gap-2 rounded-lg px-3 text-sm font-semibold text-red-700 hover:bg-red-50 dark:text-red-300 dark:hover:bg-red-400/10" disabled={busy === 'photo'} onClick={() => void removePhoto()} type="button"><FaTrashCan />Remove</button> : null}
             </div>
+            <FieldError errors={errors} name="photo" />
+          </form>
+        </div>
+      </section>
+
+      <section aria-labelledby="shop-cover-heading" className={sectionClass}>
+        <h3 className="font-semibold" id="shop-cover-heading">Shop cover photo</h3>
+        <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">Shown at the top of your public Shop page. JPEG, PNG, or WebP, smaller than 10 MB. The image is centered and may be cropped on some screens.</p>
+        <div className="mt-4 max-w-3xl">
+          <ShopCoverPreview coverUrl={account.shop.cover_url} file={shopCover} />
+          <form className="mt-4" onSubmit={uploadShopCover}>
+            <div className="flex flex-wrap items-center gap-3">
+              <label className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg border border-zinc-300 px-3 text-sm font-semibold hover:bg-zinc-50 dark:border-white/15 dark:hover:bg-white/5"><FaCamera /><span>Choose cover</span><input accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" className="sr-only" onChange={chooseShopCover} type="file" /></label>
+              {shopCover ? <span className="max-w-56 truncate text-sm text-zinc-500">{shopCover.name}</span> : null}
+              <button className={primaryButtonClass} disabled={!shopCover || busy === 'shop-cover'}>{busy === 'shop-cover' ? `Uploading ${coverProgress}%…` : 'Upload cover'}</button>
+              {account.shop.cover_url ? <button className="inline-flex h-10 items-center gap-2 rounded-lg px-3 text-sm font-semibold text-red-700 hover:bg-red-50 dark:text-red-300 dark:hover:bg-red-400/10" disabled={busy === 'shop-cover'} onClick={() => void removeShopCover()} type="button"><FaTrashCan />Remove</button> : null}
+            </div>
+            {busy === 'shop-cover' ? <progress aria-label="Shop cover upload progress" className="mt-3 block h-2 w-full accent-[#4C1268]" max={100} value={coverProgress} /> : null}
             <FieldError errors={errors} name="photo" />
           </form>
         </div>

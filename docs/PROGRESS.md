@@ -106,3 +106,8 @@ Short, dated log of what has been implemented across the whole app. Append new e
 
 - Marked Product and Variant unit costs optional and added accessible tooltips describing profit reporting and cost inheritance. Kept blank costs unknown and existing Variant fallback behavior; no API or database changes.
 - Verification: Seller TypeScript, production build and Oxlint passed. Chromium covered 320px bounds, hover, keyboard/Escape, touch/outside dismissal, both themes and blank-cost payloads; the existing large-bundle warning remains.
+
+## 2026-11-03 — Seller Shop cover photos
+
+- Added owner-scoped Shop cover upload, replacement, preview, and removal with bounded image rewriting, private storage, additive metadata, and public delivery gated by current Shop visibility. Seller settings expose file preview, saved-cover preview, progress, validation, retry, and confirmed removal. Web and Buyer Flutter Shop pages show the existing nullable `bannerUrl` with responsive crops and image fallbacks; the Courier app is outside this storefront flow.
+- Verification: focused Seller Account API tests pass (9 tests, 94 assertions), Pint and diff checks pass, Seller TypeScript/Oxlint and Vite production build pass, Buyer responsive layout passes (32 tests), Flutter analysis and docs bundle checks pass. Web storefront TypeScript/ESLint pass; Next production build was interrupted after hanging during compilation, consistent with its external Google Fonts fetch requirement. No live/deployed image storage or production API acceptance is claimed.

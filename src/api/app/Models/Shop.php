@@ -28,6 +28,12 @@ class Shop extends Model
         'website',
         'logo_path',
         'banner_path',
+        'banner_disk',
+        'banner_mime',
+        'banner_size',
+        'banner_width',
+        'banner_height',
+        'banner_version',
         'is_on_vacation',
         'vacation_message',
     ];
