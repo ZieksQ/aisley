@@ -94,3 +94,8 @@ Short, dated implementation log. Append entries; archive complete logs after 150
 ## 2026-10-29 — Configurable buyer approval API contract
 
 - Documented enabled-by-default Admin buyer approval control: new verified Customers may return active/approved without credentials when disabled; existing pending buyers remain pending. Updated auth, registration requirements and operation notes. Clients must route active results to sign-in. Flutter adoption and device/live acceptance of this new outcome remain unverified.
+
+## 2026-11-03 — Combined policy consent contract and client adoption
+
+- Added `policy-consent-batch-v1` to the shared contract: atomic pending-version acceptance, two confirmations and one Accept action; preserved current/history reads, legacy acceptance, actor gates and exact-version retries. The external Buyer app now implements the combined flow.
+- External source verification: 46 consent/repository/widget/session tests and Flutter analysis passed; responsive/theme/large-text captures reviewed. These are local client checks, not live/deployed or installed-device acceptance. Updated affected endpoint/operation/response examples alongside the shared specification.

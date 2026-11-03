@@ -973,6 +973,9 @@ Route::prefix('v1/policy-consent')->name('policy-consent.')->middleware('auth:sa
     Route::get('/status', [PolicyConsentController::class, 'status'])
         ->middleware(['policy.actor', 'throttle:policy-consent-status'])
         ->name('status');
+    Route::post('/accept', [PolicyConsentController::class, 'acceptTogether'])
+        ->middleware(['policy.actor', 'throttle:policy-consent-acceptance'])
+        ->name('accept-together');
     Route::post('/{type}/versions/{version}/accept', [PolicyConsentController::class, 'accept'])
         ->whereNumber('version')
         ->middleware(['policy.actor', 'throttle:policy-consent-acceptance'])

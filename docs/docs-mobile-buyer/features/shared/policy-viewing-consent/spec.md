@@ -3,6 +3,7 @@ feature: policy-viewing-consent
 role: Customer
 platform: Flutter / Dart
 phase: 1
+consent_contract: policy-consent-batch-v1
 flutter_status: Implemented; target acceptance pending
 backend_baseline: 7b1a08a0c89d7983a0e0503c5e8d322d2c2fa2a0
 contract_inspected_checkout: 57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50
@@ -33,6 +34,18 @@ Public reader → active identity through /me → status → read exact required
 `type` is exactly terms_of_service or privacy_policy. Public reads have no token requirement. Status/accept require Sanctum and active policy actor but remain exempt from consent blocking, alongside Customer /me/logout. Actor identity and accepted_at are server-derived; no user ID/time/version body override. There is no refresh token or UUID-header requirement for acceptance.
 
 Public current content caches300s; history collection60s and history version300s. Private status/accept/consent denial are private/no-store. Refresh on publication conflict instead of using a stale reader’s checkbox. These collections contain all eligible versions and have no cursor/page contract.
+
+### Combined acceptance — `policy-consent-batch-v1` (2026-11-03)
+
+- `POST /api/v1/policy-consent/accept` adds atomic acceptance for all five authenticated roles. Keep the single-policy route available for older clients. Deploy this API before updated web/mobile clients; no database migration is needed.
+- JSON body: `{ "acceptances": [{ "type": "terms_of_service", "version": 1, "confirmation": true }, { "type": "privacy_policy", "version": 1, "confirmation": true }] }`. Submit only pending policies; the list contains one or two unique supported types, positive versions, and explicit true confirmations. Reject unknown top-level/entry fields, empty lists, duplicates, Internal Rules, and missing confirmations with `422`.
+- Apply `auth:sanctum`, existing active-role/approval/affiliation guards and `policy-consent-acceptance` throttling (10/minute per actor/IP); remain exempt from protected-feature consent gating. Web retains stateful cookie/CSRF authentication; external apps retain scoped bearer authentication.
+- Lock both existing policy identities in deterministic type order, matching Admin publication's identity lock. Check every submitted version is currently published and every currently required policy is included before writing. Stale versions or omitted newly required policies return `409 POLICY_VERSION_STALE` with no acceptance writes.
+- One transaction records all requested acceptances. Same-user/version retries return canonical existing timestamps without duplicates; database failure rolls back the whole set. Clients never submit User, role, approval or acceptance-time fields.
+- HTTP `200` returns `{ "data": { "acceptances": [PolicyAcceptance], "status": ConsentStatus } }`, reusing existing acceptance and status projections. Status and response headers remain `private, no-store`. Existing `401/403/422/429` behavior and `Retry-After` apply.
+- All four web apps and both external Flutter apps show Terms followed by Privacy in one reading panel, with normal page scrolling, two checkboxes and one Accept action. Preserve public readers/history and separate document/version identities; do not rewrite policy text or alter registration.
+- Confirmations are bound to exact displayed versions. Refresh status before submitting; on publication changes reload documents and clear affected confirmations only. Previously covered documents need no fresh check. Missing/stale required content and unsupported requirements disable acceptance.
+- Deduplicate submissions, honor cooldowns, preserve safe confirmations on recoverable failures, and reconcile uncertain saves through status before deliberate retry. Server-confirmed consent alone unlocks access; never replay blocked commerce/operational writes. Ignore late responses after disposal/account changes and retain role-owned safe return navigation.
 
 ### Wire DTOs and nullability
 
@@ -89,7 +102,7 @@ Synthetic requests, nullable status/current versions, stale-conflict and denied 
 - [ ] DTOs preserve null/current/accepted descriptors and reject malformed success without treating it as consent-free.
 - [ ] Enforcement disabled, initial acceptance, non-reconsent current change and required reconsent produce correct routing.
 - [ ] Publication during reader/accept gives409, resets confirmation and never auto-accepts new content.
-- [ ] Exact timeout retry accepts once; duplicate taps are disabled; partial Terms/Privacy success rechecks status.
+- [ ] Exact timeout retry accepts once; duplicate taps are disabled; combined acceptance is atomic and uncertain outcomes recheck status.
 - [ ] Guest/current/history and private actor status use different cache/credential boundaries.
 - [ ] Logout/account switch discards delayed status/accept responses, private flags and confirmation drafts.
 - [ ] Decline/policy Back/sign-out stay reachable without login/consent redirect loops.

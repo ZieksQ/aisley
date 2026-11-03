@@ -1189,3 +1189,7 @@ Stable `voucher-collection-001` through `voucher-collection-007` in [operation i
 - Retry: Explicit retry with same valid challenge/code returns same unexpired proof; 30 per IP/minute. Five incorrect attempts invalidate challenge.
 - Notes: [Registration email contract](../registration-email.md).
 - [Synthetic examples](examples/customer-auth.json).
+
+### Atomic policy acceptance — policy-consent-batch-v1
+
+`POST /api/v1/policy-consent/accept` accepts one or two pending, explicitly confirmed current Terms/Privacy versions in one transaction. See the [shared policy contract](../features/shared/policy-viewing-consent/spec.md#combined-acceptance--policy-consent-batch-v1-2026-11-03) for exact JSON, response, authorization, conflict, cache and retry behavior. The single-policy operation remains compatible with older clients.

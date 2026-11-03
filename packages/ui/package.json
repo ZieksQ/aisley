@@ -12,7 +12,8 @@
     "./charts": "./src/charts/index.ts",
     "./brand": "./src/brand.ts",
     "./password-change": "./src/password-change/index.ts",
-    "./registration-email": "./src/registration-email/index.ts"
+    "./registration-email": "./src/registration-email/index.ts",
+    "./policy-consent": "./src/policy-consent/index.ts"
   },
   "peerDependencies": {
     "react": "^19.2.8",

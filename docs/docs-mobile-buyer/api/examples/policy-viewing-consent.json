@@ -217,6 +217,125 @@
           }
         }
       ]
+    },
+    {
+      "feature": "policy-viewing-consent",
+      "method": "POST",
+      "path": "/api/v1/policy-consent/accept",
+      "request_contract": "acceptances: nonempty list of at most two unique Terms/Privacy entries, each type/version/confirmation:true; no other fields; all currently required types must be included.",
+      "response_contract": "{data:{acceptances:PolicyAcceptance[],status:Consent}}",
+      "status": 200,
+      "retry": "Atomic and idempotent for exact current versions. Reconcile private status after uncertainty; review and reconfirm changed versions after 409.",
+      "access": "Active policy actor",
+      "notes": "",
+      "request_example": {
+        "query": {},
+        "headers": {},
+        "body": {
+          "acceptances": [
+            {
+              "type": "terms_of_service",
+              "version": 1,
+              "confirmation": true
+            },
+            {
+              "type": "privacy_policy",
+              "version": 1,
+              "confirmation": true
+            }
+          ]
+        }
+      },
+      "response_example": {
+        "data": {
+          "acceptances": [
+            {
+              "type": "terms_of_service",
+              "label": "Terms of Service",
+              "version": {
+                "id": "00000000-0000-4000-8000-000000000001",
+                "version": 1,
+                "title": "Terms of Service",
+                "content": "Synthetic example",
+                "status": "published",
+                "change_summary": null,
+                "requires_reconsent": false,
+                "published_at": null
+              },
+              "accepted_at": "2026-11-03T00:00:00Z"
+            },
+            {
+              "type": "privacy_policy",
+              "label": "Privacy Policy",
+              "version": {
+                "id": "00000000-0000-4000-8000-000000000002",
+                "version": 1,
+                "title": "Privacy Policy",
+                "content": "Synthetic example",
+                "status": "published",
+                "change_summary": null,
+                "requires_reconsent": false,
+                "published_at": null
+              },
+              "accepted_at": "2026-11-03T00:00:00Z"
+            }
+          ],
+          "status": {
+            "policies": [
+              {
+                "type": "terms_of_service",
+                "label": "Terms of Service",
+                "required": false,
+                "accepted": true,
+                "accepted_at": "2026-11-03T00:00:00Z",
+                "current_version": {
+                  "id": "00000000-0000-4000-8000-000000000001",
+                  "version": 1,
+                  "title": "Terms of Service",
+                  "change_summary": null,
+                  "requires_reconsent": false,
+                  "published_at": null
+                },
+                "accepted_version": {
+                  "id": "00000000-0000-4000-8000-000000000001",
+                  "version": 1,
+                  "accepted_at": "2026-11-03T00:00:00Z"
+                }
+              },
+              {
+                "type": "privacy_policy",
+                "label": "Privacy Policy",
+                "required": false,
+                "accepted": true,
+                "accepted_at": "2026-11-03T00:00:00Z",
+                "current_version": {
+                  "id": "00000000-0000-4000-8000-000000000002",
+                  "version": 1,
+                  "title": "Privacy Policy",
+                  "change_summary": null,
+                  "requires_reconsent": false,
+                  "published_at": null
+                },
+                "accepted_version": {
+                  "id": "00000000-0000-4000-8000-000000000002",
+                  "version": 1,
+                  "accepted_at": "2026-11-03T00:00:00Z"
+                }
+              }
+            ],
+            "all_required_accepted": true
+          }
+        }
+      },
+      "id": "policy-consent-batch-v1",
+      "errors": [
+        "401",
+        "403",
+        "409 POLICY_VERSION_STALE",
+        "422",
+        "429 Retry-After"
+      ],
+      "response_variants": []
     }
   ],
   "failure_examples": [

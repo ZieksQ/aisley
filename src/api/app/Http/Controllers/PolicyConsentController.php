@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Enums\PlatformPolicyType;
 use App\Exceptions\PolicyConsentConflict;
+use App\Http\Requests\Policy\AcceptPoliciesRequest;
 use App\Http\Requests\Policy\AcceptPolicyRequest;
+use App\Http\Resources\PolicyAcceptanceResource;
 use App\Services\PolicyConsentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -34,25 +36,25 @@ class PolicyConsentController extends Controller
             ], 409, $this->privateHeaders());
         }
 
-        return response()
-            ->json([
-                'data' => [
-                    'type' => $policyType->value,
-                    'label' => $policyType->label(),
-                    'version' => [
-                        'id' => $result['version']->id,
-                        'version' => $result['version']->version,
-                        'title' => $result['version']->title,
-                        'content' => $result['version']->content,
-                        'status' => $result['version']->status->value,
-                        'change_summary' => $result['version']->change_summary,
-                        'requires_reconsent' => $result['version']->requires_reconsent,
-                        'published_at' => $result['version']->published_at?->toIso8601String(),
-                    ],
-                    'accepted_at' => $result['acceptance']->accepted_at?->toIso8601String(),
-                ],
-            ])
+        return response()->json(['data' => (new PolicyAcceptanceResource($result))->resolve()])
             ->withHeaders($this->privateHeaders());
+    }
+
+    public function acceptTogether(AcceptPoliciesRequest $request): JsonResponse
+    {
+        try {
+            $result = $this->service->acceptTogether($request->user(), $request->validated('acceptances'));
+        } catch (PolicyConsentConflict $exception) {
+            return response()->json([
+                'code' => 'POLICY_VERSION_STALE',
+                'message' => $exception->getMessage(),
+            ], 409, $this->privateHeaders());
+        }
+
+        return response()->json(['data' => [
+            'acceptances' => PolicyAcceptanceResource::collection($result['acceptances'])->resolve(),
+            'status' => $result['status'],
+        ]])->withHeaders($this->privateHeaders());
     }
 
     /** @return array<string, string> */

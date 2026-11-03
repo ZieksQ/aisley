@@ -217,6 +217,7 @@ the role's `{key,label}` category options and each notification DTO includes `ca
 | Method | Existing path | Access | Throttle | Controller/action |
 | --- | --- | --- | --- | --- |
 | `GET` | `/api/v1/policy-consent/status` | Active policy actor | policy-consent-status | `PolicyConsentController@status` |
+| `POST` | `/api/v1/policy-consent/accept` | Active policy actor | policy-consent-acceptance | `PolicyConsentController@acceptTogether` |
 | `POST` | `/api/v1/policy-consent/{type}/versions/{version}/accept` | Active policy actor | policy-consent-acceptance | `PolicyConsentController@accept` |
 
 ## product-description-assets

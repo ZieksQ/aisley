@@ -126,6 +126,43 @@ class PolicyConsentService
         });
     }
 
+    /**
+     * @param  array<int, array{type: string, version: int, confirmation: bool}>  $acceptances
+     * @return array{acceptances: array, status: array}
+     */
+    public function acceptTogether(User $user, array $acceptances): array
+    {
+        return DB::transaction(function () use ($user, $acceptances): array {
+            // Publication takes the same identity lock before changing its current pointer.
+            PlatformPolicy::query()->whereIn('type', self::SHARED_TYPES)
+                ->orderBy('type')->lockForUpdate()->get();
+
+            $submitted = collect($acceptances)->keyBy('type');
+            $status = $this->status($user);
+            foreach ($status['policies'] as $policy) {
+                if ($policy['required'] && ! $submitted->has($policy['type'])) {
+                    throw new PolicyConsentConflict('The required policies have changed. Refresh and review them before accepting.');
+                }
+            }
+
+            // Validate the entire selection before recording any acceptance.
+            $policies = $this->sharedPolicies()->keyBy(fn (PlatformPolicy $policy) => $policy->type->value);
+            foreach ($submitted as $type => $selection) {
+                $current = $policies->get($type)?->currentVersion;
+                if (! $current || $current->version !== (int) $selection['version']) {
+                    throw new PolicyConsentConflict('A policy version is no longer current. Refresh and review it before accepting.');
+                }
+            }
+
+            $results = [];
+            foreach ($submitted->sortKeys() as $type => $selection) {
+                $results[] = $this->accept($user, PlatformPolicyType::from($type), (int) $selection['version']);
+            }
+
+            return ['acceptances' => $results, 'status' => $this->status($user)];
+        });
+    }
+
     /** @return Collection<int, PlatformPolicy> */
     private function sharedPolicies(): Collection
     {
