@@ -101,3 +101,8 @@ Short, dated log of what has been implemented across the whole app. Append new e
 
 - Combined both complete policy documents with two version-bound checkboxes and one Accept action across Customer/Seller/Admin/Logistics web and both external Flutter apps. Covered policies remain satisfied. Added atomic `policy-consent-batch-v1` acceptance with current-version locks, required-set checks, immutable retries and rollback; preserved legacy API, actor gates, policy content and separate version streams. Synchronized canonical/portable contracts and Buyer wire examples.
 - Verification: policy API suites passed (14 tests, 180 assertions); four web builds/TypeScript and scoped lint/Pint passed. Chromium passed 28 responsive/theme combinations and save/retry/stale/cooldown/account-switch flows. Courier policy tests (46) plus gate integration (1), Buyer consent/session tests (46), and both Flutter analyzers passed; reviewed final captures. Taste: 0 failures, two documented reading-column warnings. Two unrelated Courier registration widget failures, live/device/APK and parallel Postgres acceptance remain open. See [verification](features/shared/policy-viewing-consent/verification-2026-11-03.md).
+
+## 2026-11-03 — Seller product unit cost help
+
+- Marked Product and Variant unit costs optional and added accessible tooltips describing profit reporting and cost inheritance. Kept blank costs unknown and existing Variant fallback behavior; no API or database changes.
+- Verification: Seller TypeScript, production build and Oxlint passed. Chromium covered 320px bounds, hover, keyboard/Escape, touch/outside dismissal, both themes and blank-cost payloads; the existing large-bundle warning remains.

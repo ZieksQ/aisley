@@ -1,7 +1,7 @@
 import { PortalField, PortalSection } from '@aisley/ui/portal'
 import type { ProductFormState } from './useProductForm'
 import type { emptyProductForm } from '../../types/productForm'
-export function ProductField({ state, name, label, required = false, type = 'text', suffix, hint, disabled = false }: {
+export function ProductField({ state, name, label, required = false, type = 'text', suffix, hint, help, disabled = false }: {
   state: ProductFormState
   name: keyof typeof emptyProductForm
   label: string
@@ -9,6 +9,7 @@ export function ProductField({ state, name, label, required = false, type = 'tex
   type?: string
   suffix?: string
   hint?: string
+  help?: string
   disabled?: boolean
 }) {
   return <PortalField
@@ -19,6 +20,7 @@ export function ProductField({ state, name, label, required = false, type = 'tex
     type={type}
     suffix={suffix}
     hint={hint}
+    help={help}
     disabled={disabled}
     error={state.fieldErrors[name]?.[0]}
     min={type === 'number' ? name.includes('price') ? '.01' : name.startsWith('shipping_') ? '1' : '0' : undefined}
@@ -126,9 +128,10 @@ export function ProductPricingSection({ state, editing }: { state: ProductFormSt
       <ProductField
         state={state}
         name="unit_cost"
-        label="Unit cost (PHP)"
+        label="Unit cost (PHP) (optional)"
         type="number"
-        suffix="PHP" />
+        suffix="PHP"
+        help="Your cost to purchase or make one unit. Used for profit reporting; leave blank if unknown." />
     </div>
   </PortalSection>
 }

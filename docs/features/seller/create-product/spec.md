@@ -152,3 +152,8 @@
 - While saving, prevent editing with an inert editor surface and disabled mode controls without reinitializing MDXEditor's source buffer. Keep image upload progress and save gating intact.
 - Keep caret/selection and source/diff text visible in both themes. Center toolbar icons and their tooltip anchors within 44px targets; tooltips remain bounded, keyboard-accessible and correctly themed. Wrap formatting groups on narrow screens and contain wide tables/diff columns within the editor.
 - Documentation: [MDXEditor diff/source](https://mdxeditor.dev/editor/docs/diff-source), [tables](https://mdxeditor.dev/editor/docs/tables), and [theming](https://mdxeditor.dev/editor/docs/theming). These modes do not change Customer rendering or the API/Flutter contract.
+
+### Unit cost field help (2026-11-03)
+
+- Mark Product unit cost and Variant unit cost overrides as optional, with a keyboard- and touch-accessible tooltip explaining their reporting and inheritance behavior.
+- Preserve existing cost semantics: a blank Product cost remains unknown, and a blank Variant override inherits the Product cost.

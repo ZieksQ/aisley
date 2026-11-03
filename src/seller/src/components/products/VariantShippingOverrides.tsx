@@ -85,8 +85,9 @@ export function VariantShippingOverrides({ labelFor, onChange, onToggle, product
           {`Uses ${productMeasurements.weight || '—'} g · ${productMeasurements.length || '—'} × ${productMeasurements.width || '—'} × ${productMeasurements.height || '—'} mm`}
         </p>}
         <PortalField
-          label="Unit cost override (PHP)"
+          label="Unit cost override (PHP) (optional)"
           aria-label={`${label} unit cost override (PHP)`}
+          help="This variant's cost per unit. Leave blank to use the Product unit cost."
           min="0"
           step=".01"
           type="number"
