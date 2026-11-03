@@ -1,10 +1,12 @@
 "use client";
 
+import { announceChatChange } from "@aisley/ui/chat";
+
 import { chatMedia } from "@/lib/chat-media";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ChatLoadingThread, clearChatAttachments, ChatThreadHeader, ChatComposer, ChatHistory, ChatWorkspace, clearChatPrivateState, readChatAttempt, readChatDraft, writeChatAttempt, writeChatDraft, useChatAttempt, useChatDraft, type ChatEntry } from "@aisley/ui/chat";
+import { ChatLoadingThread, clearChatAttachments, ChatThreadHeader, ChatComposer, ChatHistory, useUnifiedInbox, ChatWorkspace, clearChatPrivateState, readChatAttempt, readChatDraft, writeChatAttempt, writeChatDraft, useChatAttempt, useChatDraft, type ChatEntry } from "@aisley/ui/chat";
 import { useAuth } from "@/components/auth/auth-provider";
 import { ApiError } from "@/lib/api";
 import { deliveryMessages, type DeliveryMessage, type DeliveryThread } from "@/lib/delivery-messages";
@@ -40,6 +42,8 @@ export function DeliveryMessagesContent({ orderId, conversationId }: { orderId: 
 function AuthenticatedDeliveryMessages({ orderId, conversationId }: { orderId: string | null; conversationId: string | null }) {
   const { auth } = useAuth();
   const router = useRouter();
+  const unified = useUnifiedInbox();
+  const usingUnifiedInbox = Boolean(unified);
   const accountId = auth.status === "authenticated" ? auth.customer.id : "unknown";
   const [threads, setThreads] = useState<DeliveryThread[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(conversationId);
@@ -57,6 +61,7 @@ function AuthenticatedDeliveryMessages({ orderId, conversationId }: { orderId: s
   const activeDraftKey = useRef(draftKey);
 
   const refresh = useCallback(async () => {
+    if (usingUnifiedInbox && conversationId) return;
     if (!navigator.onLine) return;
     try {
       const page = await deliveryMessages.list();
@@ -85,7 +90,7 @@ function AuthenticatedDeliveryMessages({ orderId, conversationId }: { orderId: s
     } finally {
       setLoading(false);
     }
-  }, [accountId, conversationId, draftKey, orderId]);
+  }, [accountId, conversationId, draftKey, orderId, usingUnifiedInbox]);
 
   useEffect(() => {
     const initial = window.setTimeout(() => void refresh(), 0);
@@ -172,6 +177,7 @@ function AuthenticatedDeliveryMessages({ orderId, conversationId }: { orderId: s
       const result = targetConversationId
         ? await deliveryMessages.send(targetConversationId, attempt.body, attempt.key, attempt.attachmentIds ?? [])
         : await deliveryMessages.start(targetOrderId!, attempt.body, attempt.key, attempt.attachmentIds ?? []);
+      announceChatChange();
       clearChatAttachments(targetDraftKey); writeChatDraft(targetDraftKey, "");
       writeChatAttempt(targetDraftKey, null);
       if (activeDraftKey.current !== targetDraftKey) { void refresh(); return; }
@@ -180,7 +186,8 @@ function AuthenticatedDeliveryMessages({ orderId, conversationId }: { orderId: s
       activeDraftKey.current = `customer-logistics:${accountId}:${result.conversation.id}`;
       setSelectedId(result.conversation.id);
 
-      router.replace(`/delivery-messages?conversation=${encodeURIComponent(result.conversation.id)}`);
+      if (unified) unified.openConversation("customer_logistics", result.conversation.id);
+      else router.replace(`/messages?kind=customer_logistics&conversation=${encodeURIComponent(result.conversation.id)}`);
     } catch (reason) {
       if (activeDraftKey.current !== targetDraftKey) return;
       setError(errorText(reason));
@@ -199,7 +206,7 @@ function AuthenticatedDeliveryMessages({ orderId, conversationId }: { orderId: s
     activity: thread.last_message_at, unread: thread.unread_count,
     context: `Order ${thread.order_reference ?? thread.order_id.slice(0, 8)}`,
     selected: selectedId === thread.id, readOnly: Boolean(thread.read_only_reason),
-    onSelect: () => { activeDraftKey.current = `customer-logistics:${accountId}:${thread.id}`; setBusy(false); setLoading(true); setSelectedId(thread.id); setMessages([]);  setError(""); router.replace(`/delivery-messages?conversation=${encodeURIComponent(thread.id)}`); },
+    onSelect: () => { activeDraftKey.current = `customer-logistics:${accountId}:${thread.id}`; setBusy(false); setLoading(true); setSelectedId(thread.id); setMessages([]);  setError(""); router.replace(`/messages?kind=customer_logistics&conversation=${encodeURIComponent(thread.id)}`); },
   }));
 
   return <ChatWorkspace

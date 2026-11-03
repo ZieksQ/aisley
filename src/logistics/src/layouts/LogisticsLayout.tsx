@@ -43,7 +43,7 @@ export function LogisticsLayout() {
     : location.pathname.startsWith('/support-tickets')
     ? 'Support tickets'
     : location.pathname.startsWith('/messages')
-    ? 'Operational messages'
+    ? 'Messages'
     : location.pathname.startsWith('/receive-at-hub')
     ? 'Receive at hub'
     : location.pathname.startsWith('/sort-plan')

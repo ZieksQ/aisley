@@ -20,7 +20,7 @@ export { clearChatAttachments } from "./media-state";
 export type { ChatAttachment, ChatMediaClient, ChatMediaContext, ChatMediaOptions } from "./media-types";
 
 export { ChatNotificationControl } from "./notification-control";
-export { acknowledgeChatRead } from "./notification-state";
+export { acknowledgeChatRead, announceChatChange } from "./notification-state";
 export type { ChatNotification, ChatNotificationPage } from "./notification-state";
 
 export { ChatAvatar, ChatThreadHeader, ChatEmptyState } from "./presentation";
@@ -30,3 +30,8 @@ export { ChatLoadingThread } from "./loading";
 export { TicketHistory, ticketStatusLabel } from './ticket-history';
 export type { TicketHistoryEvent } from './ticket-history';
 export { TicketViewport } from './ticket-workspace';
+
+export { UnifiedChatInbox } from "./unified-inbox";
+export { useUnifiedInbox, messageHref, chatRoleLabel } from "./unified-state";
+export type { ChatRole } from "./unified-state";
+export type { UnifiedChatSummary, UnifiedChatPage, UnifiedChatLoader } from "./use-unified-inbox";

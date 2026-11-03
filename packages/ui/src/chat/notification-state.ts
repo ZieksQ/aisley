@@ -15,10 +15,15 @@ export type ChatNotificationPage = { data: ChatNotification[]; meta: { unread_co
 
 const changedEvent = "aisley:chat-unread-changed";
 
+/** Refresh inbox summaries and chat notifications after a committed mutation. */
+export function announceChatChange() {
+  window.dispatchEvent(new Event(changedEvent));
+}
+
 /** Notify only after a committed read acknowledgment. Preserve the caller's response. */
 export async function acknowledgeChatRead<T>(request: Promise<T>): Promise<T> {
   const result = await request;
-  window.dispatchEvent(new Event(changedEvent));
+  announceChatChange();
   return result;
 }
 

@@ -1,3 +1,4 @@
+import { LegacyMessageRedirect } from './components/LegacyMessageRedirect'
 import { VouchersPage } from './pages/VouchersPage'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { ProtectedRoute, SessionRoute } from './components/ProtectedRoute'
@@ -29,9 +30,6 @@ import { PolicyConsentPage } from './pages/PolicyConsentPage'
 import { FinancePaymentsPage } from './pages/FinancePaymentsPage'
 import { FinancePage } from './pages/FinancePage'
 import { MessagesPage } from './pages/MessagesPage'
-import { MessageThreadPage } from './pages/MessageThreadPage'
-import { LogisticsMessagesPage } from './pages/LogisticsMessagesPage'
-import { CourierMessagesPage } from './pages/CourierMessagesPage'
 import { SupportTicketsPage } from './pages/SupportTicketsPage'
 import { ShippingProvidersPage } from './pages/ShippingProvidersPage'
 
@@ -54,9 +52,9 @@ function App() {
             <Route element={<FinancePaymentsPage />} path="/finance/payouts" />
             <Route element={<FinancePaymentsPage />} path="/finance/payment-settings" />
             <Route element={<MessagesPage />} path="/messages" />
-            <Route element={<MessageThreadPage />} path="/messages/:conversationId" />
-            <Route element={<LogisticsMessagesPage />} path="/logistics-messages" />
-            <Route element={<CourierMessagesPage />} path="/courier-messages" />
+            <Route element={<LegacyMessageRedirect kind="customer_shop" />} path="/messages/:conversationId" />
+            <Route element={<LegacyMessageRedirect kind="seller_logistics" />} path="/logistics-messages" />
+            <Route element={<LegacyMessageRedirect kind="courier_seller" />} path="/courier-messages" />
             <Route element={<SupportTicketsPage />} path="/support-tickets" />
             <Route element={<Navigate replace to="/orders/monitoring" />} path="/orders" />
             <Route element={<OrdersPage />} path="/orders/monitoring" />

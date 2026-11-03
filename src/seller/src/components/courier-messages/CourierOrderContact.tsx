@@ -23,8 +23,8 @@ export function CourierOrderContact({ orderId }: { orderId: string }) {
   useCourierRefresh(refresh, revision)
 
   const destination = context?.send_allowed
-    ? `/courier-messages?order=${orderId}`
-    : context?.conversation_id ? `/courier-messages?conversation=${context.conversation_id}` : null
+    ? `/messages?kind=courier_seller&order=${orderId}`
+    : context?.conversation_id ? `/messages?kind=courier_seller&conversation=${context.conversation_id}` : null
   return (
     <section className="portal-panel" aria-label="Courier contact">
       <h3 className="font-semibold">Pickup Courier</h3>

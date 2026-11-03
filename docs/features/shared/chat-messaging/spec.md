@@ -16,9 +16,9 @@
 
 ### Inbox and conversation interactions
 
-- Keep a recognizable inbox-to-thread flow within each role's app shell and routes. Preserve separate Shop, Logistics, and Courier channels rather than merging their histories; apply the shared design contract to their presentation.
+- Keep a recognizable inbox-to-thread flow within each role's app shell and routes. Combine authorized Shop, Logistics, and Courier conversations in one mixed inbox while preserving separate histories and channel eligibility; apply the shared design contract to their presentation.
 - At narrow widths, keep inbox and selected conversation usable with predictable Back behavior. Back returns to the originating inbox with its position preserved; returning from a linked Product/Order preserves the safe in-memory draft. The exact pane arrangement at wider widths is a design choice, provided the inbox and current conversation remain clear and usable.
-- On Customer message routes, a selected mobile conversation hides the outer **Messages** heading/return-link row and channel toolbar until **Back to inbox** is used. Keep the in-thread back control, conversation header, history, and composer available in a workspace sized to the visual viewport; restore the inbox and channel toolbar on return.
+- On Customer message routes, a selected mobile conversation hides the outer **Messages** heading/return-link row and role filter until **Back to inbox** is used. Keep the in-thread back control, conversation header, history, and composer available in a workspace sized to the visual viewport; restore the inbox and role filter on return.
 - Optional commerce details may be inline, in a disclosure, side panel, or accessible dialog. Choose a layout that keeps the composer and primary message actions usable rather than reserving space for a fixed pane count.
 - Keep the conversation header, composer, Send action, attachment errors, and active input usable in the available viewport. History may scroll independently when that best supports reading; the mobile keyboard must not cover essential controls.
 - Inbox rows show safe counterpart identity, latest message preview, activity time, and a numeric unread badge with accessible text. Distinguish selection, unread, and read-only states without color alone.
@@ -87,7 +87,7 @@
 
 ### Adoption and interfaces
 
-- Apply this guide as existing web chat screens are changed; a documentation update does not certify current visual compliance. Preserve current role routes, separate channel identities, and existing API behavior.
+- Apply this guide as existing web chat screens are changed; a documentation update does not certify current visual compliance. Preserve legacy role links through redirects, separate channel identities, and existing detail/send/read API behavior.
 - Shared chat presentation and generic client/state/notification behavior live in `packages/ui/src/chat` and are exported through `@aisley/ui/chat`. This includes inbox/thread pieces, message bubbles, composer, context/attachment presentation, and reusable status states. Customer, Seller, and Logistics screens import this subpath; `@aisley/chat-ui` remains a compatibility re-export facade. Role navigation, page composition, authorization, and role API clients stay in their existing owners.
 - Keep other feature packages in place. Do not add another chat package or broadly migrate unrelated feature-package code.
 - Reuse compatible `@aisley/ui` primitives and established theme tokens. Shared presentation must respect Customer light-only rendering and Seller/Logistics light/dark themes.
@@ -161,3 +161,15 @@ The chat-specific allowlist is PNG/JPG/JPEG/MP4 only. This does not change other
 ```
 
 The endpoint accepts no recipient selector and returns at most five previews. Kinds are existing conversation kinds; each role receives only its existing authorized channels. Totals derive from committed incoming messages above the current participant marker within existing service scopes, including authorized read-only history. No new schema, read endpoint, or message-send contract is introduced. Admin and external Courier clients do not receive a new endpoint or UI; existing Buyer/Courier contracts remain compatible.
+
+## Unified web inbox — 2026-11-03
+
+- Customer, Seller, and Logistics each expose one **Messages** section at `/messages`. Support tickets remain separate. Admin has no direct-chat section or automatic access; no Courier web UI is added.
+- All authorized conversations share one activity-ordered list. Each row and thread header identifies the counterpart as Customer, Seller, Logistics, or Courier. Shops retain their public names and use Seller as their role label. Platform (Admin) is reserved for a future approved channel.
+- The Role filter defaults to All and offers only existing counterpart roles: Customer sees Seller/Logistics/Courier; Seller sees Customer/Logistics/Courier; Logistics sees Customer/Seller/Courier. Preserve context labels, previews, unread/read-only states, and per-thread history.
+- Canonical thread links use `/messages?kind=<existing-kind>&conversation=<uuid>`; `role=<counterparty-role>` retains the current filter. Existing Shop/Product/Order/pickup/task selectors remain supported. Legacy Customer/Seller channel URLs and Shop thread paths redirect without dropping selectors. Back restores the filter and inbox scroll position.
+- Additive, web-owned `GET /api/v1/{customer|seller|logistics}/chat-inbox` endpoints use existing Sanctum/role/approval/consent gates and participant/tenant scopes. Optional `counterparty_role` excludes the viewer's role; unsupported values return 422. Optional `cursor` uses bounded pagination, 20 rows per page, ordered by non-null `last_message_at DESC, id DESC`.
+- Response: `{data:[{id,kind,counterparty_role,counterparty_label,context_label,last_message_preview,last_message_at,unread_count,send_allowed,read_only_reason}],meta:{next_cursor,unread_count}}`. The total covers all authorized conversations in the selected filter, not just the loaded page. Retrieval never marks messages read. Responses are private/no-store.
+- Existing channel start/detail/history/send/read/media routes retain their payloads and authorization. The shared workspace composes the mixed inbox with role-owned channel panels. Foreground polling runs every 15 seconds and on focus/reconnect/visibility restoration; committed sends/reads refresh summaries. Refresh revalidates the loaded window, drops removed rows, and preserves pagination/scroll rather than retaining forbidden summaries.
+- Private state remains in memory; stale account/filter requests cannot repopulate it. Loading, empty, retryable failures, offline state, access denial, and selected threads outside the loaded page remain explicit. No external Buyer/Courier payload or Flutter client contract changes.
+- Appearance follows `docs/design.md`, Uncodixfy, and Taste app-screen guidance. Retain required purple/blue role accents, slate dashboard dark surfaces, and functional pane borders despite generic Taste palette/hairline bans. This extends the established workspace; no new art direction, imagery, or dependency is introduced.

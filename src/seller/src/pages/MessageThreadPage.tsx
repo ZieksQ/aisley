@@ -1,7 +1,8 @@
+import { announceChatChange } from "@aisley/ui/chat";
 import { chatMedia } from '../lib/chat-media';
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ChatLoadingThread, clearChatAttachments, ChatThreadHeader, ChatShopAvailability, ChatComposer, ChatHistory, ChatWorkspace, clearChatPrivateState, readChatAttempt, readChatDraft, writeChatAttempt, writeChatDraft, type ChatEntry } from '@aisley/ui/chat'
+import { Link, useNavigate } from 'react-router-dom'
+import { useUnifiedInbox, ChatLoadingThread, clearChatAttachments, ChatThreadHeader, ChatShopAvailability, ChatComposer, ChatHistory, ChatWorkspace, clearChatPrivateState, readChatAttempt, readChatDraft, writeChatAttempt, writeChatDraft, type ChatEntry } from '@aisley/ui/chat'
 import { useAuth } from '../auth/useAuth'
 import { ApiError } from '../lib/api'
 import { getConversation, listConversations, listMessages, markRead, sendMessage, type Conversation, type Message } from '../lib/messages'
@@ -20,8 +21,7 @@ function merge(current: Message[], incoming: Message[]) {
   return [...byId.values()].sort((left, right) => left.sequence - right.sequence)
 }
 
-export function MessageThreadPage() {
-  const { conversationId = '' } = useParams()
+export function MessageThreadPage({ conversationId, embedded = false }: { conversationId: string; embedded?: boolean }) {
   const { seller } = useAuth()
   const navigate = useNavigate()
   const accountId = seller?.id ?? 'unknown'
@@ -54,7 +54,9 @@ export function MessageThreadPage() {
     setSendError('')
   }, [draftKey])
 
+  const unifiedRefresh = useUnifiedInbox()?.refresh;
   const loadInbox = useCallback(async (next?: string) => {
+    if (unifiedRefresh) { unifiedRefresh(); return; }
     try {
       const result = await listConversations(next)
       setInbox((current) => next
@@ -68,7 +70,7 @@ export function MessageThreadPage() {
       }
       setInboxError(errorText(reason));
     }
-  }, [])
+  }, [unifiedRefresh])
 
   const refresh = useCallback(async () => {
     if (!conversationId) return
@@ -144,6 +146,7 @@ export function MessageThreadPage() {
 
     try {
       const result = await sendMessage(conversationId, text, attempt.key, attempt.attachmentIds ?? [])
+      announceChatChange();
       clearChatAttachments(draftKey); writeChatDraft(draftKey, '');
       writeChatAttempt(draftKey, null)
       if (activeDraftKey.current !== draftKey) { void loadInbox(); return }
@@ -188,7 +191,7 @@ export function MessageThreadPage() {
   })
 
   return (
-    <div className="mx-auto max-w-7xl px-2 py-3 sm:px-4 lg:px-6">
+    <div className={embedded ? undefined : "mx-auto max-w-7xl px-2 py-3 sm:px-4 lg:px-6"}>
       <ChatWorkspace
         entries={entries}
         selected

@@ -118,6 +118,7 @@ export function CourierThread({ conversationId, orderId, onUpdated, onStarted }:
   return (
     <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white dark:bg-[#18181b]" aria-label="Courier conversation">
       <header className="shrink-0 space-y-1 border-b border-zinc-200 px-4 py-3 dark:border-white/10">
+        <p className="text-xs font-medium text-zinc-600 dark:text-zinc-300">Courier</p>
         <h3 className="font-semibold">Courier · First-mile pickup</h3>
         {order && (
           <Link className="inline-flex min-h-8 items-center break-all text-xs text-[#4C1268] underline underline-offset-4 focus-visible:outline-2 dark:text-[#e5bdf6]" to={`/orders/${order}`}>

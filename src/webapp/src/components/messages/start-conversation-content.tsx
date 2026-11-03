@@ -1,11 +1,13 @@
 "use client";
 
+import { announceChatChange } from "@aisley/ui/chat";
+
 import { chatMedia } from "@/lib/chat-media";
 import Link from "next/link";
 import { ShopChatHeader } from "./shop-chat-header";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { clearChatAttachments, ChatComposer, ChatWorkspace, ChatHistory, ChatLoadingThread, clearChatPrivateState, readChatAttempt, readChatDraft, writeChatAttempt, writeChatDraft } from "@aisley/ui/chat";
+import { clearChatAttachments, ChatComposer, useUnifiedInbox, ChatWorkspace, ChatHistory, ChatLoadingThread, clearChatPrivateState, readChatAttempt, readChatDraft, writeChatAttempt, writeChatDraft } from "@aisley/ui/chat";
 import { useAuth } from "@/components/auth/auth-provider";
 import { ApiError } from "@/lib/api";
 import { getShopChatContext, listConversations, listMessages, startConversation, type ConversationSummary, type ConversationMessage, type MessageInput } from "@/lib/messages";
@@ -29,6 +31,7 @@ export function StartConversationContent({ shopId, productId, orderId }: { shopI
 
 function AuthenticatedStartConversation({ shopId, productId, orderId }: { shopId: string; productId: string | null; orderId: string | null }) {
   const router = useRouter();
+  const unified = useUnifiedInbox();
   const { auth } = useAuth();
   const accountId = auth.status === "authenticated" ? auth.customer.id : "unknown";
   const draftKey = `customer-shop-start:${accountId}:${shopId}:${productId ?? orderId ?? "shop"}`;
@@ -52,7 +55,7 @@ function AuthenticatedStartConversation({ shopId, productId, orderId }: { shopId
     getShopChatContext(shopId).then(async ({ data }) => {
       if (!active) return;
       setShopContext(data); setShopError("");
-      if (data.conversation_id && !productId && !orderId && !pendingKey.current) { router.replace(`/messages/${data.conversation_id}`); return; }
+      if (data.conversation_id && !productId && !orderId && !pendingKey.current) { router.replace(`/messages?kind=customer_shop&conversation=${data.conversation_id}`); return; }
       if (data.conversation_id) {
         const history = await listMessages(data.conversation_id);
         if (active) setMessages(history.items);
@@ -106,9 +109,11 @@ function AuthenticatedStartConversation({ shopId, productId, orderId }: { shopId
     setError("");
     try {
       const result = await startConversation(shopId, { ...input, attachment_ids: attempt.attachmentIds ?? [] }, attempt.key);
+      announceChatChange();
       clearChatAttachments(draftKey); writeChatDraft(draftKey, "");
       writeChatAttempt(draftKey, null);
-      router.replace(`/messages/${result.conversation.id}`);
+      if (unified) unified.openConversation("customer_shop", result.conversation.id);
+      else router.replace(`/messages?kind=customer_shop&conversation=${result.conversation.id}`);
     } catch (reason) {
       setError(reason instanceof ApiError ? reason.message : "Your message may not have sent. Retry with the same text; it will not create a duplicate.");
       if (reason instanceof ApiError && [401, 403, 404].includes(reason.status)) {

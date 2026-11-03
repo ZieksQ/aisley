@@ -1,96 +1,66 @@
-import { useCallback, useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { ChatEmptyState, ChatWorkspace, type ChatEntry } from '@aisley/ui/chat'
-import { ApiError } from '../lib/api'
-import { listConversations, type Conversation } from '../lib/messages'
+import { useEffect, type ReactNode } from 'react'
+import { ChatEmptyState, ChatWorkspace, UnifiedChatInbox, type UnifiedChatPage } from '@aisley/ui/chat'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useAuth } from '../auth/useAuth'
+import { apiRequest } from '../lib/api'
+import { MessageThreadPage } from './MessageThreadPage'
+import { LogisticsMessagesPage } from './LogisticsMessagesPage'
+import { CourierMessagesPage } from './CourierMessagesPage'
+
+const load = (query: string, signal: AbortSignal) => apiRequest<UnifiedChatPage>(
+  `/api/v1/seller/chat-inbox?${query}`, { signal, cache: 'no-store' },
+)
 
 export function MessagesPage() {
+  const { seller } = useAuth()
+  const [params, setParams] = useSearchParams()
   const navigate = useNavigate()
-  const [items, setItems] = useState<Conversation[]>([])
-  const [cursor, setCursor] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState('')
+  const kind = params.get('kind')
+  const id = params.get('conversation')
+  const role = params.get('role') ?? ''
+  const filter = ['customer', 'logistics', 'courier'].includes(role) ? role : ''
+  const counterpartRole = kind === 'customer_shop' ? 'customer'
+    : kind === 'seller_logistics' ? 'logistics'
+      : kind === 'courier_seller' ? 'courier' : undefined
+  const selected = Boolean(id || params.get('pickup_request_id') || params.get('order'))
 
-  const refresh = useCallback(async () => {
-    try {
-      const result = await listConversations()
-      setItems((current) => {
-        const byId = new Map(current.map((item) => [item.id, item]))
-        result.items.forEach((item) => byId.set(item.id, item))
-        return [...byId.values()].sort((left, right) =>
-          (right.last_message_at ?? '').localeCompare(left.last_message_at ?? '') || right.id.localeCompare(left.id))
-      })
-      setCursor((current) => current ?? result.next_cursor)
-      setError('')
-    } catch (reason) {
-      setError(reason instanceof ApiError ? reason.message : 'Messages could not be loaded.')
-    } finally {
-      setLoading(false)
-    }
-  }, [])
+  useEffect(() => { document.title = 'Messages | Aisley Seller' }, [])
 
-  useEffect(() => {
-    document.title = 'Messages | Aisley Seller'
-    void refresh()
-    const onFocus = () => { if (navigator.onLine) void refresh() }
-    const timer = window.setInterval(() => {
-      if (document.visibilityState === 'visible' && navigator.onLine) void refresh()
-    }, 20000)
-    window.addEventListener('focus', onFocus)
-    window.addEventListener('online', onFocus)
-    return () => {
-      window.clearInterval(timer)
-      window.removeEventListener('focus', onFocus)
-      window.removeEventListener('online', onFocus)
-    }
-  }, [refresh])
+  function filterRole(value: string) {
+    const next = new URLSearchParams(params)
+    if (value) next.set('role', value)
+    else next.delete('role')
+    setParams(next)
+  }
 
-  async function loadMore() {
-    if (!cursor) return
-    setBusy(true)
-    try {
-      const result = await listConversations(cursor)
-      setItems((current) => [...current, ...result.items.filter((item) => !current.some((entry) => entry.id === item.id))])
-      setCursor(result.next_cursor)
-    } catch (reason) {
-      setError(reason instanceof ApiError ? reason.message : 'Older conversations could not be loaded.')
-    } finally {
-      setBusy(false)
+  let thread: ReactNode
+  if (selected) {
+    if (kind === 'customer_shop' && id) {
+      thread = <MessageThreadPage key={id} conversationId={id} embedded />
+    } else if (kind === 'seller_logistics') {
+      thread = <LogisticsMessagesPage key={id ?? params.get('pickup_request_id')} embedded />
+    } else if (kind === 'courier_seller') {
+      thread = <CourierMessagesPage key={id ?? params.get('order')} />
+    } else {
+      thread = <ChatWorkspace entries={[]} selected>
+        <ChatEmptyState title="Conversation unavailable" description="Open a conversation from your inbox." />
+      </ChatWorkspace>
     }
   }
 
-  const entries: ChatEntry[] = items.map((item) => ({
-    id: item.id,
-    title: item.customer_name ?? 'Customer',
-    preview: item.last_message_preview ?? '',
-    activity: item.last_message_at,
-    unread: item.unread_count,
-    context: item.shop.name,
-    onSelect: () => navigate(`/messages/${item.id}`),
-  }))
-
-  return (
-    <div className="mx-auto max-w-7xl px-2 py-3 sm:px-4 lg:px-6">
-      <div className="flex items-center justify-between gap-4 border-b border-zinc-200 pb-3 dark:border-white/10">
-        <h2 className="text-xl font-semibold">Messages</h2>
-        <button className="text-sm font-medium text-[#4C1268] hover:underline dark:text-purple-300" onClick={() => void refresh()} type="button">Refresh</button>
-      </div>
-      <div className="mt-3">
-        <ChatWorkspace
-          entries={entries}
-          selected={false}
-          inboxTitle="Customer conversations"
-          inboxStatus={loading && !items.length ? <p className="p-4 text-sm text-zinc-500" role="status">Loading conversations…</p> : null}
-          inboxError={error || undefined}
-          onRetryInbox={() => void refresh()}
-          canLoadMore={Boolean(cursor)}
-          loadingMore={busy}
-          onLoadMore={() => void loadMore()}
-        >
-          <ChatEmptyState title="Your messages" description={items.length ? 'Select a conversation to read and reply.' : 'Customer conversations will appear here.'} />
-        </ChatWorkspace>
-      </div>
-    </div>
-  )
+  return <div className="mx-auto max-w-7xl px-2 py-3 sm:px-4 lg:px-6">
+    <h2 className={`${selected ? 'hidden min-[800px]:block' : ''} mb-3 px-2 text-xl font-semibold sm:px-0`}>Messages</h2>
+    <UnifiedChatInbox
+      key={seller?.id}
+      load={load}
+      roles={['customer', 'logistics', 'courier']}
+      filter={filter}
+      onFilter={filterRole}
+      navigate={navigate}
+      conversationId={id}
+      counterpartRole={counterpartRole}
+    >
+      {thread}
+    </UnifiedChatInbox>
+  </div>
 }
