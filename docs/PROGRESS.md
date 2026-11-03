@@ -111,3 +111,8 @@ Short, dated log of what has been implemented across the whole app. Append new e
 
 - Added owner-scoped Shop cover upload, replacement, preview, and removal with bounded image rewriting, private storage, additive metadata, and public delivery gated by current Shop visibility. Seller settings expose file preview, saved-cover preview, progress, validation, retry, and confirmed removal. Web and Buyer Flutter Shop pages show the existing nullable `bannerUrl` with responsive crops and image fallbacks; the Courier app is outside this storefront flow.
 - Verification: focused Seller Account API tests pass (9 tests, 94 assertions), Pint and diff checks pass, Seller TypeScript/Oxlint and Vite production build pass, Buyer responsive layout passes (32 tests), Flutter analysis and docs bundle checks pass. Web storefront TypeScript/ESLint pass; Next production build was interrupted after hanging during compilation, consistent with its external Google Fonts fetch requirement. No live/deployed image storage or production API acceptance is claimed.
+
+## 2026-11-03 — Customer storefront 404
+
+- Added a branded, responsive fallback for unmatched storefront URLs with the existing marketplace header/footer and a home recovery link. Documented the 404 contract; existing resource-specific not-found screens and protected-route gates remain in place.
+- Verification: storefront TypeScript, targeted ESLint, and production build passed. An unknown public URL returned HTTP 404 with the home action and noindex metadata. Chromium at 320/390/768/1440px found no horizontal overflow; the 44px home action received visible keyboard focus. The local API was unavailable during visual review, so the existing session-check banner appeared; deployed acceptance remains open.
