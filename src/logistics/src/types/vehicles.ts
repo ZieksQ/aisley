@@ -31,3 +31,5 @@ export type CourierVehiclePageResponse = {
   data: CourierVehicleSummary[]
   meta: { current_page: number; last_page: number; per_page: number; total: number }
 }
+
+export type CourierAssignmentVehicle = Pick<CourierVehicle, 'vehicle_type' | 'plate_number'>

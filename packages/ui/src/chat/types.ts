@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 export type ChatEntry = {
   id: string;
   title: string;
+  role?: import("./unified-state").ChatRole;
   preview: string;
   activity: string | null;
   unread: number;

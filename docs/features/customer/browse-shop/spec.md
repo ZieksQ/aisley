@@ -3,7 +3,7 @@ feature: browse-shop
 title: Customer Browse Seller Shops
 system: AISLEY
 type: Feature Specification
-version: 2.3
+version: 2.4
 status: Implemented
 implementation_status: Directory, Shop pages, category filtering, optional q extension, and dedicated Shop search control implemented
 canonical: true
@@ -20,7 +20,7 @@ reviewed: 2026-10-02
 
 - Provide a public Shop directory and a public Seller-scoped storefront at `/shops/{slug}`.
 - Guests and Customers can open visible Shops and paginate their visible Products using the existing Product Category filter.
-- The directory, header, Product list, Resources, Next.js pages, and focused API tests are implemented.
+- The directory, header, Product list, Resources, Next.js pages, and focused API tests are implemented. The existing nullable `bannerUrl` field now also serves Seller-managed Shop covers.
 - The Products API and page accept optional `q` for Product-name keyword search within the resolved Shop.
 - A Shop belongs to one Seller; `shops.seller_id` is unique and the globally unique `shops.slug` resolves the public route.
 - Browse Shop owns the Shop-scoped search/filter contract. Customer Search owns separate marketplace-wide Product and Shop result records.
@@ -40,6 +40,10 @@ reviewed: 2026-10-02
 - Category and keyword conditions only narrow this scope; request manipulation cannot select another Seller/Shop or widen it through an OR clause.
 - Out-of-stock visible Products may appear with their current compact stock status; discovery never guarantees purchase availability.
 - Return only safe Shop fields: `id`, `slug`, `name`, `description`, `logoUrl`, `bannerUrl`, and active public Shop Category summary or null.
+- Newly Seller-managed covers use a versioned application URL; legacy banners keep their existing URL behavior.
+- `GET /api/v1/customer/shops/{slug}/cover` streams a new cover only after the Shop passes `Shop::storefrontVisible()`. It returns `404` for missing or currently hidden Shops and never reveals a storage path.
+- The public cover response uses the verified image MIME, `nosniff`, and bounded public caching. Its version query changes on replacement so browsers cannot keep showing a previous cover.
+- The cover follows the centered, responsive banner crop already defined by this Shop page. Buyer clients display the nullable `bannerUrl` and keep their existing missing/image-error fallback.
 - Products reuse `ProductSummaryResource`; exclude private Seller contacts/evidence, Admin notes, Customer data, inventory internals, and raw storage paths.
 - Preserve existing numeric display-price fields; Cart/Checkout remain authoritative for stock, price, variants, quantity, and monetary calculations.
 
@@ -155,3 +159,9 @@ Keyword extension:
 - Responsive Shop banner, compact identity/logo fallback, expandable long plain-text description, Chat action and in-page navigation precede Shop vouchers and Products. Product search remains issuing-Shop scoped; filters/pagination and two product columns on phones are preserved. The Shop directory is outside this redesign.
 - Voucher reads/collection and independently bounded voucher pagination follow the [Customer voucher contract](../voucher-usage/spec.md). Public cards never embed personalized collection state; a separate private bounded read enriches only the current account. Collect validates issuing ownership and Shop visibility in the API.
 - User-requested design freedom applies to this Shop page: retain AISLEY colors, responsive behavior and accessible controls; earlier layout/theory prescriptions are superseded for this surface.
+
+## Seller-managed Shop cover — 2026-11-03
+
+- Seller Account owns cover upload, replacement, preview, and removal. Browse Shop owns only the safe public delivery of an eligible Shop's cover through `bannerUrl`; Buyer visibility and Shop/Product query scope remain unchanged.
+- New cover URLs resolve through the Laravel Shop route and can be fetched by both the storefront and Buyer Flutter client. Web uses the existing responsive Shop banner; mobile uses its existing `CatalogImage` centered crop and fallback.
+- Never return the private object key, filesystem disk, or image processing metadata in the public Shop DTO. Missing and hidden Shops use the existing not-found behavior.

@@ -12,6 +12,8 @@ use App\Http\Resources\Customer\ShopSummaryResource;
 use App\Services\Customer\ShopBrowseService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ShopBrowseController extends Controller
 {
@@ -32,6 +34,18 @@ class ShopBrowseController extends Controller
     {
         return $this->publicResponse([
             'data' => new ShopDetailResource($this->browse->findPublicShop($slug)),
+        ]);
+    }
+
+    public function cover(string $slug): StreamedResponse
+    {
+        $shop = $this->browse->findPublicShop($slug);
+        abort_unless($shop->banner_disk && $shop->banner_path, 404);
+
+        return Storage::disk($shop->banner_disk)->response($shop->banner_path, null, [
+            'Content-Type' => $shop->banner_mime ?? 'application/octet-stream',
+            'Cache-Control' => 'public, max-age=60',
+            'X-Content-Type-Options' => 'nosniff',
         ]);
     }
 

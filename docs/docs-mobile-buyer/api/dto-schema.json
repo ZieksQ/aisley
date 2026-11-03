@@ -42,7 +42,8 @@
       "sex": "string?",
       "birthDate": "date?",
       "age": "int?",
-      "profilePhotoUrl": "URL?"
+      "profilePhotoUrl": "URL?",
+      "idImageUrl": "URL?"
     },
     "Security": {
       "emailEditable": "bool",

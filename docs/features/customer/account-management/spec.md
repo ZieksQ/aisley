@@ -3,7 +3,7 @@ feature: account-management
 title: Customer Account Management
 system: AISLEY
 type: Feature Specification
-version: 2.3
+version: 2.4
 status: Phase 1 implemented
 role: Customer
 scope: Customer web application and Laravel API
@@ -65,6 +65,16 @@ scope: Customer web application and Laravel API
 - Replacement writes and validates the new object before atomically updating metadata. If the database update fails, remove the new object; after a committed replacement/removal, delete the old object best-effort without restoring stale metadata on deletion failure.
 - Apply focused upload throttling, safe operational logging, and the approved Customer-specific byte, edge, pixel and processing limits above. Do not claim malware scanning exists until a scanner and pending/quarantine lifecycle are implemented.
 
+### Optional ID image
+
+- Account Settings offers one optional Customer ID image independently from profile photo, profile details, and password workflows. It supports upload, private preview, replacement, and confirmed removal; it does not collect an ID number/type or create a review/verification status.
+- Add authenticated `POST /api/v1/customer/account/id-image` with multipart `id_image`, `GET` for private owner-authorized image bytes, and `DELETE` for removal inside the existing active-Customer + consent route group. Apply CSRF protection to web-session mutations and a focused limit of 10 uploads per minute per Customer/IP.
+- Apply [File & Image Upload Requirements](../../../references/file-upload-requirements.md) and the Customer profile-image decode/rewrite bounds: JPEG/JPG, PNG, or WebP; strictly under 10 MiB; maximum 8,000 pixels per edge and 40 megapixels. Server validation remains authoritative and reports field-addressable errors on `id_image`.
+- Store the rewritten file using a generated key under `customer-id-images/{customer UUID}/` on the configured private disk. Keep ID metadata in additive nullable `customer_profiles` columns, separate from `documents` registration evidence and profile-photo metadata. Reject configured public storage and request private object visibility.
+- Extend the private account DTO with required nullable `profile.idImageUrl`, pointing only to the authorized GET endpoint with a version query. Do not return storage metadata, raw paths, signed URLs, or ID contents outside the binary response.
+- Store a replacement before committing metadata, preserve the prior image if processing/storage/database work fails, and delete the old object best-effort only after commit. Removal clears metadata transactionally and deletes the old object best-effort. Do not retain image history.
+- The Account Settings control keeps a local object-URL preview until success/unmount, shows accepted formats and size before selection, upload progress and recoverable errors, and never clears the saved image after a failed upload. Upload state does not block profile or password forms. Clear pending private preview state on account identity change.
+
 ### Concurrency, errors, and privacy
 
 - Profile/password writes must be transactional for the User/Profile rows they touch. Concurrent retries must not partially apply a profile update or leave an unusable password/session state.
@@ -94,6 +104,7 @@ scope: Customer web application and Laravel API
 - [x] A forged Customer ID, another role, inactive account, forbidden field, or cross-role same-email record cannot read or change the Customer profile.
 - [x] Password change requires the correct current password, confirmed policy-compliant replacement password, throttling, and safe session/token handling.
 - [x] A Customer can upload, replace, view, and remove only their own JPEG/PNG/WebP profile photo under 10 MiB through the configured Azure Blob/local disk.
+- [x] A Customer can optionally upload, privately view, replace, and remove one ID image under the same validated image bounds; no review status or ID-number field is introduced.
 - [x] Spoofed, corrupt, oversized, multiple-extension, cross-account, and unauthenticated photo requests are rejected; raw blob paths/credentials are never returned.
 - [x] Private account responses and errors never expose tokens, hashes, raw media paths, registration evidence, or another Customer's data.
 - [x] UI loading, validation, retry, success, upload progress, and keyboard/focus states work without falsely reporting a saved change.
@@ -127,6 +138,7 @@ scope: Customer web application and Laravel API
 
 - Laravel tests: active Customer self-read/update; guest/inactive/other-role denial; allow-list enforcement; same-email role isolation; validation; concurrent profile write behaviour; current-password failure; password policy/confirmation; rate limit; session/token outcome; safe resource/error payloads; and no-store headers.
 - Photo tests: accepted formats/exact byte boundary; MIME/extension/signature spoofing; corrupt/dimension failures; generated Azure/local path; metadata persistence; owner-only delivery/replacement/removal; rollback cleanup; old-object cleanup; throttling; and no raw storage-path response.
+- ID image tests: accepted format and size/dimension validation, spoofed/corrupt input, authenticated Customer ownership, role/guest denial, private no-store delivery, safe DTO, replacement rollback/cleanup, removal cleanup, and throttling. The isolated storefront interaction smoke is `src/webapp/tests/account-id-image-browser.mjs`.
 - Audit B04 regression: the 33-byte PNG signature/IHDR passes header inspection but must return `422` on `photo`. Cover truncated JPEG/PNG/WebP and valid-header corrupt payloads, decoder warnings, exact edge/pixel boundaries, transparency, metadata stripping, processing timeout, and preservation of previous bytes/pointer/metadata on rejection or storage/database failure.
 - Customer tests: protected redirect/return; initial read-only state; profile/photo/password validation/success/failure; blocked file feedback; upload progress; private image refresh; disabled duplicate submits; navigation refresh; focus/keyboard behaviour; and responsive account navigation.
 - Run focused Customer API tests for backend changes; add storefront lint, strict TypeScript, production build and affected interaction checks when frontend code changes. Append actual implementation/verification results to `docs/PROGRESS.md`, distinguishing backend checks from unverified browser or live-runtime behavior.

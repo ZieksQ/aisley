@@ -1,3 +1,4 @@
+import type { ConsentSelection } from '@aisley/ui/policy-consent';
 import { apiRequest } from "@/lib/api";
 
 import type {
@@ -25,5 +26,11 @@ export function acceptPolicy(type: PublicPolicyType, version: number) {
   return apiRequest<PolicyAcceptanceResponse>(`/api/v1/policy-consent/${type}/versions/${version}/accept`, {
     method: "POST",
     body: JSON.stringify({ confirmation: true }),
+  });
+}
+
+export function acceptPolicies(acceptances: ConsentSelection[]) {
+  return apiRequest<{ data: { acceptances: PolicyAcceptanceResponse['data'][]; status: PolicyConsentStatusResponse['data'] } }>("/api/v1/policy-consent/accept", {
+    method: "POST", body: JSON.stringify({ acceptances }),
   });
 }

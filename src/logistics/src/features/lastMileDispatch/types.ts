@@ -1,8 +1,11 @@
+import type { CourierAssignmentVehicle } from '../../types/vehicles'
+
 export type DispatchCourier = {
   courier_id: string
   name: string
   email: string
   contact_number: string | null
+  vehicle: CourierAssignmentVehicle | null
 }
 export type DispatchSchedule = {
   id: string

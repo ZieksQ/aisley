@@ -15,6 +15,7 @@ export type CustomerAccount = {
     birthDate: string;
     contactNumber: string;
     firstName: string;
+    idImageUrl: string | null;
     lastName: string;
     middleName: string | null;
     profilePhotoUrl: string | null;

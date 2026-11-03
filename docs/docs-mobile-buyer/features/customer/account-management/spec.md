@@ -7,10 +7,10 @@ flutter_status: Implemented; acceptance partial
 backend_baseline: 7b1a08a0c89d7983a0e0503c5e8d322d2c2fa2a0
 upload_recovery_revision: 2026-10-10
 contract_inspected_checkout: 57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50
-documentation_synced_on: 2026-10-12
+documentation_synced_on: 2026-11-03
 ---
 
-# Profile, password, photo and preference
+# Profile, password, photo, ID image and preference
 
 ## WHAT
 
@@ -56,6 +56,14 @@ Phone/tablet padding, natural content heights and keyboard/text resizing follow 
 - No email edit, MFA, device/session registry, revoke-all, deletion or export API is available.
 - Photo upload uses multipart photo and under 10 MiB JPEG/PNG/WebP; client hints never replace server
   validation.
+- The optional account ID image is a separate one-image private upload using multipart `id_image`; it is
+  distinct from the profile avatar and registration evidence. This backend contract adds no review or
+  verification status, ID number/type, or Flutter UI claim.
+- ID image uses JPEG/PNG/WebP, strictly under 10 MiB, maximum 8,000 pixels per edge and 40 megapixels.
+  Laravel inspects, fully decodes/rewrites and stores on a private disk; invalid content returns 422 on
+  `id_image` and a failed replacement preserves the saved image.
+- Read the ID image only through its authenticated owner endpoint and no-store response. Never pass a
+  bearer token in its versioned URL or return disk/path/signed-URL metadata.
 - GET avatar fetches authorized private bytes; relative versioned URL retains /api path and cache-busting
   query.
 - Never pass bearer as URL parameter or use unauthenticated Image.network for private avatar.
@@ -99,6 +107,18 @@ A path UUID or slug is encoded before use; do not submit owner, status, financia
 - `DELETE /api/v1/customer/account/profile-photo` → HTTP 200; `{message:string,account:Account,customer:Navigation}`.
   Request: POST multipart photo: JPEG/PNG/WebP, strictly<10485760 bytes, one matching extension; GET/DELETE no body.
   Replay: No durable replay key. After timeout/cancellation, reread authoritative state before a deliberate new action.
+- `GET /api/v1/customer/account/id-image` → HTTP 200; `private image bytes`; missing image is 404.
+  Request: No body; optional cache-busting `v` query from the account DTO. Active Customer + consent;
+  authenticated scoped bearer or web session. Response is `private, no-store` with `nosniff`.
+  Retry: Bounded authenticated read; reject obsolete session/query generations.
+- `POST /api/v1/customer/account/id-image` → HTTP 200; `{message:string,account:Account,customer:Navigation}`.
+  Request: Multipart `id_image`, JPEG/PNG/WebP strictly under 10 MiB, matching single extension, maximum
+  8,000 pixels per edge and 40 megapixels. Active Customer + consent; scoped bearer or web session/CSRF.
+  Retry: No replay key. After timeout/cancellation, reread authoritative account state before a deliberate
+  new upload.
+- `DELETE /api/v1/customer/account/id-image` → HTTP 200; `{message:string,account:Account,customer:Navigation}`.
+  Request: No body; owner derived only from the authenticated Customer. Active Customer + consent.
+  Retry: No replay key. After timeout/cancellation, reread account state before deciding whether to repeat.
 - `GET /api/v1/customer/account/notification-preferences` → HTTP 200; `{data:Preference}`.
   Request: PATCH promotional_in_app_opted_in required boolean; default off. GET no input.
   Replay: Read retry after bounded backoff; reject obsolete session/query generations.
@@ -124,7 +144,7 @@ actions.
 | DTO | Wire fields and types |
 | --- | --- |
 | `Account` | `id: UUID`, `email: string`, `role: string`, `status: string`, `profile: Profile`, `security: Security` |
-| `Profile` | `firstName: string?`, `middleName: string?`, `lastName: string?`, `contactNumber: string?`, `sex: string?`, `birthDate: date?`, `age: int?`, `profilePhotoUrl: URL?` |
+| `Profile` | `firstName: string?`, `middleName: string?`, `lastName: string?`, `contactNumber: string?`, `sex: string?`, `birthDate: date?`, `age: int?`, `profilePhotoUrl: URL?`, `idImageUrl: URL?` |
 | `Preference` | `promotional_in_app_opted_in: bool`, `promotional_in_app_opted_in_at: timestamp?` |
 | `Navigation` | `id: UUID`, `displayName: string?`, `avatarUrl: URL?`, `role: string`, `status: string` |
 

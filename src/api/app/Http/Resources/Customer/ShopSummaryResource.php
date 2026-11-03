@@ -19,7 +19,9 @@ class ShopSummaryResource extends JsonResource
             'name' => $this->name,
             'description' => $this->description,
             'logoUrl' => MediaUrl::from('public', $this->logo_path),
-            'bannerUrl' => MediaUrl::from('public', $this->banner_path),
+            'bannerUrl' => $this->banner_disk && $this->banner_path
+                ? url('/api/v1/customer/shops/'.rawurlencode($this->slug).'/cover?v='.$this->banner_version)
+                : MediaUrl::from('public', $this->banner_path),
             'category' => $this->whenLoaded(
                 'shopCategory',
                 fn () => $this->shopCategory === null

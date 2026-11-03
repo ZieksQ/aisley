@@ -42,6 +42,11 @@ Phone/tablet padding, natural content heights and keyboard/text resizing follow 
   page.
 - Shop detail resolves by public slug, returns the same safe Shop type and may have nullable
   category/branding.
+- `bannerUrl` may point to a versioned API image route for a Seller-managed cover. Fetch it through
+  the existing public media adapter; the server checks Shop visibility and returns only image bytes.
+- Preserve the centered `BoxFit.cover` Shop header and image-error fallback for present, missing,
+  replaced, or unavailable covers. Do not construct storage URLs or cache the old cover URL after a
+  refreshed Shop response.
 - Visible empty Shop is valid; hidden/unknown Shop404 is unavailable, not an empty catalogue
   success.
 - One Shop Product page combines optional q Product-name search with its own category filter.

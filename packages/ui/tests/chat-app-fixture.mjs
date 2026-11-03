@@ -10,7 +10,7 @@ export function installChatFixture(role) {
   ], reads: 0, deny: false, loseResponse: false, loading: false, empty: false, readOnly: false, error: false };
   const json = (body, status = 200) => new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
   const thread = (path) => ({
-    id, kind: path.includes("operational") ? "logistics_courier" : path.includes("logistics") ? `${role}_logistics` : path.includes("courier") ? `courier_${role}` : "customer_shop",
+    id: path.match(/\/[0-9a-f-]{36}(?:\/|$)/)?.[0].replaceAll("/", "") ?? id, kind: path.includes("operational") ? "logistics_courier" : path.includes("logistics") ? `${role}_logistics` : path.includes("courier") ? `courier_${role}` : "customer_shop",
     counterparty_label: "Maya Shop", counterparty_role: "courier",
     shop: { id: "40000000-0000-4000-8000-000000000001", name: "Maya Shop", slug: "maya", ...(state.omitAvailability ? {} : { availability: state.availability ?? "online" }) }, customer_name: "Fixture Buyer",
     order_id: "50000000-0000-4000-8000-000000000001", order_reference: "ORDER-1042",
@@ -34,6 +34,30 @@ export function installChatFixture(role) {
     if (/^\/api\/v1\/products\/[^/]+$/.test(path)) return state.contextFails ? json({message:"Product unavailable"},404) : json({data:{id:path.split('/').at(-1),title:"Linen shirt",shop:thread(path).shop}});
     if (/^\/api\/v1\/customer\/orders\/[^/]+$/.test(path)) return json({data:{id:path.split('/').at(-1),reference:"ORDER-1042",shop:thread(path).shop}});
     if (path.endsWith("/chat-attachments")) return json({ data: { enabled: false } });
+    if (path.endsWith("/chat-inbox")) {
+      const url = new URL(input instanceof Request ? input.url : String(input), location.origin);
+      state.inboxRequests ??= [];
+      state.inboxRequests.push(url.search);
+      if (state.loading) await new Promise(done => setTimeout(done, 1000));
+      if (state.deny) return json({ message: "This inbox is unavailable." }, 403);
+      if (state.error) return json({ message: "Messages could not be loaded." }, 503);
+      const kinds = role === "customer" ? ["customer_shop", "customer_logistics", "courier_customer"]
+        : role === "seller" ? ["customer_shop", "seller_logistics", "courier_seller"] : ["customer_logistics", "seller_logistics", "logistics_courier"];
+      const counterparts = role === "customer" ? ["seller", "logistics", "courier"] : role === "seller" ? ["customer", "logistics", "courier"] : ["customer", "seller", "courier"];
+      let rows = kinds.map((kind, index) => ({
+        id: id.slice(0, -1) + (index + 1), kind, counterparty_role: counterparts[index],
+        counterparty_label: counterparts[index] === "seller" ? "Maya Shop" : counterparts[index] === "customer" ? "Fixture Buyer" : counterparts[index] === "logistics" ? "North Hub" : "Courier",
+        context_label: index ? "Order ORDER-1042 · final mile" : null,
+        last_message_preview: state.messages.at(-1)?.body ?? "", last_message_at: `2026-10-11T04:0${5 - index}:00Z`,
+        unread_count: index + 1, send_allowed: !state.readOnly, read_only_reason: state.readOnly ? "TASK_NOT_ACTIVE" : null,
+      }));
+      if (state.many) rows = Array.from({ length: 25 }, (_, index) => ({ ...rows[index % 3], id: `20000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}` }));
+      if (state.empty) rows = [];
+      const filter = url.searchParams.get("counterparty_role");
+      if (filter) rows = rows.filter(row => row.counterparty_role === filter);
+      const offset = Number(url.searchParams.get("cursor") ?? "0");
+      return json({ data: rows.slice(offset, offset + 20), meta: { next_cursor: rows.length > offset + 20 ? String(offset + 20) : null, unread_count: rows.reduce((sum, row) => sum + row.unread_count, 0) } });
+    }
     if (path.includes("conversations")) {
       if (state.loading) await new Promise(done => setTimeout(done, 1000));
       if (state.deny) return json({ message: "This conversation is unavailable." }, 403);
@@ -53,7 +77,7 @@ export function installChatFixture(role) {
         return json(result, 201);
       }
       if (path.endsWith("/messages")) return json({ items: state.messages, data: state.messages, next_cursor: null, meta: { next_cursor: null } });
-      if (path.includes(id)) return json({ data: thread(path) });
+      if (/\/[0-9a-f-]{36}$/.test(path)) return json({ data: thread(path) });
       if (path.endsWith("/unread-count")) return json({ unread_count: 2 });
       return json({ items: state.empty ? [] : [thread(path)], data: state.empty ? [] : [thread(path)], next_cursor: null, unread_count: 2, meta: { next_cursor: null, unread_count: 2 } });
     }

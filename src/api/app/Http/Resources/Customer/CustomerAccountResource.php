@@ -28,6 +28,9 @@ class CustomerAccountResource extends JsonResource
                 'profilePhotoUrl' => $profile?->profile_photo_disk && $profile->profile_photo_path
                     ? '/api/v1/customer/account/profile-photo?v='.$profile->updated_at?->getTimestamp()
                     : null,
+                'idImageUrl' => $profile?->id_image_disk && $profile->id_image_path
+                    ? '/api/v1/customer/account/id-image?v='.$profile->updated_at?->getTimestamp()
+                    : null,
             ],
             'security' => [
                 'emailEditable' => false,

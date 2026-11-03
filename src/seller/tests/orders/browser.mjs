@@ -5,6 +5,7 @@ import { resolve } from 'node:path'
 import { openBrowser, closeBrowser, origin, artifacts, sellerRoot } from '../operations/support.mjs'
 import { installOperationsFixtures } from '../operations/fixtures.mjs'
 import { installOrderFixtures } from './fixtures.mjs'
+import { verifyApprovalSorting } from './approval-sorting.mjs'
 import { verifyPickingSheet } from './picking-sheet.mjs'
 
 const preview = process.argv.includes('--serve') ? spawn(process.execPath, [
@@ -29,6 +30,7 @@ try {
   })
   await browser.cdp('Network.enable')
   await browser.cdp('Network.setBlockedURLs', { urls: ['*://*/api/*', '*://*/sanctum/*'] })
+  await verifyApprovalSorting(browser)
   await browser.viewport(1440, 960, false)
   await browser.navigate('/orders/monitoring')
   await browser.waitText('ASL-20261015-4100')

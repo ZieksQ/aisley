@@ -63,7 +63,7 @@ function PickupParcel({ pickupId }: { pickupId: string }) {
         </div>
         {pickup && (
           <div className="portal-inline-actions">
-            <Link className="portal-button" to={`/logistics-messages?pickup_request_id=${pickup.id}`}>Contact Logistics</Link>
+            <Link className="portal-button" to={`/messages?kind=seller_logistics&pickup_request_id=${pickup.id}`}>Contact Logistics</Link>
             {canPrintAll && (
               <OrderButton variant="secondary" disabled={Boolean(pdfBusy)} isLoading={pdfBusy === `${pickupId}:print`}
                 loadingLabel="Opening labels…" onClick={() => void printPdf(

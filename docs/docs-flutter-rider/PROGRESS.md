@@ -77,3 +77,8 @@ Short, dated implementation log. Append entries; archive complete logs after 150
 ## 2026-10-29 — Independent nullable-notification retest
 
 - Independent tester confirms Courier accepts the saved nullable-resource reproduction with no new findings; 62 repository/target/navigation/screen checks pass. No app build, environment access, live API, or device acceptance occurred. Buyer retest also passed; see the main progress log for its separate result.
+
+## 2026-11-03 — Combined policy consent contract and client adoption
+
+- Added `policy-consent-batch-v1` to the shared contract: atomic pending-version acceptance, two confirmations and one Accept action; preserved current/history reads, legacy acceptance, actor gates and exact-version retries. The external Courier app now implements the combined flow.
+- External source verification: 46 policy tests plus the focused consent-gate integration test and Flutter analysis passed; responsive/theme/large-text captures reviewed. These are local client checks, not live/deployed or installed-device acceptance. The broader Courier widget run retains two unrelated registration-step failures.

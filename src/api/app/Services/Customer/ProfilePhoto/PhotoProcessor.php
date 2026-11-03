@@ -13,7 +13,7 @@ use Throwable;
 class PhotoProcessor
 {
     /** @return array{mime: string, extension: string, size: int, width: int, height: int, bytes: string} */
-    public function process(UploadedFile $photo): array
+    public function process(UploadedFile $photo, string $field = 'photo'): array
     {
         $input = null;
         $output = null;
@@ -68,7 +68,10 @@ class PhotoProcessor
             $message = $exception instanceof RuntimeException && ! $exception instanceof ExceptionInterface
                 ? $exception->getMessage()
                 : 'The profile photo could not be processed. Please choose a valid JPEG, PNG, or WebP image.';
-            throw ValidationException::withMessages(['photo' => $message]);
+            if ($field === 'id_image') {
+                $message = str_ireplace('profile photo', 'ID image', $message);
+            }
+            throw ValidationException::withMessages([$field => $message]);
         } finally {
             foreach ([$input, $output] as $path) {
                 if (is_string($path) && is_file($path)) {

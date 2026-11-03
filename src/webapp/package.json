@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "test:auth": "node tests/auth-session.test.mjs",
+    "test:account-id-image:browser": "node tests/account-id-image-browser.mjs",
     "test:checkout": "node --test tests/checkout-*.test.mjs",
     "test:orders": "node --test tests/order-contact.test.mjs",
     "test:orders:browser": "node tests/order-contact-browser.mjs"

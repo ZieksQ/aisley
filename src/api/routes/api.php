@@ -43,6 +43,7 @@ use App\Http\Controllers\Customer\AccountController as CustomerAccountController
 use App\Http\Controllers\Customer\AddressController as CustomerAddressController;
 use App\Http\Controllers\Customer\AuthController as CustomerAuthController;
 use App\Http\Controllers\Customer\CartController;
+use App\Http\Controllers\Customer\ChatInboxController as CustomerChatInboxController;
 use App\Http\Controllers\Customer\ChatNotificationController as CustomerChatNotificationController;
 use App\Http\Controllers\Customer\CheckoutController;
 use App\Http\Controllers\Customer\ConversationController as CustomerConversationController;
@@ -67,6 +68,7 @@ use App\Http\Controllers\HomepageAdvertisementImageController;
 use App\Http\Controllers\Logistics\AccountController as LogisticsAccountController;
 use App\Http\Controllers\Logistics\AuthController as LogisticsAuthController;
 use App\Http\Controllers\Logistics\BillingController;
+use App\Http\Controllers\Logistics\ChatInboxController as LogisticsChatInboxController;
 use App\Http\Controllers\Logistics\ChatNotificationController as LogisticsChatNotificationController;
 use App\Http\Controllers\Logistics\CompanyFleetController;
 use App\Http\Controllers\Logistics\CourierApprovalController;
@@ -101,6 +103,7 @@ use App\Http\Controllers\ProductMediaController;
 use App\Http\Controllers\ProductReviewImageController;
 use App\Http\Controllers\Seller\AccountController as SellerAccountController;
 use App\Http\Controllers\Seller\AuthController as SellerAuthController;
+use App\Http\Controllers\Seller\ChatInboxController as SellerChatInboxController;
 use App\Http\Controllers\Seller\ChatNotificationController as SellerChatNotificationController;
 use App\Http\Controllers\Seller\ConversationController as SellerConversationController;
 use App\Http\Controllers\Seller\CourierConversationController as SellerCourierConversationController;
@@ -364,6 +367,7 @@ Route::prefix('v1/seller')->name('seller.')->middleware(['auth:sanctum', 'seller
     });
 
     Route::get('/chat-notifications', SellerChatNotificationController::class)->name('chat-notifications');
+    Route::get('/chat-inbox', SellerChatInboxController::class)->name('chat-inbox');
     Route::prefix('support-tickets')->name('support-tickets.')->group(function () {
         Route::get('/', [RequesterSupportTicketController::class, 'index'])->name('index');
         Route::post('/', [RequesterSupportTicketController::class, 'store'])->middleware('throttle:support-ticket-create')->name('store');
@@ -431,6 +435,9 @@ Route::prefix('v1/seller')->name('seller.')->middleware(['auth:sanctum', 'seller
     Route::post('/account/profile-photo', [SellerAccountController::class, 'uploadProfilePhoto'])->middleware('throttle:10,1')->name('account.photo.store');
     Route::get('/account/profile-photo', [SellerAccountController::class, 'profilePhoto'])->name('account.photo.show');
     Route::delete('/account/profile-photo', [SellerAccountController::class, 'removeProfilePhoto'])->name('account.photo.destroy');
+    Route::post('/account/shop-cover', [SellerAccountController::class, 'uploadShopCover'])->middleware('throttle:10,1')->name('account.shop-cover.store');
+    Route::get('/account/shop-cover', [SellerAccountController::class, 'shopCover'])->name('account.shop-cover.show');
+    Route::delete('/account/shop-cover', [SellerAccountController::class, 'removeShopCover'])->name('account.shop-cover.destroy');
     Route::get('/pickup-addresses', [SellerPickupAddressController::class, 'index'])->name('pickup-addresses.index');
     Route::post('/pickup-addresses', [SellerPickupAddressController::class, 'store'])->name('pickup-addresses.store');
     Route::patch('/pickup-addresses/{address}', [SellerPickupAddressController::class, 'update'])->whereUuid('address')->name('pickup-addresses.update');
@@ -518,6 +525,7 @@ Route::prefix('v1/logistics/auth')->name('logistics.auth.')->group(function () {
 
 Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', 'logistics.active', 'policy.consent'])->group(function () {
     Route::get('/chat-notifications', LogisticsChatNotificationController::class)->name('chat-notifications');
+    Route::get('/chat-inbox', LogisticsChatInboxController::class)->name('chat-inbox');
     Route::prefix('support-tickets')->name('support-tickets.')->group(function () {
         Route::get('/', [RequesterSupportTicketController::class, 'index'])->name('index');
         Route::post('/', [RequesterSupportTicketController::class, 'store'])->middleware('throttle:support-ticket-create')->name('store');
@@ -808,6 +816,7 @@ Route::prefix('v1/customer')->name('customer.')->middleware('throttle:120,1')->g
     Route::post('/products/resolve', [RecentlyViewedController::class, 'resolve'])->name('products.resolve');
     Route::get('/shops', [ShopBrowseController::class, 'index'])->name('shops.index');
     Route::get('/shops/{slug}', [ShopBrowseController::class, 'show'])->name('shops.show');
+    Route::get('/shops/{slug}/cover', [ShopBrowseController::class, 'cover'])->name('shops.cover');
     Route::get('/shops/{slug}/products', [ShopBrowseController::class, 'products'])->name('shops.products.index');
     Route::get('/vouchers', [CustomerVoucherController::class, 'index'])->name('vouchers.index');
     Route::get('/vouchers/{voucher}', [CustomerVoucherController::class, 'show'])->whereUuid('voucher')->name('vouchers.show');
@@ -819,6 +828,7 @@ Route::prefix('v1/customer')->name('customer.')->middleware('throttle:120,1')->g
         Route::post('/vouchers/{voucher}/claim', [CustomerVoucherController::class, 'claim'])->whereUuid('voucher')->name('vouchers.claim');
         Route::post('/shops/{slug}/vouchers/{voucher}/claim', [CustomerVoucherController::class, 'shopClaim'])->whereUuid('voucher')->name('shops.vouchers.claim');
         Route::get('/chat-notifications', CustomerChatNotificationController::class)->name('chat-notifications');
+        Route::get('/chat-inbox', CustomerChatInboxController::class)->name('chat-inbox');
         Route::prefix('support-tickets')->name('support-tickets.')->group(function () {
             Route::get('/', [RequesterSupportTicketController::class, 'index'])->name('index');
             Route::post('/', [RequesterSupportTicketController::class, 'store'])->middleware('throttle:support-ticket-create')->name('store');
@@ -881,6 +891,13 @@ Route::prefix('v1/customer')->name('customer.')->middleware('throttle:120,1')->g
             ->name('account.photo.show');
         Route::delete('/account/profile-photo', [CustomerAccountController::class, 'removeProfilePhoto'])
             ->name('account.photo.destroy');
+        Route::post('/account/id-image', [CustomerAccountController::class, 'uploadIdImage'])
+            ->middleware('throttle:customer-id-image')
+            ->name('account.id-image.store');
+        Route::get('/account/id-image', [CustomerAccountController::class, 'idImage'])
+            ->name('account.id-image.show');
+        Route::delete('/account/id-image', [CustomerAccountController::class, 'removeIdImage'])
+            ->name('account.id-image.destroy');
         Route::get('/addresses', [CustomerAddressController::class, 'index'])->name('addresses.index');
         Route::post('/addresses', [CustomerAddressController::class, 'store'])->name('addresses.store');
         Route::patch('/addresses/{address}', [CustomerAddressController::class, 'update'])
@@ -967,6 +984,9 @@ Route::prefix('v1/policy-consent')->name('policy-consent.')->middleware('auth:sa
     Route::get('/status', [PolicyConsentController::class, 'status'])
         ->middleware(['policy.actor', 'throttle:policy-consent-status'])
         ->name('status');
+    Route::post('/accept', [PolicyConsentController::class, 'acceptTogether'])
+        ->middleware(['policy.actor', 'throttle:policy-consent-acceptance'])
+        ->name('accept-together');
     Route::post('/{type}/versions/{version}/accept', [PolicyConsentController::class, 'accept'])
         ->whereNumber('version')
         ->middleware(['policy.actor', 'throttle:policy-consent-acceptance'])

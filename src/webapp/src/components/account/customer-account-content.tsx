@@ -12,6 +12,7 @@ import {
 import { FiCheckCircle, FiRefreshCw } from "react-icons/fi";
 
 import { useAuth } from "@/components/auth/auth-provider";
+import { IdImageSection } from "@/components/account/id-image-section";
 import { ProfilePhotoSection } from "@/components/account/profile-photo-section";
 import { PromotionPreferenceSection } from "@/components/account/promotion-preference-section";
 import {
@@ -172,6 +173,7 @@ export function CustomerAccountContent() {
       </p>
 
       <ProfilePhotoSection account={account} onUpdated={applyPhotoUpdate} />
+      <IdImageSection key={account.id} account={account} onUpdated={applyPhotoUpdate} />
       <PromotionPreferenceSection />
 
       <section aria-labelledby="account-identity-heading" className="mt-5 border border-[#DED7E1] bg-white p-5 sm:p-6">

@@ -8,6 +8,7 @@ use App\Enums\Logistics\SortingLaneType;
 use App\Enums\ShipmentStatus;
 use App\Enums\UserStatus;
 use App\Exceptions\Fulfillment\FulfillmentException;
+use App\Http\Resources\Logistics\CourierAssignmentVehicleResource;
 use App\Models\CourierLogisticsAffiliation;
 use App\Models\DispatchSchedule;
 use App\Models\LinehaulTrip;
@@ -131,11 +132,12 @@ class DispatchScheduleService
 
         return CourierLogisticsAffiliation::query()->where('logistics_organization_id', $org->id)->where('logistics_hub_id', $org->hub->id)
             ->where('status', CourierAffiliationStatus::Approved)->whereHas('courier', fn ($query) => $query->where('status', UserStatus::Active))
-            ->with('courier.courierProfile')->orderBy('created_at')->get()->map(fn (CourierLogisticsAffiliation $affiliation): array => [
+            ->with('courier.courierProfile.vehicles')->orderBy('created_at')->get()->map(fn (CourierLogisticsAffiliation $affiliation): array => [
                 'courier_id' => $affiliation->courier_id,
                 'name' => trim(($affiliation->courier->courierProfile?->first_name ?? '').' '.($affiliation->courier->courierProfile?->last_name ?? '')) ?: $affiliation->courier->email,
                 'email' => $affiliation->courier->email,
                 'contact_number' => $affiliation->courier->courierProfile?->contact_number,
+                'vehicle' => CourierAssignmentVehicleResource::forProfile($affiliation->courier->courierProfile),
             ])->values();
     }
 

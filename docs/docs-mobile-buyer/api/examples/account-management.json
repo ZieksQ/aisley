@@ -31,7 +31,8 @@
             "sex": null,
             "birthDate": null,
             "age": null,
-            "profilePhotoUrl": null
+            "profilePhotoUrl": null,
+            "idImageUrl": null
           },
           "security": {
             "emailEditable": false,
@@ -80,7 +81,8 @@
             "sex": null,
             "birthDate": null,
             "age": null,
-            "profilePhotoUrl": null
+            "profilePhotoUrl": null,
+            "idImageUrl": null
           },
           "security": {
             "emailEditable": false,
@@ -185,7 +187,8 @@
             "sex": null,
             "birthDate": null,
             "age": null,
-            "profilePhotoUrl": null
+            "profilePhotoUrl": null,
+            "idImageUrl": null
           },
           "security": {
             "emailEditable": false,
@@ -234,7 +237,8 @@
             "sex": null,
             "birthDate": null,
             "age": null,
-            "profilePhotoUrl": null
+            "profilePhotoUrl": null,
+            "idImageUrl": null
           },
           "security": {
             "emailEditable": false,

@@ -32,8 +32,8 @@ function AuthenticatedCourierContact({ orderId }: { orderId: string }) {
   useCourierRefresh(refresh, revision)
 
   const destination = context?.send_allowed
-    ? `/courier-messages?order=${orderId}`
-    : context?.conversation_id ? `/courier-messages?conversation=${context.conversation_id}` : null
+    ? `/messages?kind=courier_customer&order=${orderId}`
+    : context?.conversation_id ? `/messages?kind=courier_customer&conversation=${context.conversation_id}` : null
   return (
     <section className="rounded-lg border border-zinc-200 bg-white p-5" aria-label="Courier contact">
       <h3 className="font-semibold">Delivery Courier</h3>

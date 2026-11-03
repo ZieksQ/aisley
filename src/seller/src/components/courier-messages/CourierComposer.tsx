@@ -1,3 +1,4 @@
+import { announceChatChange } from "@aisley/ui/chat";
 import { chatMedia } from '../../lib/chat-media';
 import { useEffect, useRef, useState } from 'react'
 import { clearChatAttachments, ChatComposer, readChatAttempt, readChatDraft, writeChatAttempt, writeChatDraft } from '@aisley/ui/chat'
@@ -47,6 +48,7 @@ export function CourierComposer({ conversationId, orderId, allowed, onSaved, onC
     setError('')
     try {
       const result = await courierMessages.send(conversationId, orderId, pending.current.body, pending.current.key, pending.current.attachmentIds ?? [])
+      announceChatChange();
       if (!alive.current) return
       pending.current = null
       writeChatAttempt(draftKey, null)

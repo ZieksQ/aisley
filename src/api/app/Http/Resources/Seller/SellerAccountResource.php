@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Seller;
 
+use App\Support\MediaUrl;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -34,6 +35,9 @@ class SellerAccountResource extends JsonResource
                 'contact_email' => $this->shop->contact_email,
                 'contact_number' => $this->shop->contact_number,
                 'website' => $this->shop->website,
+                'cover_url' => $this->shop->banner_disk && $this->shop->banner_path
+                    ? '/api/v1/seller/account/shop-cover?v='.$this->shop->banner_version
+                    : MediaUrl::from('public', $this->shop->banner_path),
                 'is_on_vacation' => $this->shop->is_on_vacation,
                 'vacation_message' => $this->shop->vacation_message,
             ] : null,

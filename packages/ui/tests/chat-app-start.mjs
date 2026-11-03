@@ -21,12 +21,12 @@ export async function verifyFirstSend(browser, origin, artifacts) {
   await until(`document.querySelector('form button[type=submit]').textContent === 'Retry'`, "uncertain first send");
   assert.equal(await js(`document.querySelector('textarea').disabled`), true);
   await js(`document.querySelector('form button[type=submit]').click()`);
-  await until(`location.pathname.endsWith('${id}') && Boolean(document.querySelector('textarea'))`, "committed thread navigation");
+  await until(`location.pathname === '/messages' && new URLSearchParams(location.search).get('conversation') === '${id}' && Boolean(document.querySelector('textarea'))`, "committed thread navigation");
   assert.equal(await js(`window.chatAppFixture.sends.length`), 2);
   assert.equal(await js(`JSON.stringify(window.chatAppFixture.sends[0]) === JSON.stringify(window.chatAppFixture.sends[1])`), true);
   assert.equal(await js(`window.chatAppFixture.messages.filter(message => message.body === 'Synthetic first message').length`), 1);
   await js(`document.querySelector('section[aria-label=Conversation] > button').click()`);
-  await until(`location.pathname === '/messages' && Boolean(document.querySelector('nav[aria-label="Message channels"]'))`, "Back to inbox");
-  assert.deepEqual(await js(`[...document.querySelectorAll('nav[aria-label="Message channels"] a')].map(link=>[link.textContent,link.getAttribute('href')])`), [["Shops", "/messages"], ["Logistics", "/delivery-messages"], ["Couriers", "/courier-messages"]]);
-  return ["Customer new conversation: five responsive light-only states", "uncertain first send retries exact payload/key once and navigates to committed thread", "Back restores inbox and channel links"];
+  await until(`location.pathname === '/messages' && Boolean(document.querySelector('select[aria-label="Filter conversations by role"]'))`, "Back to inbox");
+  assert.deepEqual(await js(`[...document.querySelector('select[aria-label="Filter conversations by role"]').options].map(option => option.textContent)`), ["All", "Seller", "Logistics", "Courier"]);
+  return ["Customer new conversation: five responsive light-only states", "uncertain first send retries exact payload/key once and navigates to committed thread", "Back restores the unified inbox and role filter"];
 }

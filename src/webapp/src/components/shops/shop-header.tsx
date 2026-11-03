@@ -1,29 +1,14 @@
 import Image from "next/image";
 import Link from "next/link";
-import { FiMessageSquare, FiShoppingBag } from "react-icons/fi";
+import { FiMessageSquare } from "react-icons/fi";
 import type { ShopDetail } from "@/lib/marketplace/types";
+import { ShopBanner } from "./shop-banner";
 
 export function ShopHeader({ shop }: { shop: ShopDetail }) {
   const description = shop.description?.trim();
   return (
     <header className="shop-identity">
-      <div className="shop-banner">
-        {shop.bannerUrl ? (
-          <Image
-            src={shop.bannerUrl}
-            alt={`${shop.name} shop banner`}
-            fill
-            priority
-            sizes="(max-width: 1280px) 100vw, 1280px"
-            className="object-cover"
-          />
-        ) : (
-          <div className="shop-banner-fallback">
-            <FiShoppingBag aria-hidden="true" />
-            <span>{shop.name}</span>
-          </div>
-        )}
-      </div>
+      <ShopBanner name={shop.name} bannerUrl={shop.bannerUrl} />
       <div className="shop-identity-content">
         <div className="shop-logo">
           {shop.logoUrl ? (

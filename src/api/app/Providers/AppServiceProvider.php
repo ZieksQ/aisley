@@ -84,6 +84,14 @@ class AppServiceProvider extends ServiceProvider
             ]));
         });
 
+        RateLimiter::for('customer-id-image', function (Request $request): Limit {
+            return Limit::perMinute(10)->by(implode('|', [
+                'customer-id-image',
+                $request->user()?->getAuthIdentifier() ?? 'guest',
+                $request->ip(),
+            ]));
+        });
+
         RateLimiter::for('customer-product-questions', function (Request $request): Limit {
             return Limit::perMinute(5)->by(implode('|', [
                 'customer-product-questions',

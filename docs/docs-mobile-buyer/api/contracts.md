@@ -101,3 +101,7 @@ The [B06 funding delta](legacy-voucher-funding.md) rejects unaffordable legacy S
 ## Email-first registration
 
 [Registration verification](../registration-email.md) defines the public challenge/proof envelopes, required registration token, expiry/resend/attempt limits, errors and recovery. JSON keys remain snake_case. Verification is distinct from identity and consent; existing accounts are unaffected.
+
+## Combined consent contract
+
+`policy-consent-batch-v1` adds `POST /api/v1/policy-consent/accept` with `acceptances:[{type,version,confirmation:true}]` and response `data:{acceptances:PolicyAcceptance[],status:Consent}`. One or two pending shared types, atomic commit, exact-current checks and immutable idempotent timestamps; private/no-store. See the shared policy specification for actor checks, errors, and reconciliation.

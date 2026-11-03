@@ -1,3 +1,4 @@
+import { announceChatChange } from "@aisley/ui/chat";
 import { chatMedia } from '../lib/chat-media';
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { clearChatAttachments, ChatComposer, ChatHistory, type ChatMediaContext, clearChatPrivateState, readChatAttempt, readChatDraft, writeChatAttempt, writeChatDraft } from '@aisley/ui/chat'
@@ -136,6 +137,7 @@ export function OperationalThreadPanel({ selected, context, onSaved }: { selecte
             ? await operationalChat.startPickup(context.pickupRequestId, attempt.body, attempt.key, attempt.attachmentIds ?? [])
           : await operationalChat.start(context.leg, context.taskId, attempt.body, attempt.key, attempt.attachmentIds ?? []) : null
       if (!result) return
+      announceChatChange();
       pendingRef.current = null
       setDraft('')
       clearChatAttachments(draftKey); writeChatDraft(draftKey, '');
@@ -178,6 +180,7 @@ export function OperationalThreadPanel({ selected, context, onSaved }: { selecte
   return (
     <section aria-label="Operational conversation" className="flex min-h-0 min-w-0 flex-1 flex-col">
       <header className="border-b border-zinc-200 px-5 py-4 dark:border-white/10">
+        <p className="text-xs font-medium text-zinc-600 dark:text-zinc-300">{thread?.counterparty_role === 'seller' || context && 'pickupRequestId' in context ? 'Seller' : thread?.counterparty_role === 'customer' || context && 'orderId' in context ? 'Customer' : 'Courier'}</p>
         <h2 className="font-semibold">{thread?.counterparty_label ?? (context && 'pickupRequestId' in context ? 'Message Seller' : context && 'orderId' in context ? 'Message Customer' : 'Message task Courier')}</h2>
         <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
           {thread ? thread.kind === 'seller_logistics' ? `Pickup ${thread.pickup_request_reference ?? thread.pickup_request_id.slice(0, 8)}` : thread.kind === 'customer_logistics' ? `Order ${thread.order_reference ?? thread.order_id.slice(0, 8)}` : `${thread.task_reference ?? thread.task_id.slice(0, 8)} · ${thread.leg.replaceAll('_', ' ')}` : context && 'pickupRequestId' in context ? `Pickup ${context.pickupRequestId.slice(0, 8)}` : context && 'orderId' in context ? `Order ${context.orderId.slice(0, 8)}` : context ? `Task ${context.taskId.slice(0, 8)} · ${context.leg.replaceAll('_', ' ')}` : ''}

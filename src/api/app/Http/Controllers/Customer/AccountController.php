@@ -5,12 +5,14 @@ namespace App\Http\Controllers\Customer;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Customer\UpdateAccountPasswordRequest;
 use App\Http\Requests\Customer\UpdateAccountProfileRequest;
+use App\Http\Requests\Customer\UploadAccountIdImageRequest;
 use App\Http\Requests\Customer\UploadAccountProfilePhotoRequest;
 use App\Http\Resources\Customer\CustomerAccountResource;
 use App\Http\Resources\Customer\CustomerNavigationResource;
 use App\Models\PersonalAccessToken;
 use App\Models\User;
 use App\Services\Customer\CustomerAccountService;
+use App\Services\Customer\CustomerIdImageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -18,7 +20,10 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AccountController extends Controller
 {
-    public function __construct(private readonly CustomerAccountService $accounts) {}
+    public function __construct(
+        private readonly CustomerAccountService $accounts,
+        private readonly CustomerIdImageService $idImages,
+    ) {}
 
     public function show(Request $request): JsonResponse
     {
@@ -112,6 +117,49 @@ class AccountController extends Controller
 
         return $this->privateResponse([
             'message' => 'Profile photo removed successfully.',
+            'account' => new CustomerAccountResource($customer),
+            'customer' => new CustomerNavigationResource($customer),
+        ]);
+    }
+
+    public function uploadIdImage(UploadAccountIdImageRequest $request): JsonResponse
+    {
+        $customer = $this->idImages->upload(
+            $this->customer($request),
+            $request->file('id_image'),
+            $this->context($request),
+        );
+
+        return $this->privateResponse([
+            'message' => 'ID image uploaded successfully.',
+            'account' => new CustomerAccountResource($customer),
+            'customer' => new CustomerNavigationResource($customer),
+        ]);
+    }
+
+    public function idImage(Request $request): StreamedResponse
+    {
+        $profile = $this->customer($request)->customerProfile;
+        abort_unless($profile?->id_image_disk && $profile->id_image_path, 404);
+
+        return Storage::disk($profile->id_image_disk)->response(
+            $profile->id_image_path,
+            null,
+            [
+                'Content-Type' => $profile->id_image_mime ?? 'application/octet-stream',
+                'Cache-Control' => 'private, no-store',
+                'Pragma' => 'no-cache',
+                'X-Content-Type-Options' => 'nosniff',
+            ],
+        );
+    }
+
+    public function removeIdImage(Request $request): JsonResponse
+    {
+        $customer = $this->idImages->remove($this->customer($request), $this->context($request));
+
+        return $this->privateResponse([
+            'message' => 'ID image removed successfully.',
             'account' => new CustomerAccountResource($customer),
             'customer' => new CustomerNavigationResource($customer),
         ]);

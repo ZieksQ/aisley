@@ -60,7 +60,7 @@ const groups: NavGroup[] = [
     id: 'communication',
     label: 'Communication',
     items: [
-      { label: 'Operational messages', path: '/messages', icon: LuMessageSquare },
+      { label: 'Messages', path: '/messages', icon: LuMessageSquare },
       { label: 'Support tickets', path: '/support-tickets', icon: LuMessageSquare },
     ],
   },

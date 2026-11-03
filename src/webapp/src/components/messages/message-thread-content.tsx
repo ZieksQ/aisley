@@ -1,11 +1,13 @@
 "use client";
 
+import { announceChatChange } from "@aisley/ui/chat";
+
 import { chatMedia } from "@/lib/chat-media";
 import Link from "next/link";
 import { ShopChatHeader } from "./shop-chat-header";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ChatLoadingThread, clearChatAttachments, ChatComposer, ChatHistory, ChatWorkspace, clearChatPrivateState, readChatAttempt, readChatDraft, writeChatAttempt, writeChatDraft, type ChatEntry } from "@aisley/ui/chat";
+import { useUnifiedInbox, ChatLoadingThread, clearChatAttachments, ChatComposer, ChatHistory, ChatWorkspace, clearChatPrivateState, readChatAttempt, readChatDraft, writeChatAttempt, writeChatDraft, type ChatEntry } from "@aisley/ui/chat";
 import { useAuth } from "@/components/auth/auth-provider";
 import { ApiError } from "@/lib/api";
 import { getConversation, listConversations, listMessages, markConversationRead, sendMessage } from "@/lib/messages";
@@ -58,7 +60,9 @@ function AuthenticatedMessageThread({ id }: { id: string }) {
 
   useEffect(() => { writeChatDraft(draftKey, body); }, [body, draftKey]);
 
+  const unifiedRefresh = useUnifiedInbox()?.refresh;
   const loadInbox = useCallback(async (cursor?: string) => {
+    if (unifiedRefresh) { unifiedRefresh(); return; }
     try {
       const page = await listConversations(cursor);
       setInbox((current) => cursor
@@ -75,7 +79,7 @@ function AuthenticatedMessageThread({ id }: { id: string }) {
       }
       setInboxError(errorText(reason));
     }
-  }, [clearPrivateConversationState]);
+  }, [clearPrivateConversationState, unifiedRefresh]);
 
   const refresh = useCallback(async () => {
     if (auth.status !== "authenticated") return;
@@ -157,6 +161,7 @@ function AuthenticatedMessageThread({ id }: { id: string }) {
     setSendError("");
     try {
       const result = await sendMessage(id, { body: text, attachment_ids: attempt.attachmentIds ?? [] }, attempt.key);
+      announceChatChange();
       setThread(result.conversation);
       setMessages((current) => current.some((message) => message.id === result.message.id) ? current : [...current, result.message]);
       setBody("");

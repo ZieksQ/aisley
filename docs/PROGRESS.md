@@ -81,3 +81,43 @@ Short, dated log of what has been implemented across the whole app. Append new e
 ## 2026-11-02 — Support branch rebase resolution
 
 - Resolved the progress-log conflict by preserving both upstream and support-ticket entries, then completed both commits onto `92e3093c`. No application code required conflict edits. Verified the rebased diff has no whitespace errors or remaining conflict markers.
+
+## 2026-11-03 — Courier vehicle details during Logistics assignment
+
+- Added safe, eager-loaded personal vehicle type/plate summaries to the scoped pickup and dispatch Courier APIs, with null for missing or ambiguous records. Pickup creation/rescheduling and last-mile dispatch/re-offer pickers show vehicle details in options and selected summaries and search by type/plate. Preserved contact/availability, approval and tenant boundaries, assignment limits and separate company-truck linehaul selection; updated canonical specs.
+- Verification: isolated SQLite API suites passed (42 tests, 1,057 assertions); Logistics TypeScript/production build, Oxlint, scoped Pint and diff whitespace checks passed. Synthetic Chromium passed 18 picker scenarios across 320/768/1440px and light/dark themes, covering four vehicle types, missing data, searches, keyboard selection and selected summaries, plus six re-offer checks; narrow/desktop screenshots reviewed. The broader transport smoke repeatedly timed out on Delivery confirmations during its viewport sweep. Existing bundle-size warning and live/deployed/assistive-technology acceptance remain open.
+
+## 2026-11-03 — Seller Approval sorting options
+
+- Expanded Approval sorting to oldest/newest placement, recent activity, and highest/lowest total, retaining oldest-first defaults, URL state and pagination reset. Accepted `newest` in the scoped Seller orders API using its existing descending placement/ID ordering; Monitoring and Pickup remain unchanged. Updated the approval specification.
+- Verification: isolated SQLite approval API suite passed (9 tests, 157 assertions), including all five sorts, stable placement ties, pagination, invalid input and Shop/status isolation. Seller TypeScript/production build, Oxlint, scoped Pint and diff checks passed; existing bundle-size warning remains. Synthetic Chromium passed Approval Apply/Cancel, requests, history/reload/fallback, keyboard/focus and six dialog viewport/theme combinations, with mobile light and desktop dark captures reviewed. The broader Orders rerun passed all interactions and 48 responsive/theme checks after an initial picking-sheet assertion failure, then exited on an existing browser-profile cleanup `ENOTEMPTY` error. Live/deployed acceptance remains open.
+
+## 2026-11-03 — Unified role chat inboxes
+
+- Combined Customer, Seller and Logistics chats into one Messages workspace per app, with mixed activity ordering, counterpart role labels, All/role filters, unread/read-only summaries, canonical thread links and legacy redirects. Preserved Shop/Order/pickup/task identities, initiation, private media, drafts, exact retries and mobile Back/scroll restoration; support tickets and Admin remain separate. Added scoped, read-only inbox APIs using existing participant/tenant services; no migration, dependency or Flutter contract change.
+- Verification: isolated SQLite chat/notification/operational suites passed (32 tests, 577 assertions); three-app TypeScript and production builds, scoped ESLint/Oxlint/Pint and diff checks passed. Synthetic Chromium passed 93 unified-inbox checks and the existing 56 layout/theme regressions plus first-send/retry checks. Reviewed final viewport/theme captures; Taste authenticated DOM captures had 0 failures with documented contract/pre-existing-shell exceptions and two warnings per role. Existing dashboard bundle warnings and live/deployed/device/assistive-technology acceptance remain open. See `docs/references/unified-chat-inbox-verification.md`.
+
+## 2026-11-03 — Combined Terms and Privacy consent
+
+- Combined both complete policy documents with two version-bound checkboxes and one Accept action across Customer/Seller/Admin/Logistics web and both external Flutter apps. Covered policies remain satisfied. Added atomic `policy-consent-batch-v1` acceptance with current-version locks, required-set checks, immutable retries and rollback; preserved legacy API, actor gates, policy content and separate version streams. Synchronized canonical/portable contracts and Buyer wire examples.
+- Verification: policy API suites passed (14 tests, 180 assertions); four web builds/TypeScript and scoped lint/Pint passed. Chromium passed 28 responsive/theme combinations and save/retry/stale/cooldown/account-switch flows. Courier policy tests (46) plus gate integration (1), Buyer consent/session tests (46), and both Flutter analyzers passed; reviewed final captures. Taste: 0 failures, two documented reading-column warnings. Two unrelated Courier registration widget failures, live/device/APK and parallel Postgres acceptance remain open. See [verification](features/shared/policy-viewing-consent/verification-2026-11-03.md).
+
+## 2026-11-03 — Seller product unit cost help
+
+- Marked Product and Variant unit costs optional and added accessible tooltips describing profit reporting and cost inheritance. Kept blank costs unknown and existing Variant fallback behavior; no API or database changes.
+- Verification: Seller TypeScript, production build and Oxlint passed. Chromium covered 320px bounds, hover, keyboard/Escape, touch/outside dismissal, both themes and blank-cost payloads; the existing large-bundle warning remains.
+
+## 2026-11-03 — Seller Shop cover photos
+
+- Added owner-scoped Shop cover upload, replacement, preview, and removal with bounded image rewriting, private storage, additive metadata, and public delivery gated by current Shop visibility. Seller settings expose file preview, saved-cover preview, progress, validation, retry, and confirmed removal. Web and Buyer Flutter Shop pages show the existing nullable `bannerUrl` with responsive crops and image fallbacks; the Courier app is outside this storefront flow.
+- Verification: focused Seller Account API tests pass (9 tests, 94 assertions), Pint and diff checks pass, Seller TypeScript/Oxlint and Vite production build pass, Buyer responsive layout passes (32 tests), Flutter analysis and docs bundle checks pass. Web storefront TypeScript/ESLint pass; Next production build was interrupted after hanging during compilation, consistent with its external Google Fonts fetch requirement. No live/deployed image storage or production API acceptance is claimed.
+
+## 2026-11-03 — Customer storefront 404
+
+- Added a branded, responsive fallback for unmatched storefront URLs with the existing marketplace header/footer and a home recovery link. Documented the 404 contract; existing resource-specific not-found screens and protected-route gates remain in place.
+- Verification: storefront TypeScript, targeted ESLint, and production build passed. An unknown public URL returned HTTP 404 with the home action and noindex metadata. Chromium at 320/390/768/1440px found no horizontal overflow; the 44px home action received visible keyboard focus. The local API was unavailable during visual review, so the existing session-check banner appeared; deployed acceptance remains open.
+
+## 2026-11-03 — Customer account ID image
+
+- Added an optional single private ID image to Customer Account Settings, separate from profile photos and registration evidence. Added owner-only upload/read/remove APIs, private storage metadata, image processing, and the Buyer API contract without adding ID-number/type or review-status fields or a Flutter UI.
+- Verification: Customer ID-image and profile-photo API suites passed (39 tests, 281 assertions); storefront TypeScript, targeted ESLint, Webpack production build, Pint, route listing, portable JSON parsing, and diff checks passed. The Chromium smoke passed selection, preview, upload progress, success/error feedback focus, failed-upload preservation, replacement, confirmed removal, and overflow checks at 320/390/768/1440px with synthetic API responses. Deployed storage ACL and device acceptance remain open.

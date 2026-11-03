@@ -3,10 +3,10 @@ feature: policy-viewing-consent
 title: Platform Policy Viewing and Version-Specific Consent
 system: AISLEY
 type: Feature Specification
-version: 1.4
+version: 1.5
 status: Phase 3 implemented — one shared public Terms/Privacy policy with authenticated consent status/acceptance, role-owned consent screens, and protected-access enforcement
 roles: Guest, Customer, Seller, Admin, Logistics, Courier
-scope: Laravel API, Customer storefront, role dashboards, and external Courier Flutter client
+scope: Laravel API, Customer storefront, role dashboards, and external Courier and Buyer Flutter clients
 canonical: true
 source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/domains/*, Admin Manage Platform Settings, role auth specs
 ---
@@ -94,11 +94,23 @@ public current policy/history read
 - `policy.consent` reads the persisted `policy_consent_enforcement` platform control on each status evaluation and fails closed to enabled when that declared control is unavailable. The Admin Feature Controls API is the only supported way to change it.
 - Clients may call the implemented routes after authentication. A stale or unavailable version returns `409` with `POLICY_VERSION_STALE`; clients should refresh status/current content and let the user retry. Do not treat `requires_reconsent` as a separate endpoint.
 
+### Combined acceptance — `policy-consent-batch-v1` (2026-11-03)
+
+- `POST /api/v1/policy-consent/accept` adds atomic acceptance for all five authenticated roles. Keep the single-policy route available for older clients. Deploy this API before updated web/mobile clients; no database migration is needed.
+- JSON body: `{ "acceptances": [{ "type": "terms_of_service", "version": 1, "confirmation": true }, { "type": "privacy_policy", "version": 1, "confirmation": true }] }`. Submit only pending policies; the list contains one or two unique supported types, positive versions, and explicit true confirmations. Reject unknown top-level/entry fields, empty lists, duplicates, Internal Rules, and missing confirmations with `422`.
+- Apply `auth:sanctum`, existing active-role/approval/affiliation guards and `policy-consent-acceptance` throttling (10/minute per actor/IP); remain exempt from protected-feature consent gating. Web retains stateful cookie/CSRF authentication; external apps retain scoped bearer authentication.
+- Lock both existing policy identities in deterministic type order, matching Admin publication's identity lock. Check every submitted version is currently published and every currently required policy is included before writing. Stale versions or omitted newly required policies return `409 POLICY_VERSION_STALE` with no acceptance writes.
+- One transaction records all requested acceptances. Same-user/version retries return canonical existing timestamps without duplicates; database failure rolls back the whole set. Clients never submit User, role, approval or acceptance-time fields.
+- HTTP `200` returns `{ "data": { "acceptances": [PolicyAcceptance], "status": ConsentStatus } }`, reusing existing acceptance and status projections. Status and response headers remain `private, no-store`. Existing `401/403/422/429` behavior and `Retry-After` apply.
+- All four web apps and both external Flutter apps show Terms followed by Privacy in one reading panel, with normal page scrolling, two checkboxes and one Accept action. Preserve public readers/history and separate document/version identities; do not rewrite policy text or alter registration.
+- Confirmations are bound to exact displayed versions. Refresh status before submitting; on publication changes reload documents and clear affected confirmations only. Previously covered documents need no fresh check. Missing/stale required content and unsupported requirements disable acceptance.
+- Deduplicate submissions, honor cooldowns, preserve safe confirmations on recoverable failures, and reconcile uncertain saves through status before deliberate retry. Server-confirmed consent alone unlocks access; never replay blocked commerce/operational writes. Ignore late responses after disposal/account changes and retain role-owned safe return navigation.
+
 ### Client behavior
 
 - Webapp and dashboards provide a visible Terms/Privacy link to the same platform-wide documents, latest-version page, separate history list, exact historical page, loading, empty, not-found, offline/error, retry, and safe-rendering states. Public policy pages remain available without authentication. Authenticated Customer, Seller, Admin, and Logistics route guards check consent before rendering protected screens and route missing consent to the role-owned consent screen.
 - Public pages use semantic headings, keyboard-accessible history links, visible focus, readable contrast, stable URLs, and SSR/metadata where the host app's design contract allows it.
-- A consent prompt shows the complete current policy, exact version, change summary when available, an unchecked explicit confirmation, and a link to history. No optimistic success is shown before the API response.
+- A combined consent prompt shows both complete current documents, exact versions, publication dates, change summaries when available, and history links. Two labelled checkboxes sit beneath the documents with one Accept button. Required policies start unchecked; covered policies are checked and disabled without creating a fresh acceptance. No optimistic success is shown before the API response.
 - Customer uses `/account/policy-consent`; Seller and Admin use their own dashboard `/policy-consent` route. Logistics uses `/settings/terms`, with legacy `/policy-consent` redirecting there; required-consent access remains exempt from the protected-feature gate. Each screen calls the same authenticated API and links to the webapp's canonical public history. Courier has no web UI and consumes the same contract from Flutter.
 - Preserve a user's location and non-secret form state across a recoverable read/acceptance error, but never store tokens or trusted consent in browser storage.
 - Flutter implements the same shared Terms/Privacy content and loading, success, validation, unauthorized, forbidden, conflict, rate-limit, timeout, and offline states using secure token handling; no Flutter code is added under this repository.

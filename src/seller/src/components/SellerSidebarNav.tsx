@@ -44,8 +44,6 @@ const groups: NavGroup[] = [
       { label: 'Product Q&A', path: '/product-questions', icon: LuMessagesSquare },
       { label: 'Product reviews', path: '/reviews', icon: LuStar },
       { label: 'Messages', path: '/messages', icon: LuMessagesSquare },
-      { label: 'Logistics messages', path: '/logistics-messages', icon: LuMessagesSquare },
-      { label: 'Courier messages', path: '/courier-messages', icon: LuMessagesSquare },
       { label: 'Support tickets', path: '/support-tickets', icon: LuMessagesSquare },
     ],
   },

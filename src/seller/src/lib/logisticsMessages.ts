@@ -1,6 +1,6 @@
 import { acknowledgeChatRead } from "@aisley/ui/chat";
 import type { ChatAttachment } from "@aisley/ui/chat";
-import { apiRequest, apiWriteWithCsrfTimeout } from './api'
+import { ApiError, apiRequest, apiWriteWithCsrfTimeout } from './api'
 
 const base = '/api/v1/seller/logistics-conversations'
 
@@ -48,4 +48,14 @@ export const logisticsMessages = {
   read: (id: string, sequence: number) => acknowledgeChatRead(apiRequest<{ data: LogisticsThread }>(`${base}/${id}/read`, {
     method: 'POST', body: JSON.stringify({ last_read_sequence: sequence }),
   })),
+}
+
+export function logisticsMessageError(reason: unknown): string {
+  if (!navigator.onLine) return 'You are offline. Reconnect to use messages.'
+  if (reason instanceof ApiError) {
+    if (reason.status === 409) return 'This pickup relationship changed. Refresh before trying again.'
+    if (reason.status === 429) return 'Too many messages. Wait a moment and retry.'
+    return reason.message
+  }
+  return reason instanceof Error ? reason.message : 'Messages could not be loaded.'
 }

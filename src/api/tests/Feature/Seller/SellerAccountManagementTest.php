@@ -150,6 +150,56 @@ class SellerAccountManagementTest extends TestCase
         ], ['Accept' => 'application/json'])->assertUnprocessable()->assertJsonValidationErrors('photo');
     }
 
+    public function test_seller_can_upload_view_replace_and_remove_shop_cover(): void
+    {
+        $seller = $this->seller();
+        $first = $this->actingAs($seller)->post('/api/v1/seller/account/shop-cover', [
+            'photo' => $this->image('cover.png'),
+        ], ['Accept' => 'application/json'])->assertOk();
+
+        $this->assertStringStartsWith('/api/v1/seller/account/shop-cover?v=', $first->json('account.shop.cover_url'));
+        $this->assertStringNotContainsString('shop-covers/', json_encode($first->json(), JSON_THROW_ON_ERROR));
+        $shop = $seller->shop()->firstOrFail()->fresh();
+        $oldPath = $shop->banner_path;
+        Storage::disk('seller-profile-test')->assertExists($oldPath);
+
+        $this->get('/api/v1/seller/account/shop-cover')
+            ->assertOk()
+            ->assertHeader('Content-Type', 'image/png')
+            ->assertHeader('X-Content-Type-Options', 'nosniff');
+        $this->get('/api/v1/customer/shops/'.$shop->slug)
+            ->assertOk()
+            ->assertJsonPath('data.bannerUrl', url('/api/v1/customer/shops/'.$shop->slug.'/cover?v='.$shop->banner_version));
+        $this->get('/api/v1/customer/shops/'.$shop->slug.'/cover')->assertOk();
+
+        $this->post('/api/v1/seller/account/shop-cover', [
+            'photo' => $this->image('replacement.png'),
+        ], ['Accept' => 'application/json'])->assertOk();
+        Storage::disk('seller-profile-test')->assertMissing($oldPath);
+
+        $this->deleteJson('/api/v1/seller/account/shop-cover')->assertOk()
+            ->assertJsonPath('account.shop.cover_url', null);
+        $this->get('/api/v1/seller/account/shop-cover')->assertNotFound();
+        $this->get('/api/v1/customer/shops/'.$shop->slug.'/cover')->assertNotFound();
+    }
+
+    public function test_shop_cover_upload_rejects_corrupt_files_and_customer_delivery_requires_a_visible_shop(): void
+    {
+        $seller = $this->seller();
+        $this->actingAs($seller)->post('/api/v1/seller/account/shop-cover', [
+            'photo' => UploadedFile::fake()->createWithContent('cover.png', 'not-an-image'),
+        ], ['Accept' => 'application/json'])->assertUnprocessable()->assertJsonValidationErrors('photo');
+        $this->post('/api/v1/seller/account/shop-cover', [
+            'photo' => $this->image('cover.safe.png'),
+        ], ['Accept' => 'application/json'])->assertUnprocessable()->assertJsonValidationErrors('photo');
+
+        $this->post('/api/v1/seller/account/shop-cover', [
+            'photo' => $this->image('cover.png'),
+        ], ['Accept' => 'application/json'])->assertOk();
+        $seller->shop()->update(['status' => ShopStatus::Suspended]);
+        $this->get('/api/v1/customer/shops/'.$seller->shop()->value('slug').'/cover')->assertNotFound();
+    }
+
     private function seller(string $email = 'seller@example.com', string $shopName = 'Avery Store'): User
     {
         $seller = User::factory()->create([
