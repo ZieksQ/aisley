@@ -36,7 +36,7 @@ GET active Logistics options
 ```
 
 ## MUST
-- Registration now collects details first, then requires email OTP and `email_verification_token`; see [registration email contract](../../../registration-email.md) for exact endpoints, limits, errors, retry, proof expiry, and client behavior. Adopted locally on 2026-10-14; deployed/device acceptance remains open.
+- Registration collects details first, then uses a dedicated OTP screen and automatically submits once verification succeeds; `email_verification_token` follows the Admin OTP setting; see [registration email contract](../../../registration-email.md#automatic-submission-and-confirmed-success--2026-11-04) for exact endpoints, limits, errors, retry, proof expiry, and client behavior. Automatic submission and approval-aware success adopted locally on 2026-11-04; deployed/device acceptance remains open.
 
 ### Identity and relationship rules
 - Derive `UserRole::Courier`, `UserStatus`, affiliation status, reviewer, hub, and token ability on the server. Prohibit client authority for these fields.

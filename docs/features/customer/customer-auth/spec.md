@@ -3,7 +3,7 @@ feature: customer-auth
 title: Customer Authentication
 system: AISLEY
 type: Feature Specification
-version: 1.3
+version: 1.4
 status: Implemented foundation; registration requirements extensions deferred
 role: Customer
 scope: Customer storefront and Laravel API
@@ -33,9 +33,9 @@ register profile + credentials
 
 ## Registration email verification — 2026-10-14
 
-- Registration details/evidence → six-digit email OTP → explicit registration submission → configured approval outcome. Require the role/email-bound `email_verification_token` on every registration; consume it atomically and record `email_verified_at`. Existing accounts keep their current login/approval behavior.
+- Registration details/evidence → dedicated six-digit email OTP page → automatic initial registration submission → configured approval outcome. Require the role/email-bound `email_verification_token` on every registration; consume it atomically and record `email_verified_at`. Existing accounts keep their current login/approval behavior.
 - Use the exact public code/verify routes, limits, error/retry behavior, mail delivery and deployment contract in [registration email verification](../../../references/registration-email-verification.md). Email verification issues no authentication credential and never replaces approval.
-- Web final submission locks the verified identity and details synchronously. Only its current mounted verification attempt may update feedback or navigate to the status-appropriate login or waiting page; defer local expiry while pending, retain drafts on failure/reverification, and preserve unconfirmed-result/sign-in guidance. Follow the shared contract's submission lifecycle and obsolete-response rules.
+- Web final submission locks the verified identity and details synchronously. Only its current mounted verification attempt may update feedback or navigate to confirmed success with status-appropriate sign-in or Admin-approval guidance; defer local expiry while pending, retain drafts on failure/reverification, and preserve unconfirmed-result/sign-in guidance. Follow the shared contract's submission lifecycle and obsolete-response rules.
 
 ## MUST
 
@@ -90,7 +90,7 @@ register profile + credentials
 
 ### Session and error contract
 
-- `201` registration returns `Registration submitted for approval.` for pending Customers, or `Your account is ready. You can now sign in.` for automatically active Customers. Route active results to login and pending results to waiting for approval.
+- `201` registration returns `Registration submitted for approval.` for pending Customers, or `Your account is ready. You can now sign in.` for automatically active Customers. Show confirmed registration success: active results offer sign-in; pending results explain Admin approval.
 - `200` web login returns a safe `customer` navigation object; mobile login additionally returns `token` only when `device_name` is requested.
 - `403` account codes are `ACCOUNT_PENDING_APPROVAL`, `ACCOUNT_REJECTED`, `ACCOUNT_SUSPENDED`, or `ACCOUNT_INACTIVE`. `/me` returns `401` with no session and `403` for wrong role/status.
 - Password-reset requests always acknowledge generically. Invalid, expired, reused, or cross-role tokens produce one `INVALID_RESET_TOKEN` validation error.

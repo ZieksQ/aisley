@@ -3,7 +3,7 @@ feature: courier-auth
 title: Courier Authentication
 system: AISLEY
 type: Feature Specification
-version: 2.7
+version: 2.8
 status: Implemented foundation; auth denial parity covered; recovery completion deferred
 implementation_status: Backend Auth v2.6 implemented per supplied snapshot; Flutter Auth response integration verified locally against 4c3f504; authenticated live acceptance outstanding; earlier operational adoption d7df220
 canonical: true
@@ -35,7 +35,7 @@ GET active Logistics options
 ↘ pending/rejected/suspended/deactivated/invalid affiliation → 403
 ```
 ## Registration email verification — 2026-10-14
-- Registration details/evidence → six-digit email OTP → explicit registration submission → existing pending approval. Require the role/email-bound `email_verification_token` on every registration; consume it atomically and record `email_verified_at`. Existing accounts keep their current login/approval behavior.
+- Registration details/evidence → dedicated six-digit email OTP page → automatic initial registration submission → existing pending approval. When Admin enables registration OTP (default), require the role/email-bound `email_verification_token`; consume enabled proof atomically and record its verification time. When disabled, skip proof and leave email unverified; approval, password and account-email verification rules remain unchanged. Existing accounts keep their current login/approval behavior.
 - Use the exact public code/verify routes, limits, error/retry behavior, mail delivery and deployment contract in [registration email verification](../../../references/registration-email-verification.md). Email verification issues no authentication credential and never replaces approval.
 ## MUST
 ### Identity and relationship rules
@@ -228,7 +228,3 @@ The supplied snapshot identifies the foundation baseline as commit `d1abeee73d01
 - Backend review confirms that every new Auth mutation remains server-owned, transactional, scoped, and covered by API tests.
 
 **References:** `docs/features/courier/rules.md`, `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, `docs/domain/Courier.md`, `docs/domain/Logistics.md`, [`user-registration-requirements.md`](../../../references/user-registration-requirements.md), [`file-upload-requirements.md`](../../../references/file-upload-requirements.md), and [Laravel Sanctum token abilities](https://laravel.com/docs/sanctum#token-abilities).
-
-## Registration OTP switch — 2026-10-30
-
-The Admin `registration_email_verification_required` control is enabled by default for all four public registration roles. Its disabled state explicitly overrides mandatory registration OTP statements above: registration skips proof, leaves `email_verified_at` null, and retains account/evidence approval and validation. See the [canonical registration contract](../../../references/registration-email-verification.md#admin-registration-otp-control--2026-10-30) for public configuration discovery, late setting changes, audit/permission rules, and mobile compatibility. Password and authenticated account email verification remain required.

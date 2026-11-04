@@ -1,9 +1,9 @@
-import { RegistrationEmailGate, type VerifiedRegistrationEmail } from "@aisley/ui/registration-email"
+import { RegistrationEmailGate, type RegistrationSubmission, type VerifiedRegistrationEmail } from "@aisley/ui/registration-email"
 import { registrationEmailClient } from "../lib/registration-email"
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
-import { FaCircleCheck, FaCircleExclamation } from 'react-icons/fa6'
-import { Link, Navigate } from 'react-router-dom'
+import { FaCircleExclamation } from 'react-icons/fa6'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 import { AuthShell } from '../components/AuthShell'
 import { FormField, SelectField } from '../components/FormField'
@@ -27,7 +27,6 @@ function ageFromBirthDate(birthDate: string): number | null {
 function RegistrationDetails({ verification }: { verification: VerifiedRegistrationEmail }) {
   const [errors, setErrors] = useState<Record<string, string[]>>({})
   const [formError, setFormError] = useState<string | null>(null)
-  const [submittedEmail, setSubmittedEmail] = useState<string | null>(null)
   const isSubmitting = verification.submitting
   const [birthDate, setBirthDate] = useState('')
   const [shopCategories, setShopCategories] = useState<ShopCategoryOption[]>([])
@@ -55,9 +54,13 @@ function RegistrationDetails({ verification }: { verification: VerifiedRegistrat
     event.preventDefault()
     if (isSubmitting) return
     const formData = new FormData(event.currentTarget)
-    if (verification.continueToVerification()) return
+    const submit = (attempt: RegistrationSubmission) => submitRegistration(formData, attempt)
+    if (verification.continueToVerification(submit)) return
     const attempt = verification.beginSubmission()
-    if (!attempt) return
+    if (attempt) await submit(attempt)
+  }
+
+  async function submitRegistration(formData: FormData, attempt: RegistrationSubmission) {
     formData.set('email', attempt.email)
     formData.set('email_verification_token', attempt.token)
     setErrors({})
@@ -66,13 +69,12 @@ function RegistrationDetails({ verification }: { verification: VerifiedRegistrat
     try {
       await initializeCsrf(attempt.signal)
       if (!attempt.isCurrent()) return
-      const response = await apiRequest<AuthResponse>('/api/v1/seller/auth/register', {
+      await apiRequest<AuthResponse>('/api/v1/seller/auth/register', {
         method: 'POST',
         body: formData,
         signal: attempt.signal,
       })
       if (!attempt.complete()) return
-      setSubmittedEmail(response.seller.email)
       window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (caughtError) {
       if (!attempt.isCurrent()) return
@@ -87,20 +89,6 @@ function RegistrationDetails({ verification }: { verification: VerifiedRegistrat
     } finally {
       attempt.finish()
     }
-  }
-
-  if (submittedEmail) {
-    return (
-      <section aria-label="Application submitted">
-        <div className="flex gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-emerald-900 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-200" role="status">
-          <FaCircleCheck aria-hidden="true" className="mt-0.5 shrink-0" />
-          <div>
-            <p className="font-medium">Waiting for Admin approval</p>
-            <p className="mt-1 text-sm leading-6">We will send the decision to {submittedEmail}. You can sign in after the account and shop become active.</p>
-          </div>
-        </div>
-      </section>
-    )
   }
 
   return (
@@ -173,7 +161,7 @@ function RegistrationDetails({ verification }: { verification: VerifiedRegistrat
         {formError ? <div className="flex gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-400/20 dark:bg-red-400/10 dark:text-red-300" role="alert"><FaCircleExclamation aria-hidden="true" className="mt-0.5 shrink-0" /><p>{formError}</p></div> : null}
 
         <button className="h-11 w-full rounded-lg bg-[#4C1268] px-4 text-sm font-semibold text-white hover:bg-[#3D0E54] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4C1268] disabled:opacity-60" disabled={isSubmitting || isLoadingOptions || Boolean(optionsError)} type="submit">
-          {isSubmitting ? 'Submitting application…' : verification.ready ? 'Submit registration' : 'Continue to email verification'}
+          {isSubmitting ? 'Submitting application…' : verification.ready ? 'Create account' : 'Continue to email verification'}
         </button>
       </form>
     </section>
@@ -181,10 +169,27 @@ function RegistrationDetails({ verification }: { verification: VerifiedRegistrat
 }
 
 export function RegisterPage() {
+  const { pathname } = useLocation()
+  const navigate = useNavigate()
+  const step = pathname.endsWith("/verify-email") ? "verify-email" : pathname.endsWith("/success") ? "success" : "details"
   const { seller, isLoading } = useAuth()
   if (isLoading) return null
   if (seller) return <Navigate replace to="/dashboard" />
-  return <AuthShell title="Apply for a Seller account" description="Complete your details, then verify your email and submit your application." footer={<Link to="/login">Already registered? Sign in</Link>} wide>
-    <RegistrationEmailGate client={registrationEmailClient}>{(verification) => <RegistrationDetails verification={verification} />}</RegistrationEmailGate>
-  </AuthShell>
+  return (
+    <AuthShell
+      title={step === "success" ? "Account created successfully" : step === "verify-email" ? "Verify your email" : "Apply for a Seller account"}
+      description={step === "details" ? "Complete your details, then verify your email to submit your application for Admin review." : ""}
+      footer={step === "details" ? <Link to="/login">Already registered? Sign in</Link> : null}
+      wide
+    >
+      <RegistrationEmailGate
+        showTitle={false}
+        client={registrationEmailClient}
+        role="seller"
+        navigation={{ step, navigate: (next, replace) => navigate(next === "details" ? "/register" : `/register/${next}`, { replace }) }}
+      >
+        {(verification) => <RegistrationDetails verification={verification} />}
+      </RegistrationEmailGate>
+    </AuthShell>
+  )
 }

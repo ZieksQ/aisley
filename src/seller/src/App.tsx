@@ -38,7 +38,7 @@ function App() {
     <Routes>
       <Route element={<Navigate replace to="/dashboard" />} path="/" />
       <Route element={<LoginPage />} path="/login" />
-      <Route element={<RegisterPage />} path="/register" />
+      <Route element={<RegisterPage />} path="/register/*" />
       <Route element={<ForgotPasswordPage />} path="/forgot-password" />
       <Route element={<ResetPasswordPage />} path="/reset-password" />
       <Route element={<SessionRoute />}>

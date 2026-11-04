@@ -45,11 +45,12 @@ export function registrationRoleModules(compile) {
           const attempt=verification.beginSubmission();if(attempt)window.attempts.push(attempt);return attempt;
         }});
       }})};`,
-    'next/navigation': "module.exports={useRouter:()=>({push:path=>window.navigations.push({path})})}",
+    'next/link': `${react}module.exports=({href,children,...props})=>React.createElement('a',{href,...props},children);`,
+    'next/navigation': `${react}module.exports={usePathname:()=>React.useSyncExternalStore(window.subscribePath,()=>window.registrationPath),useRouter:()=>({push:path=>window.navigatePath(path),replace:path=>window.navigatePath(path,{replace:true})})};`,
     'react-router-dom': `${react}module.exports={Link:({to,children})=>React.createElement('a',{href:to},children),
-      Navigate:()=>null,useNavigate:()=>(path,options)=>window.navigations.push({path,options})};`,
+      Navigate:()=>null,useLocation:()=>({pathname:React.useSyncExternalStore(window.subscribePath,()=>window.registrationPath)}),useNavigate:()=>window.navigatePath};`,
     '../auth/useAuth': "module.exports={useAuth:()=>({seller:null,isLoading:false})}",
-    '../components/AuthShell': `${react}module.exports={AuthShell:({children,footer})=>React.createElement('div',null,children,footer)};`,
+    '../components/AuthShell': `${react}module.exports={AuthShell:({children,footer,title})=>React.createElement('div',null,React.createElement('h1',null,title),children,footer)};`,
     '../components/PsgcAddressFields': `${react}const {Field}=require('./fields');
       module.exports={PsgcAddressFields:()=>React.createElement('div',null,
         ...['region','province','city_municipality','barangay','address_line_1','postal_code'].map(name=>
@@ -91,7 +92,16 @@ export function registrationRoleSource(modules) {
       // Intentionally ignore abort: cancellation cannot undo a server commit.
       return new Promise((resolve,reject)=>window.finalQueue.push({body,signal:options.signal,resolve,reject}));
     };
-    window.mountRole=role=>{
+    window.pathListeners=new Set();
+    window.subscribePath=listener=>{window.pathListeners.add(listener);return ()=>window.pathListeners.delete(listener)};
+    window.navigatePath=(path,options={})=>{
+      window.navigations.push({path,options});window.registrationPath=path;
+      if(options.replace)window.pathStack[window.pathStack.length-1]=path;else window.pathStack.push(path);
+      for(const listener of window.pathListeners)listener();
+    };
+    window.backPath=()=>{window.pathStack.pop();window.registrationPath=window.pathStack.at(-1)||'/register';for(const listener of window.pathListeners)listener()};
+    window.mountRole=(role,path='/register')=>{
+      window.registrationPath=path;window.pathStack=[path];
       window.role=role;window.offset=0;window.attempts=[];window.finalQueue=[];window.csrfQueue=[];
       window.delayCsrf=false;window.navigations=[];
       const entry=require('./register-'+role),Component=role==='customer'?entry.RegisterForm:entry.RegisterPage;

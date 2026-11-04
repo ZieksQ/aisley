@@ -1,9 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { RegistrationEmailChallenge, RegistrationEmailClient, RegistrationEmailProof, RegistrationSubmission } from "./types";
+import type { RegistrationEmailChallenge, RegistrationEmailClient, RegistrationEmailProof, RegistrationSubmission, RegistrationNavigation } from "./types";
 
-export function useRegistrationEmail(client: RegistrationEmailClient) {
+export function useRegistrationEmail(client: RegistrationEmailClient, navigation?: RegistrationNavigation) {
+  const navigationRef = useRef(navigation);
+  navigationRef.current = navigation;
+  const automaticSubmission = useRef<((attempt: RegistrationSubmission) => Promise<void>) | null>(null);
+  const operation = useRef(false);
+  const [outcome, setOutcome] = useState<"active" | "pending">("pending");
   const [required, setRequired] = useState<boolean | null>(null);
   const [configLoading, setConfigLoading] = useState(true);
   const configRequest = useRef<AbortController | null>(null);
@@ -23,7 +28,7 @@ export function useRegistrationEmail(client: RegistrationEmailClient) {
   const serial = useRef(0);
   const pending = useRef<AbortController | null>(null);
   const registration = useRef<AbortController | null>(null);
-  const verified = useRef<{ proof: RegistrationEmailProof; generation: number } | null>(null);
+  const verified = useRef<{ proof: RegistrationEmailProof; generation: number; email: string } | null>(null);
   const mounted = useRef(false);
   const feedback = useRef<HTMLParagraphElement>(null);
   const codeInput = useRef<HTMLInputElement>(null);
@@ -49,6 +54,8 @@ export function useRegistrationEmail(client: RegistrationEmailClient) {
       setProof(null);
       setChallenge(null);
       setCode("");
+      automaticSubmission.current = null;
+      navigationRef.current?.navigate("details", true);
       setMessage("Email verification expired. Verify again to keep completing your form.");
     }
   }, [now, proof, submitting]);
@@ -79,6 +86,8 @@ export function useRegistrationEmail(client: RegistrationEmailClient) {
 
   function resetVerification(message = "") {
     serial.current++;
+    automaticSubmission.current = null;
+    operation.current = false;
     pending.current?.abort();
     verified.current = null;
     setBusy(false);
@@ -92,13 +101,15 @@ export function useRegistrationEmail(client: RegistrationEmailClient) {
   function reverify() {
     if (!mounted.current || completed || registration.current) return;
     resetVerification();
+    navigationRef.current?.navigate("details");
   }
 
-  function beginSubmission(): RegistrationSubmission | null {
+  function beginSubmission(fromVerification = false): RegistrationSubmission | null {
     // The ref locks synchronously, including two submissions before React renders.
-    if (!mounted.current || busy || completed || registration.current || required === null
-      || (required && (!proof || verified.current?.proof !== proof || verified.current.generation !== serial.current))) return null;
-    if (required && proof && Date.parse(proof.expires_at) <= Date.now()) {
+    if (!mounted.current || (operation.current && !fromVerification) || completed || registration.current || required === null
+      || (required && (!verified.current || verified.current.generation !== serial.current))) return null;
+    const currentProof = required ? verified.current?.proof : undefined;
+    if (currentProof && Date.parse(currentProof.expires_at) <= Date.now()) {
       resetVerification("Email verification expired. Verify again to keep completing your form.");
       return null;
     }
@@ -114,34 +125,41 @@ export function useRegistrationEmail(client: RegistrationEmailClient) {
       setSubmitting(false);
     }
     return {
-      email: required ? verifiedEmail : email.trim().toLowerCase(),
-      token: required && proof ? proof.email_verification_token : "",
+      email: required ? verified.current!.email : email.trim().toLowerCase(),
+      token: currentProof?.email_verification_token ?? "",
       signal: controller.signal,
       isCurrent,
-      complete() {
+      complete(status = "pending") {
         if (!isCurrent()) return false;
         release();
         resetVerification();
+        setOutcome(status);
         setCompleted(true);
+        navigationRef.current?.navigate("success", true);
         return true;
       },
       finish(failure) {
         if (!isCurrent()) return;
         release();
-        if (failure?.reverify || (required && proof && Date.parse(proof.expires_at) <= Date.now())) {
+        if (failure?.reverify || (currentProof && Date.parse(currentProof.expires_at) <= Date.now())) {
           const prompt = failure?.reverify ? "Verify your email again to continue your application."
             : "Email verification expired. Verify again to keep completing your form.";
           if (failure?.reverify) setRequired(true);
           resetVerification([failure?.message, prompt].filter(Boolean).join(" "));
+        } else if (failure?.message) {
+          setError(true);
+          setMessage(failure.message);
         }
+        navigationRef.current?.navigate("details", true);
       },
     };
   }
 
   async function perform(verify: boolean) {
-    if (!mounted.current || completed || registration.current || busy || retryAt > Date.now()) return;
+    if (!mounted.current || completed || registration.current || operation.current || retryAt > Date.now()) return;
     if (!verify && challenge && Date.parse(challenge.resend_available_at) > Date.now()) return;
     if (verify && (!challenge || Date.parse(challenge.expires_at) <= Date.now() || !/^[0-9]{6}$/.test(code))) return;
+    operation.current = true;
     const current = ++serial.current;
     const controller = new AbortController();
     pending.current = controller;
@@ -151,23 +169,26 @@ export function useRegistrationEmail(client: RegistrationEmailClient) {
     setError(false);
     setMessage("");
     let failed = false;
+    let verifiedNow = false;
     try {
       if (verify && challenge) {
         const result = await client.verifyCode(normalized, challenge.challenge_id, code, controller.signal);
         if (current !== serial.current || controller.signal.aborted) return;
         if (!/^[a-f0-9]{64}$/.test(result.email_verification_token) || !Number.isFinite(Date.parse(result.expires_at))) throw new Error("Unexpected verification response. Try again.");
-        verified.current = { proof: result, generation: current };
+        verified.current = { proof: result, generation: current, email: normalized };
+        verifiedNow = true;
         setVerifiedEmail(normalized);
         setProof(result);
         setStarted(true);
         setCode("");
-        setMessage("Email verified. Review your details and submit your registration.");
+        setMessage("Email verified. Creating your account…");
       } else {
         const result = await client.requestCode(normalized, controller.signal);
         if (current !== serial.current || controller.signal.aborted) return;
         if (!result.challenge_id || !Number.isFinite(Date.parse(result.expires_at)) || !Number.isFinite(Date.parse(result.resend_available_at))) throw new Error("Unexpected code response. Try again.");
         setEmail(normalized);
         setChallenge(result);
+        navigationRef.current?.navigate("verify-email");
         setCode("");
         setMessage("Check your inbox and spam folder for the latest code.");
       }
@@ -183,6 +204,7 @@ export function useRegistrationEmail(client: RegistrationEmailClient) {
     } finally {
       window.clearTimeout(timeout);
       if (current === serial.current) {
+        operation.current = false;
         setBusy(false);
         window.setTimeout(() => {
           if (current !== serial.current) return;
@@ -191,11 +213,40 @@ export function useRegistrationEmail(client: RegistrationEmailClient) {
         }, 0);
       }
     }
+    if (verifiedNow && current === serial.current && mounted.current) {
+      // Consume the callback before dispatch: renders and OTP retries cannot replay registration.
+      const submit = automaticSubmission.current;
+      automaticSubmission.current = null;
+      if (submit) {
+        const attempt = beginSubmission(true);
+        if (attempt) await submit(attempt);
+      }
+    }
+  }
+
+  function continueToVerification(submit: (attempt: RegistrationSubmission) => Promise<void>) {
+    if (required === null || operation.current || registration.current || completed) return true;
+    if (!required || verified.current) return false;
+    automaticSubmission.current = submit;
+    if (challenge) navigationRef.current?.navigate("verify-email");
+    else void perform(false);
+    return true;
+  }
+
+  function leaveVerification() {
+    if (completed) return;
+    const uncertain = !!registration.current;
+    registration.current?.abort();
+    registration.current = null;
+    setSubmitting(false);
+    resetVerification(uncertain
+      ? "The registration result is unconfirmed. Try signing in before deliberately submitting again; your application may already be pending."
+      : "Your details are preserved. Continue when you are ready.");
   }
 
   const resendAt = Math.max(retryAt, challenge ? Date.parse(challenge.resend_available_at) : 0);
   return { required, configLoading, loadConfig, email, setEmail, verifiedEmail, code, setCode, challenge, proof, busy, submitting, message, error,
-    feedback, codeInput, started, completed, reverify, beginSubmission, perform, coolingDown: retryAt > now,
+    feedback, codeInput, started, completed, outcome, reverify, beginSubmission, continueToVerification, leaveVerification, perform, coolingDown: retryAt > now,
     resendSeconds: Math.max(0, Math.ceil((resendAt - now) / 1000)),
     expired: !!challenge && Date.parse(challenge.expires_at) <= now };
 }

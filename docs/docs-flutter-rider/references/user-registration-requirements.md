@@ -10,7 +10,7 @@ role: Seller, Customer, Courier
 
 ## Registration details before email verification
 
-All Customer, Seller, Logistics, and Courier applicants complete their existing registration details first, then verify their email with an emailed six-digit OTP before explicitly submitting registration. Verification confirms inbox access; the existing Admin/Logistics approval remains mandatory. Existing accounts retain their current access behavior. See [API and client contract](../registration-email.md).
+All Customer, Seller, Logistics, and Courier applicants complete their existing registration details first, then verify their email with an emailed six-digit OTP and automatically submit registration after successful verification. Verification confirms inbox access; the existing Admin/Logistics approval remains mandatory. Existing accounts retain their current access behavior. See [API and client contract](../registration-email.md).
 
 ## Customer - Registration
 
