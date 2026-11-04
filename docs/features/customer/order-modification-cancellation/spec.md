@@ -3,8 +3,8 @@ feature: order-modification-cancellation
 title: Customer Order Modification and Cancellation
 system: AISLEY
 type: Feature Specification
-version: 1.4
-status: Implemented — cancellation and delivery-address correction; item changes deferred
+version: 1.5
+status: Implemented — cancellation and reviewed saved delivery-address changes; item changes deferred
 role: Customer
 scope: Customer storefront and Laravel API
 ---
@@ -19,7 +19,7 @@ scope: Customer storefront and Laravel API
 - **MVP boundary:** The normal self-service window is open only while `orders.status = placed`, before Seller acceptance changes it to `seller_processing`. Seller approval closes both actions even when pickup has not been scheduled.
 - No fixed five-, ten-, or fifteen-minute grace period is approved. A time deadline may be added only with a persisted server rule and UTC revalidation.
 - Cancellation uses an optional free-text reason (maximum 500 characters); no enumerated reason policy, deadline, fee, or refund promise is implied.
-- The first approved modification field is `delivery_address`, selected from the Customer's existing shipping Address Book. Variant, quantity, voucher, shipping, and repricing changes remain deferred until their policies are approved.
+- The first approved modification field is `delivery_address`, selected from the Customer's existing shipping Address Book. Variant, quantity, provider selection and voucher selection remain deferred. Delivery repricing follows the confirmed-address contract below.
 - One Customer checkout can produce separate Shop Orders; every mutation targets one Customer-owned Shop Order and never the whole checkout batch.
 - **Non-goals:** arbitrary status/payment patches, Seller rejection, Seller preparation, Logistics/Courier actions, waybill/task changes, delivery failure, returns, refunds, disputes, online-payment reversal, and partial fulfillment.
 
@@ -53,11 +53,14 @@ Customer opens an owned `placed` Order
 
 ### Modification
 
-- The modification endpoint exposes the single named field `address_id`; it must not accept arbitrary Order columns, status, totals, payment state, ownership, or snapshots.
-- `address_id` must reference a complete shipping-capable address already owned by the Customer. Only recipient name and contact number may change; every location field and map pin must match the current Order snapshot. Selected-variant correction, quantity, vouchers, shipping fees, one-time address creation, and repricing remain deferred.
-- The immutable checkout `order_addresses`, item, financial, voucher, and payment facts cannot be overwritten. An approved change must create a superseding version/history record through an additive migration, or be rejected until that schema exists.
-- Compare trimmed street/locality/postal/country fields exactly; optional address line two treats empty text as null. Coordinates must match at seven-decimal storage precision: both pairs absent is valid, while added/removed/partial pins or incomplete snapshots are rejected.
-- Return `422 ADDRESS_LOCATION_CHANGE_NOT_ALLOWED` on `address_id` for a location difference or unverifiable snapshot. Return `409 ADDRESS_UNCHANGED` when neither recipient nor contact changes; an edited original source row is allowed when its location still matches. Copy location fields from the existing Order snapshot into the new version, preserving frozen prices, provider and route.
+- The modification endpoint exposes the named field `address_id` plus quote/revision metadata; it must not accept arbitrary Order columns, status, totals, payment state, ownership, or snapshots.
+- `address_id` references a complete Customer-owned shipping/both saved address. The storefront selects an existing row without editing the Address Book. Changed recipient, phone, destination and optional complete valid pin are supported through review.
+- `POST /api/v1/customer/orders/{order}/modification/quote` accepts only `address_id` and required integer `expected_revision >= 1`; returns `{data:{quoteId,expiresAt,expectedRevision,address,shippingProvider,previous,proposed}}`. `address` uses the saved-address DTO. Both totals contain decimal-string `shippingFee`, `shippingDiscount`, `payable` and `currency`. Quotes expire in ten minutes and have no Order/inventory/voucher effects.
+- Confirmation uses the existing PATCH endpoint with `address_id`, `expected_revision`, `quote_id` and UUID `Idempotency-Key`. Revalidate the Customer/Order-bound quote, saved-address values, current address/pricing revisions, order state, provider eligibility, complete route and tariff/rate inputs while holding the routing gate then Order/address locks. Reject expired/stale reviews with `409 MODIFICATION_QUOTE_EXPIRED` / `MODIFICATION_QUOTE_STALE`; require a fresh deliberate review.
+- Keep the current provider. Requote using stored physical parcel measurements, quantities, origin and Shop category; do not use changed catalog prices/measurements. Block unavailable coverage; never substitute a provider or use unplanned fallback pricing.
+- Preserve purchased merchandise, merchandise discounts, commission policies, reservations and voucher redemptions. Shipping saving is `min(current committed saving, new shipping fee)` with original issuer attribution; it may decrease but never increase through an address change. Do not recheck redeemed voucher expiry or consume capacity again. Update effective shipping funding, Logistics commission/pool, Seller proceeds and COD atomically; require balanced funding.
+- Append immutable address and pricing revisions, linked by `address_version`; never overwrite checkout snapshots or original Order voucher/redemption facts. Current Order/Batch, fulfillment and finance projections use the latest pricing revision and effective shipping savings. Audit scans exclude superseded pricing revisions.
+- Missing stored parcel/pricing inputs return `409 ORDER_PRICING_UNAVAILABLE`. Legacy PATCH requests without `quote_id` remain contact-only: identical trimmed locations and seven-decimal pins, `422 ADDRESS_LOCATION_CHANGE_NOT_ALLOWED` on a location difference and `409 ADDRESS_UNCHANGED` on no change. They do not reprice shipping.
 - Address modification never edits or deletes the Customer Address Book source. Logistics later reads the current committed Order snapshot/version, not a mutable default address.
 - Variant changes must revalidate Product/Variant/SKU ownership, visibility, current price/discount, stock, Shop, and shipping rules using Checkout authority. Reservation adjustments must be atomic and idempotent.
 - If a downstream package, waybill, assignment, or task already exists, deny the change unless its owning workflow supplies an explicit safe regeneration contract; never leave stale destination or item data downstream.
@@ -89,7 +92,7 @@ Customer opens an owned `placed` Order
 
 - Implemented read routes are `GET /api/v1/customer/orders`, `GET /api/v1/customer/orders/{order}`, and `GET /api/v1/customer/orders/{order}/tracking`.
 - Laravel uses `OrderController`, `OrderTrackingService`, `CustomerOrderStatusMapper`, `CustomerOrderMutationService`, `OrderResource`, and `OrderTrackingResource`; the mapper enables only the implemented `placed` actions.
-- Implemented mutation routes are `POST /api/v1/customer/orders/{order}/cancel` and `PATCH /api/v1/customer/orders/{order}/modification`. Both return the safe current Order projection and private/no-store headers.
+- Implemented mutation routes are `POST /api/v1/customer/orders/{order}/cancel` and `PATCH /api/v1/customer/orders/{order}/modification`; the quote route is described above. Mutations return the safe current Order projection and private/no-store headers.
 - The Order response exposes the current delivery-address `version` for optimistic revision checks and nullable seven-decimal-string `latitude`/`longitude` for location-equivalence checks. It does not expose internal event, movement, or storage details.
 
 ### Implemented endpoint contract
@@ -97,7 +100,7 @@ Customer opens an owned `placed` Order
 | Method  | Path                                           | Auth            | Request                                                           | Success                              |
 | ------- | ---------------------------------------------- | --------------- | ----------------------------------------------------------------- | ------------------------------------ |
 | `POST`  | `/api/v1/customer/orders/{order}/cancel`       | active Customer | `Idempotency-Key`; optional `reason` (free text, max 500) | committed cancelled Order projection |
-| `PATCH` | `/api/v1/customer/orders/{order}/modification` | active Customer | `Idempotency-Key`; `address_id`; optional `expected_revision` | committed versioned delivery-address projection |
+| `PATCH` | `/api/v1/customer/orders/{order}/modification` | active Customer | `Idempotency-Key`; `address_id`; `expected_revision` and `quote_id` for reviewed changes (legacy contact-only omits quote) | committed versioned delivery-address projection |
 
 - Both routes must use JSON responses with a stable error code, field errors where applicable, and private/no-store cache headers.
 - Cancellation and address-modification requests are safe to retry with the same key. Each request persists a deterministic request hash so a changed retry cannot reuse an old result.
@@ -116,9 +119,13 @@ Customer opens an owned `placed` Order
 ### Verification, rollout, and open decisions
 
 - API tests cover Customer scoping, exact `placed` eligibility, duplicate/replayed keys, reservation release once, stale address revisions, immutable snapshot history, COD separation, and safe no-store responses. Seller acceptance and Customer mutation serialize on the locked Order row.
-- The storefront labels correction “Correct delivery contact,” filters saved rows to matching locations with changed contact details, explains the restriction and empty state, and preserves the original address/key/revision through uncertain retries. Its viewport-bounded dialog contains keyboard focus, supports Escape when no mutation is unresolved, and restores focus on close.
-- Regression tests reject every changed geographic field, unsupported destinations and pin changes, preserve frozen pricing/route and immutable history, and permit contact-only changes from another saved row or the edited original source. Record actual browser and runtime verification separately from these requirements.
-- Open decisions: variant/quantity changes, voucher/shipping/repricing adjustments, cancellation deadlines or reason codes, and post-pickup cancellation, delivery-failure, return, refund, and partial-fulfillment policy.
+- The storefront labels the action **Change delivery address**, lists saved shipping rows, marks the current row, and requires **Review delivery total** then **Confirm address change**. Review displays the server-returned recipient/destination, unchanged provider and current/new shipping fee, saving and COD. Cancelling does not mutate the Order. Quotes and confirmation are separate requests.
+- Failed reads/quotes retain clear loading/error/empty states and selected drafts. Confirmation freezes address, quote, revision and key through uncertain retries; editing/closing stays blocked until reconciliation. Late replies after account departure cannot repopulate state. Dialogs contain focus, support safe Escape, restore focus and fit narrow/short viewports.
+- Additive migration `2026_11_04_000001_version_order_address_pricing` adds short-lived modification quote metadata and pricing `version`/`address_version`. Reversal refuses to collapse committed pricing history; use a forward migration after the first revision. Deploy the migration before the API, then the storefront; legacy contact correction remains compatible. No backfill reprices existing Orders.
+- Regression coverage includes ownership, shipping eligibility, stale/expired review, source edits/deletion, exact replay, repeated changes, frozen catalog facts, capped App/Shop savings, rollback and PostgreSQL races. Runtime evidence is recorded separately; this change does not establish external Flutter adoption.
+- Open decisions: variant/quantity changes, voucher/provider selection or merchandise repricing adjustments, cancellation deadlines or reason codes, and post-pickup cancellation, delivery-failure, return, refund, and partial-fulfillment policy.
 - Until those decisions close, keep item and financial facts immutable and do not add broader Order edits.
 
 **References:** `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, `docs/domains/Buyer.md`, Customer Checkout, Customer Order Status, Address Book, Seller Order Approval, Seller Prepare Orders, and Seller Inventory.
+
+Runtime checks: [2026-11-04 verification](verification-2026-11-04.md).

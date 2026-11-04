@@ -36,3 +36,7 @@ Authenticated Customers browse their persistent inbox at `/notifications`, its e
 - Combined filters, pagination, reload/history, superseded requests, errors/retry, and global versus filtered counts behave correctly.
 - Keyboard dismissal/focus, 44px targets, plain text, missing dates, supported themes, and 320/390/768/1440px viewport containment are verified.
 - See [web notification verification](../../../references/web-notifications-verification.md) for executed checks and remaining acceptance limits.
+
+## Reviewed Order address alerts — 2026-11-04
+
+- Confirmed saved-address repricing sends `customer-order.address-changed` after commit to the active owning Customer, with one event/recipient identity, reference-only copy and the existing `/orders/{order}` destination. It uses the Orders category and existing DTO/read behavior; no full recipient/address appears in notification text. The owning active Seller receives a separate scoped alert. This is additive to status-change notifications and does not change Order status. See the [mutation contract](../order-modification-cancellation/spec.md).

@@ -31,3 +31,9 @@ export function canCorrectOrderContact(current: DeliveryAddress, selected: Custo
   return current.recipientName.trim() !== selected.recipientName.trim()
     || current.contactNumber.trim() !== selected.contactNumber.trim();
 }
+
+export function isCurrentOrderAddress(current: DeliveryAddress, selected: CustomerAddress): boolean {
+  return ([...locationFields, "recipientName", "contactNumber"] as const).every(
+    field => (current[field] ?? "").trim() === (selected[field] ?? "").trim(),
+  ) && coordinates(current) === coordinates(selected);
+}

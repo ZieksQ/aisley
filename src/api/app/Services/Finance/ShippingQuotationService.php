@@ -12,6 +12,7 @@ use App\Models\Address;
 use App\Models\LogisticsOrganization;
 use App\Models\LogisticsRateCard;
 use App\Models\LogisticsShippingRateAcceptance;
+use App\Models\OrderPricingSnapshot;
 use App\Models\ShippingRateVersion;
 use App\Models\Shop;
 use App\Models\ShopLogisticsProvider;
@@ -50,9 +51,9 @@ class ShippingQuotationService
     }
 
     /** @param list<array<string, mixed>> $lines @return array<string, mixed> */
-    public function quote(Shop $shop, Address $destination, array $lines, string $organizationId): array
+    public function quote(Shop $shop, Address $destination, array $lines, string $organizationId, ?OrderPricingSnapshot $frozen = null): array
     {
-        $origin = $shop->seller->addresses()->where('is_default', true)->first();
+        $origin = $frozen === null ? $shop->seller->addresses()->where('is_default', true)->first() : (new Address)->forceFill($frozen->origin_snapshot);
         if ($origin === null) {
             throw CheckoutException::conflict('PICKUP_ADDRESS_REQUIRED', "{$shop->name} does not have a pickup address configured.", 'address_id');
         }
@@ -77,14 +78,18 @@ class ShippingQuotationService
             throw CheckoutException::conflict('LOGISTICS_RATE_NOT_ACCEPTED', 'The selected Logistics provider has not accepted the active platform tariff.', 'logistics_selections');
         }
 
-        [$billable, $inputs] = $this->measure($rate, $lines);
+        [$billable, $inputs] = $this->measure($rate, $lines, $frozen?->line_inputs);
+        $shopCategoryId = $frozen === null ? $shop->shop_category_id : ($frozen->logistics_charge_inputs[0]['shop_category_id'] ?? null);
+        if ($frozen !== null && $shopCategoryId === null) {
+            throw CheckoutException::conflict('ORDER_PRICING_UNAVAILABLE', 'This Order does not have complete stored parcel pricing inputs.');
+        }
         $regionSurcharge = $rate->regionSurcharges
             ->firstWhere('normalized_region', $this->normalize($destination->region))?->surcharge_cents ?? 0;
         $route = $this->routes->plan($organization->hub, (string) $destination->postal_code);
         $charges = [];
         if ($route['status'] !== ShippingRoutePricingStatus::Unplanned->value) {
             try {
-                $charges = $this->routeCharges($route, $rate->id, $inputs, $shop->shop_category_id);
+                $charges = $this->routeCharges($route, $rate->id, $inputs, $shopCategoryId);
             } catch (CheckoutException $exception) {
                 if ($exception->errorCode === 'ROUTE_RATE_LIMIT_EXCEEDED') {
                     throw $exception;
@@ -118,45 +123,57 @@ class ShippingQuotationService
                 'rate_revision' => $rate->revision,
                 'pricing_model' => ShippingPricingModel::LogisticsServiceBase->value,
                 'selected_organization_id' => $organization->id,
-                'shop_category_id' => $shop->shop_category_id,
+                'shop_category_id' => $shopCategoryId,
                 'route' => [$route['status'], $route['failure_code'], $route['graph_revision'], $route['sort_plans']],
                 'charges' => collect($charges)->map(fn (array $charge) => [$charge['rate_card_id'], $charge['rate_card_revision'], $charge['shop_category_id'], $charge['rate_rule_ids'], $charge['quoted_charge_cents']])->all(),
-                'origin' => [$origin->id, $origin->updated_at?->getTimestamp()],
+                'origin' => $frozen === null ? [$origin->id, $origin->updated_at?->getTimestamp()] : $this->address($origin),
                 'billable_weight_grams' => $billable,
             ],
         ];
     }
 
     /** @param list<array<string, mixed>> $lines @return array{0:int,1:list<array<string,mixed>>} */
-    private function measure(ShippingRateVersion $rate, array $lines): array
+    private function measure(ShippingRateVersion $rate, array $lines, ?array $frozenInputs = null): array
     {
         $billable = 0;
         $inputs = [];
-        foreach ($lines as $line) {
+        if ($frozenInputs === []) {
+            throw CheckoutException::conflict('ORDER_PRICING_UNAVAILABLE', 'Stored parcel measurements are unavailable.');
+        }
+        $parcels = $frozenInputs ?? array_map(function (array $line): array {
             $variant = $line['variant'];
             $variantHasOverride = $variant !== null && collect($this->shippingColumns())
                 ->every(fn (string $column) => (int) $variant->{$column} > 0);
             $source = $variantHasOverride ? $variant : $line['product'];
-            $measurements = collect([
+
+            return [
+                'product_id' => $line['product']->id, 'variant_id' => $variant?->id,
+                'category_id' => $line['product']->category_id, 'name' => $line['product']->name,
+                'quantity' => (int) $line['quantity'],
                 'weight_grams' => (int) $source->shipping_weight_grams,
                 'length_mm' => (int) $source->shipping_length_mm,
                 'width_mm' => (int) $source->shipping_width_mm,
                 'height_mm' => (int) $source->shipping_height_mm,
-            ]);
-            if ($measurements->contains(fn ($value) => $value < 1)) {
-                throw CheckoutException::conflict('SHIPPING_DATA_REQUIRED', "Shipping weight and dimensions are missing for {$line['product']->name}.", 'items');
+            ];
+        }, $lines);
+        foreach ($parcels as $line) {
+            $name = $line['name'] ?? 'Order item';
+            $measurements = collect(['weight_grams', 'length_mm', 'width_mm', 'height_mm'])
+                ->mapWithKeys(fn ($field) => [$field => (int) ($line[$field] ?? 0)]);
+            if ((int) $line['quantity'] < 1 || $measurements->contains(fn ($value) => $value < 1)) {
+                throw CheckoutException::conflict('SHIPPING_DATA_REQUIRED', "Shipping weight and dimensions are missing for {$name}.", 'items');
             }
             if ($measurements['length_mm'] > $rate->max_length_mm || $measurements['width_mm'] > $rate->max_width_mm || $measurements['height_mm'] > $rate->max_height_mm) {
-                throw CheckoutException::conflict('SHIPPING_DIMENSIONS_UNSUPPORTED', "{$line['product']->name} exceeds the platform parcel dimensions.", 'items');
+                throw CheckoutException::conflict('SHIPPING_DIMENSIONS_UNSUPPORTED', "{$name} exceeds the platform parcel dimensions.", 'items');
             }
             $volumetric = (int) ceil(($measurements['length_mm'] * $measurements['width_mm'] * $measurements['height_mm']) / $rate->volumetric_divisor);
             $unitBillable = max($measurements['weight_grams'], $volumetric);
             $lineBillable = $unitBillable * (int) $line['quantity'];
             $billable += $lineBillable;
             $inputs[] = [
-                'product_id' => $line['product']->id,
-                'variant_id' => $variant?->id,
-                'category_id' => $line['product']->category_id,
+                'product_id' => $line['product_id'] ?? null,
+                'variant_id' => $line['variant_id'] ?? null,
+                'category_id' => $line['category_id'] ?? null,
                 'quantity' => (int) $line['quantity'],
                 ...$measurements->all(),
                 'volumetric_weight_grams' => $volumetric,

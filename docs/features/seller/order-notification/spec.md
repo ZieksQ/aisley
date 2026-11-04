@@ -495,3 +495,7 @@ Seller clicks Start Processing
 - Buyer View Cart/Checkout spec
 - Laravel 12 Notifications: https://laravel.com/docs/12.x/notifications
 - Laravel 12 Queues: https://laravel.com/docs/12.x/queues
+
+### Customer address-change alerts — 2026-11-04
+
+- A confirmed, reviewed Customer delivery-address change before approval sends one `seller-order.address-changed` in-app notification to the owning active Seller after commit, with safe reference-only copy and `/orders/{order}` destination. It uses the Orders category, does not mark the Order approved and includes no raw recipient/address in notification text. Event/recipient IDs deduplicate replay. The paired Customer type is `customer-order.address-changed`; existing contact-only clients retain their prior mutation contract.

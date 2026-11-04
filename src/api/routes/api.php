@@ -939,6 +939,8 @@ Route::prefix('v1/customer')->name('customer.')->middleware('throttle:120,1')->g
         Route::post('/orders/{order}/cancel', [OrderController::class, 'cancel'])
             ->whereUuid('order')
             ->name('orders.cancel');
+        Route::post('/orders/{order}/modification/quote', [OrderController::class, 'quoteModification'])
+            ->whereUuid('order')->name('orders.modification.quote');
         Route::patch('/orders/{order}/modification', [OrderController::class, 'modify'])
             ->whereUuid('order')
             ->name('orders.modify');

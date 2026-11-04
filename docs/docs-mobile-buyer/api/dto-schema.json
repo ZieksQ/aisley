@@ -993,6 +993,24 @@
       "message": "string",
       "email_verification_token": "64-character hex string",
       "expires_at": "ISO-8601"
+    },
+    "OrderAddressQuote": {
+      "quoteId": "UUID",
+      "expiresAt": "ISO8601",
+      "expectedRevision": "integer >= 1",
+      "address": "Address",
+      "shippingProvider": {
+        "id": "UUID",
+        "businessName": "string"
+      },
+      "previous": "OrderAddressQuoteTotals",
+      "proposed": "OrderAddressQuoteTotals"
+    },
+    "OrderAddressQuoteTotals": {
+      "shippingFee": "decimal-string",
+      "shippingDiscount": "decimal-string",
+      "payable": "decimal-string",
+      "currency": "string"
     }
   },
   "adopted_client_checkout": "57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50",
@@ -1006,5 +1024,6 @@
     "2026-10-09": "Voucher, AppliedVoucher and BatchVoucher add name; see voucher-selection-update.md. External Flutter adoption remains G26.",
     "order_contact_correction": "2026-10-10 B02: recipient/contact-only corrections at identical complete trimmed location and seven-decimal pin; nullable Order coordinates added; external adopted baseline unchanged."
   },
-  "current_source_inspection": "240eefddd4e2e2eea2f9558beec0292efa2121fe"
+  "current_source_inspection": "240eefddd4e2e2eea2f9558beec0292efa2121fe",
+  "order_address_revision": "2026-11-04; see order-address-change.md; external Flutter adoption pending"
 }

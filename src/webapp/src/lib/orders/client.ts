@@ -3,6 +3,7 @@ import { apiRequest, initializeCsrf } from "@/lib/api";
 import type {
   CustomerOrderGroup,
   OrderDetail,
+  OrderAddressQuote,
   OrderListResponse,
   OrderTrackingResponse,
 } from "./types";
@@ -76,6 +77,7 @@ export async function modifyOrderAddress(
   addressId: string,
   idempotencyKey: string,
   expectedRevision?: number,
+  quoteId?: string,
 ) {
   await initializeCsrf();
   const response = await apiRequest<DataResponse<OrderDetail>>(
@@ -85,6 +87,7 @@ export async function modifyOrderAddress(
       headers: { "Idempotency-Key": idempotencyKey },
       body: JSON.stringify({
         address_id: addressId,
+        ...(quoteId ? { quote_id: quoteId } : {}),
         ...(expectedRevision === undefined
           ? {}
           : { expected_revision: expectedRevision }),
@@ -92,5 +95,14 @@ export async function modifyOrderAddress(
     },
   );
 
+  return response.data;
+}
+
+export async function quoteOrderAddress(orderId: string, addressId: string, revision: number) {
+  await initializeCsrf();
+  const response = await apiRequest<DataResponse<OrderAddressQuote>>(
+    `/api/v1/customer/orders/${encodeURIComponent(orderId)}/modification/quote`,
+    { method: "POST", body: JSON.stringify({ address_id: addressId, expected_revision: revision }) },
+  );
   return response.data;
 }

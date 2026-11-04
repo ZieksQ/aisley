@@ -141,6 +141,7 @@ the role's `{key,label}` category options and each notification DTO includes `ca
 | `GET` | `/api/v1/customer/orders` | Active Customer + consent | 120,1 | `Customer\OrderController@index` |
 | `GET` | `/api/v1/customer/orders/{order}` | Active Customer + consent | 120,1 | `Customer\OrderController@show` |
 | `POST` | `/api/v1/customer/orders/{order}/cancel` | Active Customer + consent | 120,1 | `Customer\OrderController@cancel` |
+| `POST` | `/api/v1/customer/orders/{order}/modification/quote` | Active Customer + consent | 120,1 | `Customer\OrderController@quoteModification` |
 | `PATCH` | `/api/v1/customer/orders/{order}/modification` | Active Customer + consent | 120,1 | `Customer\OrderController@modify` |
 | `GET` | `/api/v1/customer/orders/{order}/tracking` | Active Customer + consent | 120,1 | `Customer\OrderController@tracking` |
 

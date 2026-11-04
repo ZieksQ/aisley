@@ -1334,3 +1334,7 @@ The complete [CustomerVoucher fields](voucher-collection.md#customervoucher-dto)
 - Challenge: `message`, `challenge_id`, ISO-8601 `expires_at`, `resend_available_at`.
 - Proof: `message`, `email_verification_token` 64-character hex string, ISO-8601 `expires_at`.
 - Final registration: existing fields plus required `email_verification_token`; no session/bearer until approval/login. Never persist proof/code or accept client `email_verified_at`.
+
+## Order address quote — 2026-11-04
+
+`OrderAddressQuote` adds `quoteId:UUID`, `expiresAt:ISO8601`, `expectedRevision:int`, `address:Address`, `shippingProvider:{id:UUID,businessName:string}`, and `previous`/`proposed` totals (`shippingFee`, `shippingDiscount`, `payable`: decimal strings; `currency`: string). All are required. See [quote/confirmation contract](order-address-change.md); new Flutter adoption remains pending.

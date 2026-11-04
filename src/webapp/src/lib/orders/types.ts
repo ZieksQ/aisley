@@ -193,3 +193,13 @@ export function isCustomerOrderGroup(
 ): value is CustomerOrderGroup {
   return customerOrderGroups.includes(value as CustomerOrderGroup);
 }
+
+export type OrderAddressQuote = {
+  quoteId: string;
+  expiresAt: string;
+  expectedRevision: number;
+  address: import("../checkout/types").CustomerAddress;
+  shippingProvider: { id: string; businessName: string };
+  previous: Pick<OrderTotals, "shippingFee" | "shippingDiscount" | "payable" | "currency">;
+  proposed: Pick<OrderTotals, "shippingFee" | "shippingDiscount" | "payable" | "currency">;
+};

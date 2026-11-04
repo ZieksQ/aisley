@@ -50,7 +50,8 @@ Quote candidates contain voucher `id,name,code,issuerType,benefitType,valueType,
 | Guest resolver | `productIds:[UUID]`, at most 12; public read through POST, no private history |
 | History merge | `items:[{productId,viewedAt?}]`, at most 12 by current config; timestamps not future and within configured age; malformed/duplicate input is validation, unavailable Products omitted |
 | Cancel | optional `reason` ≤500; UUID key; owned eligible `placed` Order |
-| Address correction | `address_id`, optional nullable integer `expected_revision` ≥1; UUID key; server state lock; recipient/contact only at identical trimmed location and seven-decimal pin, otherwise `422 ADDRESS_LOCATION_CHANGE_NOT_ALLOWED` |
+| Reviewed address change | `POST .../modification/quote` with saved `address_id` + required `expected_revision`; explicit PATCH confirmation adds `quote_id` and UUID key. See [full contract](order-address-change.md); legacy PATCH without quote remains contact-only. |
+| Legacy address correction | `address_id`, optional nullable integer `expected_revision` ≥1; UUID key; server state lock; recipient/contact only at identical trimmed location and seven-decimal pin, otherwise `422 ADDRESS_LOCATION_CHANGE_NOT_ALLOWED` |
 | Q&A create | `question`, UUID key; visible Product; current maximum 1,000 characters |
 | Review create | `rating` integer 1–5, `body` plain text ≤2,000; no UUID-header requirement; identical Order Item replay returns same Review, changed content conflicts |
 | Profile photo | multipart `photo`; no upload idempotency promise; authenticated private reread/removal |

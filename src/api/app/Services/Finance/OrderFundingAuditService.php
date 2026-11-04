@@ -21,6 +21,9 @@ class OrderFundingAuditService
     {
         $summary = ['scanned_snapshots' => 0, 'discrepancies' => 0, 'totals_by_currency' => []];
         OrderPricingSnapshot::query()->with('order:id,status')
+            ->whereNotExists(fn ($query) => $query->selectRaw('1')->from('order_pricing_snapshots as newer')
+                ->whereColumn('newer.order_id', 'order_pricing_snapshots.order_id')
+                ->whereColumn('newer.version', '>', 'order_pricing_snapshots.version'))
             ->when($orderId !== null, fn ($query) => $query->where('order_id', $orderId))
             ->chunkById(200, function (Collection $snapshots) use ($emit, &$summary): void {
                 $recognized = FinanceJournalEntry::query()->where('event_type', 'delivery_recognized')

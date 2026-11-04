@@ -4,8 +4,6 @@ namespace App\Services\Customer;
 
 use App\Enums\AddressType;
 use App\Enums\OrderStatus;
-use App\Enums\PaymentMethod;
-use App\Enums\PaymentStatus;
 use App\Events\CustomerOrderStatusChanged;
 use App\Exceptions\Customer\CheckoutException;
 use App\Models\Address;
@@ -14,6 +12,7 @@ use App\Models\CustomerOrderModification;
 use App\Models\Order;
 use App\Models\OrderStatusEvent;
 use App\Models\User;
+use App\Services\Logistics\Sorting\SortingLocks;
 use Illuminate\Support\Facades\DB;
 
 class CustomerOrderMutationService
@@ -92,11 +91,13 @@ class CustomerOrderMutationService
         string $addressId,
         string $idempotencyKey,
         ?int $expectedRevision,
+        ?string $quoteId = null,
     ): Order {
         $requestHash = $this->hash([
             'action' => 'delivery_address',
             'address_id' => strtolower($addressId),
             'expected_revision' => $expectedRevision,
+            ...($quoteId === null ? [] : ['quote_id' => $quoteId]),
         ]);
 
         $resultId = DB::transaction(function () use (
@@ -106,7 +107,11 @@ class CustomerOrderMutationService
             $idempotencyKey,
             $requestHash,
             $expectedRevision,
+            $quoteId,
         ): string {
+            if ($quoteId !== null) {
+                SortingLocks::network();
+            }
             $previous = CustomerOrderModification::query()
                 ->where('customer_id', $customer->id)
                 ->where('idempotency_key', $idempotencyKey)
@@ -132,7 +137,7 @@ class CustomerOrderMutationService
 
             $this->assertEligible($order, 'ORDER_NOT_MODIFIABLE', 'This Order is no longer available for modification.');
             $currentAddress = $order->addressVersions()
-                ->orderByDesc('version')
+                ->reorder('version', 'desc')
                 ->lockForUpdate()
                 ->first();
             if ($currentAddress === null) {
@@ -162,15 +167,20 @@ class CustomerOrderMutationService
             }
             $this->assertCompleteAddress($address);
 
-            $this->addressCorrection->assertAllowed($currentAddress, $address);
-            $newAddress = $order->addressVersions()->create($this->addressCorrection->snapshot($currentAddress, $address));
+            if ($quoteId === null) {
+                $this->addressCorrection->assertAllowed($currentAddress, $address);
+                $newAddress = $order->addressVersions()->create($this->addressCorrection->snapshot($currentAddress, $address));
+            } else {
+                $newAddress = app(OrderAddressChange::class)->apply($customer, $order, $address, $quoteId, $expectedRevision);
+            }
             $event = $order->statusEvents()->create([
                 'from_status' => OrderStatus::Placed,
                 'to_status' => OrderStatus::Placed,
                 'source' => 'customer_order_modification',
                 'public_metadata' => [
-                    'label' => 'Delivery contact corrected',
+                    'label' => $quoteId === null ? 'Delivery contact corrected' : 'Delivery address changed',
                     'event_type' => 'customer_order_modified',
+                    'change_type' => $quoteId === null ? 'delivery_contact' : 'delivery_address',
                 ],
                 'occurred_at' => now(),
             ]);
@@ -205,18 +215,7 @@ class CustomerOrderMutationService
 
     private function assertEligible(Order $order, string $code, string $message): void
     {
-        if (
-            $order->status !== OrderStatus::Placed
-            || $order->payment_method !== PaymentMethod::CashOnDelivery
-            || $order->payment_status !== PaymentStatus::Pending
-            || ! $order->items()->exists()
-            || ! $order->addressVersions()->exists()
-            || $order->pickupRequestOrder()->exists()
-            || $order->waybill()->exists()
-            || $order->firstMileTask()->exists()
-        ) {
-            throw CheckoutException::conflict($code, $message);
-        }
+        app(CustomerOrderMutationGuard::class)->assertEligible($order, $code, $message);
     }
 
     private function transition(Order $order, OrderStatus $to, string $source): OrderStatusEvent

@@ -167,3 +167,7 @@ Buy Now or selected Cart lines
 - Place order opens a centered native confirmation dialog showing the reviewed recipient/address, Shop providers and fees, each Order's payable total, Order count and total COD. Cancel/Escape returns focus to Place order and sends no placement request. Confirm and place order submits once using the existing Customer-scoped UUID and exact-request recovery. Retry original order reconciles the frozen request directly.
 - `/checkout/delivery` shares the Customer-keyed review provider with Checkout/Vouchers; direct access blocks edits during pending/uncertain placement. Failed Apply preserves the draft and previously accepted provider; leaving a pending Apply invalidates its late response and retains the accepted provider; successful Apply keeps vouchers/address and returns to Checkout.
 - This API eligibility revision also applies to the external Buyer client. Its portable contracts are updated separately; no Flutter implementation or device acceptance is established by this web change.
+
+### Order address revision boundary — 2026-11-04
+
+- Checkout remains immutable at placement. A separate, explicit [Customer Order action](../order-modification-cancellation/spec.md) may supersede address and shipping pricing before Seller approval after a fresh review and confirmation. Batch retrieval projects the current committed Order destination/totals and effective shipping saving; original checkout/address/pricing/voucher records remain historical facts. Checkout placement replay and its stock/voucher effects are unchanged.

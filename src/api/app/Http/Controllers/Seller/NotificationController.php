@@ -19,6 +19,7 @@ class NotificationController extends Controller
 
     private const TYPES = [
         'seller-order.actionable',
+        'seller-order.address-changed',
         'seller-order.delivered',
         'inventory.low-stock',
         'seller-compliance.action',
