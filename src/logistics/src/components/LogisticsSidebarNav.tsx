@@ -53,6 +53,7 @@ const groups: NavGroup[] = [
       { label: 'Courier applications', path: '/courier-applications', icon: LuUserRoundCheck },
       { label: 'Vehicles', path: '/vehicles', icon: LuCar },
       { label: 'Company fleet', path: '/fleet', icon: LuTruck },
+      { label: 'Fleet monitoring', path: '/fleet-monitoring', icon: LuRoute },
       { label: 'Finance', path: '/finance', icon: LuChartNoAxesCombined },
     ],
   },

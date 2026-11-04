@@ -482,6 +482,27 @@
       "code": "QUOTE_STALE",
       "message": "No complete delivery route is available for this Shop and address. Change your address or try again later. Request a new quote.",
       "field": "logistics_selections"
+    },
+    {
+      "feature": "order-modification-cancellation",
+      "status": 409,
+      "code": "MODIFICATION_QUOTE_EXPIRED",
+      "field": "quote_id",
+      "message": "This delivery quote expired. Review the updated delivery total."
+    },
+    {
+      "feature": "order-modification-cancellation",
+      "status": 409,
+      "code": "MODIFICATION_QUOTE_STALE",
+      "field": "quote_id",
+      "message": "The address or delivery terms changed. Review a fresh quote before confirming."
+    },
+    {
+      "feature": "order-modification-cancellation",
+      "status": 409,
+      "code": "ORDER_PRICING_UNAVAILABLE",
+      "field": null,
+      "message": "Historical pricing inputs are insufficient for a destination change."
     }
   ],
   "adopted_client_checkout": "57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50",
@@ -492,5 +513,6 @@
     "date": "2026-10-15",
     "finding": "D02",
     "flutter_adoption": "Revised eligibility/recovery unverified; historical adoption and live/device gates retained."
-  }
+  },
+  "order_address_revision": "2026-11-04; see order-address-change.md; external Flutter adoption pending"
 }

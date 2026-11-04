@@ -14,6 +14,8 @@ import { DeliveryConfirmationsPage } from './pages/DeliveryConfirmationsPage'
 import { DispatchPage } from './pages/DispatchPage'
 import { FinancePaymentsPage } from './pages/FinancePaymentsPage'
 import { FinancePage } from './pages/FinancePage'
+import { FleetMonitoringPage } from './pages/FleetMonitoringPage'
+import { FleetMonitoringDetailPage } from './pages/FleetMonitoringDetailPage'
 import { FleetPage } from './pages/FleetPage'
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
 import { FulfillmentOperationsPage } from './pages/FulfillmentOperationsPage'
@@ -41,7 +43,7 @@ export default function App() {
   return <Routes>
     <Route element={<Navigate replace to="/dashboard" />} path="/" />
     <Route element={<LoginPage />} path="/login" />
-    <Route element={<RegisterPage />} path="/register" />
+    <Route element={<RegisterPage />} path="/register/*" />
     <Route element={<ForgotPasswordPage />} path="/forgot-password" />
     <Route element={<ResetPasswordPage />} path="/reset-password" />
     <Route element={<SessionRoute />}>
@@ -71,6 +73,8 @@ export default function App() {
           <Route element={<PickupDetailPage />} path="/pickups/:pickupId" />
           <Route element={<CourierApplicationsPage />} path="/courier-applications" />
           <Route element={<CourierApplicationDetailPage />} path="/courier-applications/:affiliationId" />
+          <Route element={<FleetMonitoringPage />} path="/fleet-monitoring" />
+          <Route element={<FleetMonitoringDetailPage />} path="/fleet-monitoring/:truckId" />
           <Route element={<FleetPage />} path="/fleet" />
           <Route element={<CourierVehiclesPage />} path="/vehicles" />
           <Route element={<CourierVehiclePage />} path="/couriers/:courierId/vehicle" />

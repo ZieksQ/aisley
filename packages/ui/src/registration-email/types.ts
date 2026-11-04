@@ -20,7 +20,7 @@ export type RegistrationSubmission = {
   token: string;
   signal: AbortSignal;
   isCurrent: () => boolean;
-  complete: () => boolean;
+  complete: (status?: "active" | "pending") => boolean;
   finish: (failure?: { reverify?: boolean; message?: string }) => void;
 };
 
@@ -31,5 +31,11 @@ export type VerifiedRegistrationEmail = {
   submitting: boolean;
   beginSubmission: () => RegistrationSubmission | null;
   setEmail: (email: string) => void;
-  continueToVerification: () => boolean;
+  continueToVerification: (submit: (attempt: RegistrationSubmission) => Promise<void>) => boolean;
+};
+
+export type RegistrationStep = "details" | "verify-email" | "success";
+export type RegistrationNavigation = {
+  step: RegistrationStep;
+  navigate: (step: RegistrationStep, replace?: boolean) => void;
 };

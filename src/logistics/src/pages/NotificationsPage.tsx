@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { FaArrowLeft, FaArrowRight, FaArrowsRotate, FaCircleInfo } from 'react-icons/fa6'
+import { FaArrowLeft, FaArrowRight, FaArrowsRotate } from 'react-icons/fa6'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
-import { NotificationCategoryLabel, NotificationFilters, isNotificationCategory, notificationCategoryOptions } from '@aisley/ui/notifications'
-import { ActionButton, ErrorNotice, PrimaryButton, link, panel } from '../components/PickupUi'
+import { NotificationCategoryLabel, NotificationCenter, isNotificationCategory, notificationCategoryOptions } from '@aisley/ui/notifications'
+import { ErrorNotice, PrimaryButton, link, panel } from '../components/PickupUi'
+import { useAuth } from '../auth/useAuth'
 import { ApiError, csrf, request, requestWithTimeout } from '../lib/api'
 import type { LogisticsNotification, NotificationPage, NotificationResponse, NotificationStatus } from '../types/notifications'
 
@@ -36,7 +37,9 @@ function messageFor(caught: unknown, fallback: string): string {
 
 export function NotificationsPage() {
   const { notificationId } = useParams()
-  return notificationId ? <NotificationDetail notificationId={notificationId} /> : <NotificationList />
+  const { logistics } = useAuth()
+  if (!logistics) return null
+  return notificationId ? <NotificationDetail notificationId={notificationId} /> : <NotificationList key={logistics.id} />
 }
 
 function NotificationList() {
@@ -92,24 +95,18 @@ function NotificationList() {
   })
   const movePage = (nextPage: number) => setParams((current) => { const nextParams = new URLSearchParams(current); nextParams.set('page', String(nextPage)); return nextParams }, { replace: true })
 
-  return <div className="w-full max-w-5xl px-4 py-4 sm:px-6 sm:py-5 lg:px-8">
-    <div className="flex flex-wrap items-start justify-between gap-3 border-b border-zinc-200 pb-4 dark:border-white/10"><div><h2 className="text-xl font-semibold">Notifications</h2><p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Operational alerts for this Logistics organization and hub.</p></div><ActionButton busy={currentLoading} className="shrink-0" onClick={() => void load()}><FaArrowsRotate aria-hidden="true" /> Refresh</ActionButton></div>
-    <div className="mt-4"><NotificationFilters category={category} categories={notificationCategoryOptions('logistics', currentResult?.meta?.categories)} onCategoryChange={(nextCategory) => setFilters(status, nextCategory)} onStatusChange={(nextStatus) => setFilters(nextStatus, category)} palette="blue" role="logistics" status={status} /></div>
-    <p className="mt-2 text-xs text-zinc-600 dark:text-zinc-400" aria-live="polite">{currentLoading ? 'Loading notifications…' : `${total} notification${total === 1 ? '' : 's'}`}</p>
-    <section className={`${panel} mt-3`} aria-busy={currentLoading} aria-live="polite">
-      {currentLoading ? <p className="p-4 text-sm text-zinc-600 dark:text-zinc-400" role="status">Loading notifications…</p> : null}
-      {currentError ? <div className="p-3"><ErrorNotice message={currentError} retry={() => void load()} /></div> : null}
-      {!currentLoading && !currentError && currentResult?.data.length === 0 ? <div className="grid min-h-40 place-items-center p-6 text-center"><div><FaCircleInfo className="mx-auto mb-3 text-2xl text-zinc-400" aria-hidden="true" /><p className="text-sm font-medium">No {status === 'all' ? '' : `${status} `}notifications{category === 'all' ? ' yet.' : ` in ${notificationCategoryOptions('logistics', currentResult.meta?.categories).find((item) => item.key === category)?.label ?? 'Other'} yet.`}</p><p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">New pickup, Courier review, and fulfillment alerts will appear here.</p></div></div> : null}
-      {!currentLoading && !currentError && currentResult?.data.length ? <ul className="divide-y divide-zinc-200 dark:divide-white/10">{currentResult.data.map((item) => <NotificationRow item={item} key={item.id} />)}</ul> : null}
-    </section>
-    {currentResult?.data.length && !currentError && !currentLoading && lastPage > 1 ? <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-sm"><ActionButton disabled={page <= 1} onClick={() => movePage(page - 1)}><FaArrowLeft aria-hidden="true" /> Previous</ActionButton><span className="text-xs text-zinc-600 dark:text-zinc-400">Page {page} of {lastPage}</span><ActionButton disabled={page >= lastPage} onClick={() => movePage(page + 1)}>Next <FaArrowRight aria-hidden="true" /></ActionButton></div> : null}
+  return <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
+    <NotificationCenter headingLevel={2} role="logistics" description="Operational alerts for this Logistics organization and hub."
+      items={currentResult?.data ?? []} total={currentLoading ? undefined : total}
+      loading={currentLoading} error={currentError} onRetry={() => void load()}
+      status={status} category={category} categories={notificationCategoryOptions('logistics', currentResult?.meta?.categories)}
+      onStatusChange={next => setFilters(next, category)} onCategoryChange={next => setFilters(status, next)}
+      page={page} lastPage={lastPage} onPageChange={movePage}
+      actions={<button className="notification-button" disabled={currentLoading} onClick={() => void load()} type="button"><FaArrowsRotate aria-hidden="true" /> Refresh</button>}
+      renderAction={(item, props) => <Link {...props} to={supportTicketDestination(item) ?? `/notifications/${item.id}`}
+        onClick={() => { if (supportTicketDestination(item) && !item.read_at) markLogisticsNotificationRead(item.id) }} />}
+    />
   </div>
-}
-
-function NotificationRow({ item }: { item: LogisticsNotification }) {
-  const unread = !item.read_at
-  const destination = supportTicketDestination(item)
-  return <li><Link className={`block border-l-4 p-3 hover:bg-zinc-50 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#2563EB] dark:hover:bg-white/[0.04] sm:p-4 ${unread ? 'border-l-[#2563EB] bg-[#EFF6FF] dark:border-l-[#93C5FD] dark:bg-[#172D4A]' : 'border-l-transparent bg-white dark:bg-[#18181b]'}`} onClick={() => { if (destination && unread) markLogisticsNotificationRead(item.id) }} to={destination ?? `/notifications/${item.id}`}><div className="flex items-start gap-3"><span className={`mt-1.5 size-2 shrink-0 rounded-full ${unread ? 'bg-[#2563EB] dark:bg-[#93C5FD]' : 'bg-zinc-300 dark:bg-zinc-600'}`} /><div className="min-w-0 flex-1"><div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-3"><h3 className="break-words font-medium">{item.title}</h3>{unread ? <span className="shrink-0 text-xs font-medium text-[#1E40AF] dark:text-[#93C5FD]">Unread</span> : <span className="shrink-0 text-xs text-zinc-600 dark:text-zinc-400">Read</span>}</div><p className="mt-1 break-words text-sm leading-5 text-zinc-700 dark:text-zinc-300">{item.summary}</p><p className="mt-2 break-words text-xs capitalize text-zinc-600 dark:text-zinc-400">{typeLabel(item.type)} · {formatDate(item.created_at)}</p><div className="mt-1"><NotificationCategoryLabel category={item.category} categoryLabel={item.category_label} role="logistics" /></div></div><FaArrowRight className="mt-1 shrink-0 text-zinc-400" aria-hidden="true" /></div></Link></li>
 }
 
 function markLogisticsNotificationRead(id: string) {

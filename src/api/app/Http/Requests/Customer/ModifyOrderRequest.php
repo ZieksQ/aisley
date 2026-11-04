@@ -18,7 +18,8 @@ class ModifyOrderRequest extends FormRequest
     {
         return [
             'address_id' => ['required', 'uuid'],
-            'expected_revision' => ['sometimes', 'nullable', 'integer', 'min:1'],
+            'quote_id' => ['sometimes', 'required', 'uuid'],
+            'expected_revision' => ['required_with:quote_id', 'nullable', 'integer', 'min:1'],
         ];
     }
 
@@ -26,7 +27,7 @@ class ModifyOrderRequest extends FormRequest
     public function after(): array
     {
         return [function (Validator $validator): void {
-            foreach (array_diff(array_keys($this->all()), ['address_id', 'expected_revision']) as $field) {
+            foreach (array_diff(array_keys($this->all()), ['address_id', 'expected_revision', 'quote_id']) as $field) {
                 $validator->errors()->add($field, 'This field is not accepted for order modification.');
             }
 

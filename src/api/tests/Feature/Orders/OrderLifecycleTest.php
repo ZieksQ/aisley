@@ -10,6 +10,7 @@ use App\Models\ShipmentEvent;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -23,11 +24,12 @@ class OrderLifecycleTest extends TestCase
 
     public static function deliveryRoutes(): array
     {
-        return ['local delivery' => [false], 'company-truck transfer then delivery' => [true]];
+        return ['local delivery' => [false, false], 'company-truck transfer then delivery' => [true, false],
+            'revised local delivery' => [false, true], 'revised company-truck delivery' => [true, true]];
     }
 
     #[DataProvider('deliveryRoutes')]
-    public function test_real_checkout_reaches_confirmed_delivery_without_repricing_or_duplicate_effects(bool $transfer): void
+    public function test_real_checkout_reaches_confirmed_delivery_with_current_frozen_terms_and_no_duplicate_effects(bool $transfer, bool $revise): void
     {
         Http::preventStrayRequests();
         config(['hub-routing.enabled' => true, 'services.geoapify.server_key' => 'test-key']);
@@ -70,6 +72,24 @@ class OrderLifecycleTest extends TestCase
         $this->assertSame($routeStatus, $order->pricingSnapshot->shipping_route_status->value);
         $this->assertSame($origin[1]->id, $order->selected_logistics_organization_id);
         $this->assertOrderProjection($order, $customer, 'placed', $payable);
+
+        if ($revise) {
+            $saved = $address->replicate()->fill(['address_line_1' => 'Reviewed destination street', 'is_default' => false]);
+            $saved->save();
+            DB::table('logistics_service_rates')->increment('base_fee_cents', 100);
+            $review = $this->postJson('/api/v1/customer/orders/'.$order->id.'/modification/quote', [
+                'address_id' => $saved->id, 'expected_revision' => 1,
+            ])->assertOk()->json('data');
+            $shipping = $transfer ? '20.00' : '12.00';
+            $payable = $transfer ? '220.00' : '212.00';
+            $this->assertSame($shipping, $review['proposed']['shippingFee']);
+            $this->withHeader('Idempotency-Key', (string) Str::uuid())->patchJson('/api/v1/customer/orders/'.$order->id.'/modification', [
+                'address_id' => $saved->id, 'expected_revision' => 1, 'quote_id' => $review['quoteId'],
+            ])->assertOk()->assertJsonPath('data.totals.payable', $payable);
+            $order = $order->fresh();
+            $this->assertSame(2, $order->pricingSnapshot->version);
+            $this->assertSame('Reviewed destination street', $order->address->address_line_1);
+        }
 
         // Editing the source catalog/address after checkout cannot rewrite purchased facts.
         $product->update(['name' => 'Renamed later', 'price' => '999.00']);
@@ -186,11 +206,11 @@ class OrderLifecycleTest extends TestCase
         $this->assertSame(PaymentStatus::Paid, $order->fresh()->payment_status);
         $this->assertDatabaseHas('cod_invoices', [
             'order_id' => $order->id, 'logistics_organization_id' => $destination[1]->id,
-            'total_cents' => $transfer ? 21700 : 21000, 'status' => 'outstanding',
+            'total_cents' => (int) str_replace('.', '', $payable), 'status' => 'outstanding',
         ]);
         $this->assertDatabaseHas('courier_cash_obligations', [
             'order_id' => $order->id, 'courier_id' => $finalCourier->id,
-            'logistics_organization_id' => $destination[1]->id, 'amount_cents' => $transfer ? 21700 : 21000,
+            'logistics_organization_id' => $destination[1]->id, 'amount_cents' => (int) str_replace('.', '', $payable),
         ]);
         $this->assertDatabaseCount('cod_invoices', 1);
         $this->assertDatabaseCount('courier_cash_obligations', 1);
@@ -201,6 +221,7 @@ class OrderLifecycleTest extends TestCase
             ->assertJsonPath('data.items.0.productName', 'Lifecycle parcel')
             ->assertJsonPath('data.deliveryAddress.recipientName', 'Lifecycle Buyer')
             ->assertJsonPath('data.deliveryAddress.postalCode', '6000')
+            ->assertJsonPath('data.deliveryAddress.addressLine1', $revise ? 'Reviewed destination street' : $address->address_line_1)
             ->assertJsonPath('data.payment.status', 'paid')->assertJsonPath('data.items.0.canReview', true);
         $this->postJson('/api/v1/customer/order-items/'.$order->items()->sole()->id.'/review', [
             'rating' => 5, 'body' => 'Received the parcel successfully.',

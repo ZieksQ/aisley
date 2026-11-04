@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Events\CustomerOrderStatusChanged;
 use App\Events\SellerOrderBecameActionable;
 use App\Listeners\SendCustomerOrderStatusNotification;
+use App\Listeners\SendOrderAddressChangeNotifications;
 use App\Listeners\SendSellerOrderActionableNotification;
 use App\Models\PersonalAccessToken;
 use App\Services\Logistics\Routing\DurationDistanceWeightCalculator;
@@ -37,6 +38,7 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('registration-email-verify', fn (Request $request): Limit => Limit::perMinute(30)->by('registration-verify-ip|'.$request->ip()));
         Event::listen(SellerOrderBecameActionable::class, SendSellerOrderActionableNotification::class);
         Event::listen(CustomerOrderStatusChanged::class, SendCustomerOrderStatusNotification::class);
+        Event::listen(CustomerOrderStatusChanged::class, SendOrderAddressChangeNotifications::class);
 
         // Support writes have separate budgets from browsing, polling, and each other.
         foreach (['support-ticket-create' => 10, 'support-ticket-reply' => 30] as $name => $attempts) {

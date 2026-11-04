@@ -30,13 +30,14 @@ const modules = {
   "react-dom/client": productionModule("react-dom", "react-dom-client.production.js"),
   scheduler: productionModule("scheduler", "scheduler.production.js"),
   "@aisley/ui": compile("../../packages/ui/src/button.tsx"),
+  "@/lib/orders/format": compile("src/lib/orders/format.ts"),
   "@/lib/orders/address-correction": compile("src/lib/orders/address-correction.ts"),
   "./order-contact-dialog": compile("src/components/orders/order-contact-dialog.tsx"),
   correction: compile("src/components/orders/order-contact-correction.tsx"),
   "next/link": 'exports.default = props => require("react").createElement("a", props, props.children);',
   "@/lib/api": 'exports.ApiError = class ApiError extends Error { constructor(status, code) { super(code); this.status=status; this.code=code; this.errors={address_id:[code]}; } };',
   "@/lib/checkout/client": 'exports.fetchAddresses = () => window.addresses();',
-  "@/lib/orders/client": 'exports.orderMutationKey = () => "original-key"; exports.fetchOrder = async () => window.order; exports.modifyOrderAddress = (...args) => window.submitCorrection(...args);',
+  "@/lib/orders/client": 'exports.quoteOrderAddress = (...args) => window.quoteAddress(...args); exports.orderMutationKey = () => "original-key"; exports.fetchOrder = async () => window.order; exports.modifyOrderAddress = (...args) => window.submitCorrection(...args);',
 };
 const script = `
 const process={env:{NODE_ENV:"production"}};
@@ -49,6 +50,7 @@ const current={version:1,recipientName:"Ada Buyer",contactNumber:"09171234567",a
 window.order={id:"order",reference:"ASL-TEST",deliveryAddress:current};
 window.mode="ready";window.requests=[];
 window.addresses=async()=>window.mode==="loading"?new Promise(resolve=>window.resolveAddresses=resolve):window.mode==="empty"?[]:window.mode==="error"?Promise.reject(new Error("offline")):[{...current,id:"address",label:"Home",type:"shipping",recipientName:"CorrectedRecipient".repeat(12)},{...current,id:"elsewhere",label:"Other",type:"shipping",recipientName:"Different",postalCode:"9999"}];
+window.quoteAddress=async(order,address)=>{if(window.mode==="quote-error")throw new Error("unavailable");return {quoteId:"quote-1",expiresAt:"2099-01-01T00:00:00Z",expectedRevision:1,address:{...current,id:address,recipientName:"Reviewed recipient",postalCode:"1204"},shippingProvider:{id:"provider",businessName:"Current provider"},previous:{shippingFee:"10.00",shippingDiscount:"0.00",payable:"110.00",currency:"PHP"},proposed:{shippingFee:"20.00",shippingDiscount:"0.00",payable:"120.00",currency:"PHP"}};};
 window.submitCorrection=async(...args)=>{window.requests.push(args);if(window.mode==="pending")await new Promise(resolve=>window.finish=resolve);if(window.mode==="invalid")throw new (require("@/lib/api").ApiError)(422,"ADDRESS_LOCATION_CHANGE_NOT_ALLOWED");if(window.mode==="uncertain")throw new Error("lost response");return {...window.order,deliveryAddress:{...current,version:2}};};
 function App(){const[busy,setBusy]=React.useState(false);const[order,setOrder]=React.useState(window.order);const[success,setSuccess]=React.useState("");return React.createElement("main",{style:{padding:16}},React.createElement(OrderContactCorrection,{order,disabled:busy,onBusyChange:setBusy,onUpdated:setOrder,onSuccess:setSuccess}),React.createElement("p",{role:"status"},success));}
 require("react-dom/client").createRoot(document.getElementById("root")).render(React.createElement(App));
@@ -109,7 +111,7 @@ try {
       if (await evaluate(`Boolean(${expression})`)) return;
       await new Promise(resolve => setTimeout(resolve, 25));
     }
-    throw new Error(`Condition failed: ${expression}`);
+    throw new Error(`Condition failed: ${expression}; ${await evaluate('JSON.stringify({text:document.querySelector("#root").textContent,requests:window.requests,buttons:[...document.querySelectorAll("button")].map(b=>({text:b.textContent,disabled:b.disabled}))})')}`);
   }
   async function reset(mode = "ready") {
     await command("Page.navigate", { url: "about:blank" });
@@ -124,50 +126,70 @@ try {
     await command("Input.dispatchKeyEvent", { type: "keyDown", key, code: key, modifiers });
     await command("Input.dispatchKeyEvent", { type: "keyUp", key, code: key, modifiers });
   };
-  for (const [width, height] of [[390, 844], [768, 1024], [1280, 900], [390, 400]]) {
+  for (const [width, height] of [[320, 740], [390, 844], [768, 1024], [1440, 900], [390, 400]]) {
     await command("Emulation.setDeviceMetricsOverride", { width, height, deviceScaleFactor: 1, mobile: false });
     await reset();
     await until('document.querySelector("input[type=radio]")');
+    await evaluate('document.querySelector("input[type=radio]").click();document.querySelector("[role=dialog] button:last-child").click()');
+    await until('document.querySelector("#root").textContent.includes("Review delivery change")');
+    assert.equal(await evaluate('window.requests.length'), 0);
+    await until('!document.querySelector("[role=dialog] button:last-child").disabled');
+    if (width === 1440) {
+      const capture = await evaluate('document.documentElement.outerHTML.replace(/<script[\\s\\S]*?<\\/script>/gi, "")');
+      writeFileSync(`${artifacts}/review.html`, capture);
+    }
     const layout = await evaluate(`(()=>{const d=document.querySelector('[role=dialog]'),r=d.getBoundingClientRect();return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,overflow:document.documentElement.scrollWidth>innerWidth,dialogOverflow:d.scrollWidth>d.clientWidth,radios:d.querySelectorAll('input[type=radio]').length};})()`);
     const shot = await command("Page.captureScreenshot", { format: "png" });
     writeFileSync(`${artifacts}/${width}x${height}.png`, Buffer.from(shot.data, "base64"));
     console.log(`${width}x${height}: ${JSON.stringify(layout)}`);
     assert.equal(layout.overflow, false); assert.equal(layout.dialogOverflow, false);
-    assert.equal(layout.radios, 1); assert.ok(layout.left >= 0 && layout.right <= width);
+    assert.equal(layout.radios, 2); assert.ok(layout.left >= 0 && layout.right <= width);
     assert.ok(layout.top >= 0 && layout.bottom <= height);
+    await evaluate('document.querySelector("[role=dialog]").focus()');
     await key("Tab"); assert.equal(await evaluate('document.activeElement.type'), "radio");
-    await key("Tab", 8); assert.equal(await evaluate('document.activeElement.textContent'), "Confirm contact correction");
+    await key("Tab", 8); assert.equal(await evaluate('document.activeElement.textContent'), "Confirm address change");
     await key("Tab"); assert.equal(await evaluate('document.activeElement.type'), "radio");
     await key("Escape"); await until('!document.querySelector("[role=dialog]")');
-    assert.equal(await evaluate('document.activeElement.textContent'), "Correct delivery contact");
+    assert.equal(await evaluate('document.activeElement.textContent'), "Change delivery address");
   }
   for (const mode of ["empty", "error", "loading"]) {
     await reset(mode);
-    const expected = mode === "empty" ? "No saved contact corrections" : mode === "error" ? "We could not load" : "Loading saved addresses";
-    await until(`document.body.textContent.includes(${JSON.stringify(expected)})`);
+    const expected = mode === "empty" ? "No saved shipping addresses" : mode === "error" ? "We could not load" : "Loading saved addresses";
+    await until(`document.querySelector("#root").textContent.includes(${JSON.stringify(expected)})`);
     assert.equal(await evaluate('document.querySelector("[role=dialog] button:last-child").disabled'), true);
     await key("Escape"); await until('!document.querySelector("[role=dialog]")');
   }
   await reset("invalid");
   await until('document.querySelector("input[type=radio]")');
+  await evaluate('document.querySelector("input[type=radio]").click();document.querySelector("[role=dialog] button:last-child").click()');
+  await until('document.querySelector("#root").textContent.includes("Confirm address change")');
   await evaluate('document.querySelector("[role=dialog] button:last-child").click()');
-  await until('document.body.textContent.includes("ADDRESS_LOCATION_CHANGE_NOT_ALLOWED")');
+  await until('document.querySelector("#root").textContent.includes("ADDRESS_LOCATION_CHANGE_NOT_ALLOWED")');
   assert.equal(await evaluate('document.querySelector("input[type=radio]").checked'), true);
   await key("Escape"); await until('!document.querySelector("[role=dialog]")');
+  await reset("quote-error");
+  await until('document.querySelector("input[type=radio]")');
+  await evaluate('document.querySelector("input[type=radio]").click();document.querySelector("[role=dialog] button:last-child").click()');
+  await until('document.querySelector("#root").textContent.includes("We could not calculate delivery")');
+  assert.equal(await evaluate('document.querySelector("input[type=radio]").checked'), true);
+  assert.equal(await evaluate('window.requests.length'), 0);
+  await key("Escape");
   await reset("pending");
   await until('document.querySelector("input[type=radio]")');
+  await evaluate('document.querySelector("input[type=radio]").click();document.querySelector("[role=dialog] button:last-child").click()');
+  await until('document.querySelector("#root").textContent.includes("Confirm address change")');
   await evaluate('document.querySelector("[role=dialog] button:last-child").click()');
-  await until('document.body.textContent.includes("Updating…")');
+  await until('document.querySelector("#root").textContent.includes("Updating…")');
   await key("Escape"); assert.equal(await evaluate('!!document.querySelector("[role=dialog]")'), true);
   assert.equal(await evaluate('document.querySelector("input[type=radio]").matches(":disabled")'), true);
   await evaluate('window.mode="uncertain";window.finish()');
-  await until('document.body.textContent.includes("Retry original correction")');
+  await until('document.querySelector("#root").textContent.includes("Retry original change")');
   assert.equal(await evaluate('document.querySelector("[role=dialog] button:first-child").disabled'), true);
   await evaluate('window.mode="ready";document.querySelector("[role=dialog] button:last-child").click()');
   await until('!document.querySelector("[role=dialog]")');
-  assert.match(await evaluate('document.body.textContent'), /Delivery contact corrected/);
-  assert.deepEqual(await evaluate('window.requests'), [["order", "address", "original-key", 1], ["order", "address", "original-key", 1]]);
-  console.log("Browser checks passed: 390/768/1280px and short viewport; location filtering, focus trap/restoration, Escape, loading/empty/error/validation, pending and exact uncertain retry/success.");
+  assert.match(await evaluate('document.querySelector("#root").textContent'), /Delivery address changed/);
+  assert.deepEqual(await evaluate('window.requests'), [["order", "address", "original-key", 1, "quote-1"], ["order", "address", "original-key", 1, "quote-1"]]);
+  console.log("Browser checks passed: 320/390/768/1440px and short viewport; saved destination selection and quote review, focus trap/restoration, Escape, loading/empty/error/validation, pending and exact uncertain retry/success.");
   console.log(`Screenshots: ${artifacts}`);
 } finally {
   browser.kill();

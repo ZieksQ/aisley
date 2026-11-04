@@ -75,9 +75,11 @@ From the repository root, with an existing Seller production stylesheet and inst
 CHROMIUM_BINARY=/usr/bin/chromium node packages/ui/tests/registration-email-browser.mjs
 ```
 
-The fixture checks the actual shared gate/hook at 320/390/768/1440px in supported role themes, leading-zero OTPs, draft retention, expiry, cooldown, reduced motion, and obsolete OTP responses. Its B12 matrix additionally runs the actual Customer, Seller, and Logistics registration handlers and OTP clients, plus the Customer CSRF wrapper. It covers synchronous duplicate submission, pending identity/edit locks, frozen JSON/multipart fields and selected evidence, delayed success/proof rejection, same/different-email retry, expiry during submission, ambiguous upload failure, obsolete callbacks after a newer proof, and disposal during CSRF/final requests. Synthetic transport intentionally delivers old responses despite abort to exercise the client guards.
+The fixture exercises the actual shared gate/hook and Customer/Seller/Logistics handlers with synthetic transport: dedicated OTP, leading-zero codes, invalid-code recovery, one automatic submission, pending/active success, retained text/passwords/files, OTP bypass/settings failure/re-enforcement, deliberate validation retry, expiry while persistence is pending, Back cancellation, stale responses, uncertain outcomes, CSRF disposal and direct-entry recovery. Capture the committed before-state with `--before` before committing implementation.
 
-Routing, HTTP, map/address controls and selected presentation primitives are synthetic. Responsive checks do not certify the full application layouts, live registration/mail, upload processing, or deployment. Screenshots remain under `node_modules/.cache/registration-email-browser`; run sequentially with the other browser fixtures sharing the same profile.
+For the real production layouts, run Customer/Seller/Logistics previews on ports 15300/15174/15176, then run `CHROMIUM_BINARY=/usr/bin/chromium node packages/ui/tests/registration-routes-browser.mjs`. This uses synthetic APIs with actual navigation, form/address controls, fonts and auth shells; it checks retained drafts/evidence, duplicate protection, confirmed success and refresh recovery at 320/390/768/1440px in supported themes. Artifacts live in `node_modules/.cache/registration-routes`; component captures live in `node_modules/.cache/registration-email-browser`.
+
+Run these browser scripts sequentially because they share one browser profile. Builds, mocks and screenshots do not certify live API authorization, mail delivery, evidence processing, deployed behavior or physical-device/accessibility acceptance.
 
 ### Unified inbox
 

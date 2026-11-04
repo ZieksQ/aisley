@@ -51,6 +51,7 @@ class OrderTrackingService
                 'items.variant.primaryMedia:id,product_id,product_variant_id,disk,path,mime_type,scan_status',
                 'items.review:id,order_item_id',
                 'address',
+                'pricingSnapshot',
                 'vouchers:id,order_id,voucher_id,code,issuer_type,benefit_type,discount_amount,currency,terms_summary',
                 'statusEvents' => fn ($query) => $query
                     ->orderByDesc('occurred_at')

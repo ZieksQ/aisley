@@ -6,6 +6,7 @@ use App\Enums\FirstMileTaskStatus;
 use App\Enums\OrderStatus;
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
+use App\Enums\VoucherBenefitType;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -94,7 +95,21 @@ class Order extends Model
 
     public function pricingSnapshot(): HasOne
     {
-        return $this->hasOne(OrderPricingSnapshot::class);
+        return $this->hasOne(OrderPricingSnapshot::class)->orderByDesc('version');
+    }
+
+    public function effectiveVoucherDiscount(OrderVoucher $voucher): string
+    {
+        if ($voucher->benefit_type === VoucherBenefitType::Shipping && ($this->pricingSnapshot?->version ?? 1) > 1) {
+            $funding = collect($this->pricingSnapshot->voucher_funding)->firstWhere('voucher_id', $voucher->voucher_id);
+            if ($funding !== null) {
+                $cents = (int) $funding['amount_cents'];
+
+                return intdiv($cents, 100).'.'.str_pad((string) ($cents % 100), 2, '0', STR_PAD_LEFT);
+            }
+        }
+
+        return $voucher->discount_amount;
     }
 
     public function pickupRequestOrder(): HasOne

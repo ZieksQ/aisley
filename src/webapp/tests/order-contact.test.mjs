@@ -16,10 +16,12 @@ function load(path, mocks = {}) {
   new Function("require", "module", "exports", js)(name => mocks[name] ?? require(name), compiled, compiled.exports);
   return compiled.exports;
 }
-const { canCorrectOrderContact } = load("../src/lib/orders/address-correction.ts");
+const { canCorrectOrderContact, isCurrentOrderAddress } = load("../src/lib/orders/address-correction.ts");
 const { Button } = load("../../../packages/ui/src/button.tsx");
 const { OrderContactDialog } = load("../src/components/orders/order-contact-dialog.tsx", {
   "@aisley/ui": { Button },
+  "@/lib/orders/address-correction": { isCurrentOrderAddress },
+  "@/lib/orders/format": load("../src/lib/orders/format.ts"),
   "next/link": { default: ({ children, ...props }) => createElement("a", props, children) },
 });
 const current = {
@@ -63,29 +65,29 @@ test("coordinates must match at storage precision, including absent and partial 
 
 function dialog(overrides = {}) {
   return renderToStaticMarkup(createElement(OrderContactDialog, {
-    reference: "ASL-TEST", addresses: [selected], loading: false, busy: false,
+    reference: "ASL-TEST", currentAddress: current, quote: null, addresses: [selected], loading: false, busy: false,
     uncertain: false, selectedId: selected.id, error: null, fieldError: null,
     onSelect() {}, onClose() {}, onSubmit() {}, ...overrides,
   }));
 }
-test("contact form labels the restriction, recipient/phone and confirmation", () => {
+test("address form offers saved destinations, recipient/phone and review", () => {
   const html = dialog();
   assert.match(html, /role="dialog" aria-modal="true"/);
   assert.match(html, /aria-describedby="order-contact-help"/);
-  assert.match(html, /only the recipient name and contact number can change/);
+  assert.match(html, /Select a saved shipping address/);
   assert.match(html, /Ada Corrected · 09171234567/);
-  assert.match(html, /Confirm contact correction/);
+  assert.match(html, /Review delivery total/);
   assert.doesNotMatch(html, /<button[^>]* disabled=""/);
 });
 test("loading, empty and failed address discovery remain distinguishable", () => {
   assert.match(dialog({ loading: true, addresses: [], selectedId: null }), /role="status"[^>]*>Loading saved addresses/);
   const empty = dialog({ addresses: [], selectedId: null });
-  assert.match(empty, /No saved contact corrections match this location/);
-  assert.match(empty, /href="\/account\/addresses"/);
-  assert.match(empty, /<button[^>]*disabled[^>]*>Confirm contact correction/);
+  assert.match(empty, /No saved shipping addresses are available/);
+  assert.doesNotMatch(empty, /href="\/account\/addresses"/);
+  assert.match(empty, /<button[^>]*disabled[^>]*>Review delivery total/);
   const failed = dialog({ addresses: [], selectedId: null, error: "Could not load addresses" });
   assert.match(failed, /role="alert"[^>]*>Could not load addresses/);
-  assert.doesNotMatch(failed, /No saved contact corrections/);
+  assert.doesNotMatch(failed, /No saved shipping addresses/);
 });
 test("pending and uncertain corrections lock editing; uncertain outcome permits only exact retry", () => {
   assert.match(dialog({ busy: true }), /<fieldset[^>]*disabled/);
@@ -93,8 +95,8 @@ test("pending and uncertain corrections lock editing; uncertain outcome permits 
   const html = dialog({ uncertain: true, fieldError: "Select a matching address" });
   assert.match(html, /<fieldset[^>]*disabled/);
   assert.match(html, /aria-describedby="order-contact-field-error"/);
-  assert.match(html, /<button[^>]*disabled[^>]*>Keep current contact/);
-  assert.match(html, /<button(?![^>]* disabled="")[^>]*>Retry original correction/);
+  assert.match(html, /<button[^>]*disabled[^>]*>Keep current address/);
+  assert.match(html, /<button(?![^>]* disabled="")[^>]*>Retry original change/);
 });
 
 class ApiError extends Error {
@@ -118,7 +120,12 @@ function workflow() {
     useEffect(callback) { const slot = index++; effects[slot] ??= callback(); },
   };
   const requests = [];
+  const quote = { quoteId: "quote-1", expiresAt: "2099-01-01T00:00:00Z", expectedRevision: 1,
+    address: selected, shippingProvider: { id: "provider", businessName: "Provider" },
+    previous: { shippingFee: "10.00", shippingDiscount: "0.00", payable: "110.00", currency: "PHP" },
+    proposed: { shippingFee: "20.00", shippingDiscount: "0.00", payable: "120.00", currency: "PHP" } };
   const client = {
+    quoteOrderAddress: async () => quote,
     fetchOrder: async () => ({ ...props.order, deliveryAddress: { ...current, version: 2 } }),
     orderMutationKey: () => "original-key",
     modifyOrderAddress: async (...request) => { requests.push(request); throw new TypeError("lost response"); },
@@ -126,7 +133,7 @@ function workflow() {
   const api = { fetchAddresses: async () => [selected, { ...selected, id: "wrong", postalCode: "9999" }] };
   const { OrderContactCorrection } = load("../src/components/orders/order-contact-correction.tsx", {
     react: hooks, "@aisley/ui": { Button }, "@/lib/api": { ApiError },
-    "@/lib/checkout/client": api, "@/lib/orders/address-correction": { canCorrectOrderContact },
+    "@/lib/checkout/client": api, "@/lib/orders/address-correction": { isCurrentOrderAddress },
     "@/lib/orders/client": client, "./order-contact-dialog": { OrderContactDialog },
   });
   const props = {
@@ -135,17 +142,21 @@ function workflow() {
     onUpdated: order => { props.order = order; }, onSuccess() {},
   };
   const render = () => { index = 0; return OrderContactCorrection(props).props.children; };
-  return { client, api, requests, props, render, unmount() { for (const cleanup of effects) cleanup?.(); } };
+  return { client, api, requests, quote, props, render, unmount() { for (const cleanup of effects) cleanup?.(); } };
 }
 const tick = () => new Promise(resolve => setImmediate(resolve));
 Object.defineProperty(globalThis, "navigator", { value: { onLine: true }, configurable: true });
 
-test("workflow filters destination changes and freezes the key, address and revision after lost response", async () => {
+test("workflow permits destination changes and freezes the key, address and revision after lost response", async () => {
   const state = workflow();
   state.render()[0].props.onClick(); await tick();
   let form = state.render()[1].props;
-  assert.deepEqual(form.addresses.map(row => row.id), ["address"]);
-  form.onSubmit(); await tick();
+  assert.deepEqual(form.addresses.map(row => row.id), ["address", "wrong"]);
+  form.onSelect("address");
+  state.render()[1].props.onSubmit(); await tick();
+  assert.equal(state.requests.length, 0, "Review must not mutate the Order");
+  assert.equal(state.render()[1].props.quote.quoteId, "quote-1");
+  state.render()[1].props.onSubmit(); await tick();
   assert.equal(state.props.disabled, true);
   form = state.render()[1].props;
   assert.equal(form.uncertain, true);
@@ -153,7 +164,7 @@ test("workflow filters destination changes and freezes the key, address and revi
   state.props.order = { ...state.props.order, deliveryAddress: { ...current, version: 9 } };
   state.client.modifyOrderAddress = async (...args) => { state.requests.push(args); return state.props.order; };
   state.render()[1].props.onSubmit(); await tick();
-  assert.deepEqual(state.requests, [["order", "address", "original-key", 1], ["order", "address", "original-key", 1]]);
+  assert.deepEqual(state.requests, [["order", "address", "original-key", 1, "quote-1"], ["order", "address", "original-key", 1, "quote-1"]]);
   assert.equal(state.render()[1], null);
   assert.equal(state.props.disabled, false);
 });
@@ -161,6 +172,8 @@ test("server field rejection preserves selection and releases the mutation lock"
   const state = workflow();
   state.client.modifyOrderAddress = async () => { throw new ApiError(422, "ADDRESS_LOCATION_CHANGE_NOT_ALLOWED"); };
   state.render()[0].props.onClick(); await tick();
+  state.render()[1].props.onSelect("address");
+  state.render()[1].props.onSubmit(); await tick();
   state.render()[1].props.onSubmit(); await tick();
   const form = state.render()[1].props;
   assert.equal(form.selectedId, "address");
@@ -176,9 +189,49 @@ test("rapid submissions issue one write and late completion cannot update an unm
   let updates = 0;
   state.props.onUpdated = () => { updates++; };
   state.render()[0].props.onClick(); await tick();
+  state.render()[1].props.onSelect("address");
+  state.render()[1].props.onSubmit(); await tick();
   const form = state.render()[1].props;
   form.onSubmit(); form.onSubmit();
   assert.equal(state.requests.length, 1);
   state.unmount(); finish(state.props.order); await tick();
   assert.equal(updates, 0);
+});
+
+test("changing the selected address invalidates the reviewed quote without writing", async () => {
+  const state = workflow();
+  state.render()[0].props.onClick(); await tick();
+  state.render()[1].props.onSelect("address");
+  state.render()[1].props.onSubmit(); await tick();
+  assert.equal(state.render()[1].props.quote.quoteId, "quote-1");
+  state.render()[1].props.onSelect("wrong");
+  assert.equal(state.render()[1].props.quote, null);
+  assert.equal(state.requests.length, 0);
+});
+
+test("expired review cannot commit until a fresh quote is reviewed", async () => {
+  const state = workflow();
+  state.quote.expiresAt = "2000-01-01T00:00:00Z";
+  state.render()[0].props.onClick(); await tick();
+  state.render()[1].props.onSelect("address");
+  state.render()[1].props.onSubmit(); await tick();
+  state.render()[1].props.onSubmit(); await tick();
+  assert.equal(state.render()[1].props.quote, null);
+  assert.match(state.render()[1].props.error, /expired/);
+  assert.equal(state.requests.length, 0);
+});
+
+test("quote discovery failures keep the selection and allow closing or retrying", async () => {
+  const state = workflow();
+  state.client.quoteOrderAddress = async () => { throw new Error("offline"); };
+  state.render()[0].props.onClick(); await tick();
+  state.render()[1].props.onSelect("wrong");
+  state.render()[1].props.onSubmit(); await tick();
+  const form = state.render()[1].props;
+  assert.equal(form.selectedId, "wrong");
+  assert.equal(form.uncertain, false);
+  assert.equal(state.props.disabled, false);
+  assert.equal(state.requests.length, 0);
+  form.onClose();
+  assert.equal(state.render()[1], null);
 });

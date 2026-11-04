@@ -1,19 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { FaBell, FaCheck, FaTriangleExclamation } from 'react-icons/fa6'
-import { NotificationCategoryLabel } from '@aisley/ui/notifications'
+import { NotificationPopover } from '@aisley/ui/notifications'
 import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '../auth/useAuth'
 import { ApiError } from '../lib/api'
 import {
-  announceNotificationsUpdated,
-  fetchNotifications,
-  fetchUnreadCount,
-  formatNotificationTime,
-  markNotificationRead,
-  notificationsUpdatedEvent,
+  announceNotificationsUpdated, fetchNotifications, fetchUnreadCount,
+  markNotificationRead, notificationsUpdatedEvent,
 } from '../lib/notifications'
 import type { AdminNotification } from '../types/notifications'
-
-const POLL_INTERVAL_MS = 30_000
 
 function isUuid(value: string | null): value is string {
   return Boolean(value && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value))
@@ -24,156 +18,86 @@ function safeInternalDestination(value: string | null): string | null {
 }
 
 export function AdminNotificationBell() {
+  const { admin } = useAuth()
+  return admin ? <AdminNotificationPreview key={admin.id} /> : null
+}
+
+function AdminNotificationPreview() {
   const navigate = useNavigate()
-  const rootRef = useRef<HTMLDivElement>(null)
-  const [isOpen, setIsOpen] = useState(false)
+  const revision = useRef(0)
+  const blocked = useRef(false)
   const [isLoading, setIsLoading] = useState(true)
-  const [unreadCount, setUnreadCount] = useState(0)
+  const [unreadCount, setUnreadCount] = useState<number | null>(null)
   const [notifications, setNotifications] = useState<AdminNotification[]>([])
+  const [pendingId, setPendingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const refresh = useCallback(async () => {
-    const query = new URLSearchParams({ page: '1', per_page: '5' })
+    if (blocked.current || document.visibilityState !== 'visible') return
+    const current = ++revision.current
+    setIsLoading(true)
     try {
       const [count, list] = await Promise.all([
-        fetchUnreadCount(),
-        fetchNotifications(query),
+        fetchUnreadCount(), fetchNotifications(new URLSearchParams({ page: '1', per_page: '5' })),
       ])
+      if (current !== revision.current) return
       setUnreadCount(count.unread_count)
       setNotifications(list.data)
       setError(null)
     } catch (requestError) {
-      if (!(requestError instanceof ApiError && requestError.status === 401)) {
-        setError('Notifications could not be refreshed.')
+      if (current !== revision.current) return
+      if (requestError instanceof ApiError && [401, 403].includes(requestError.status)) {
+        blocked.current = true
+        setUnreadCount(null)
+        setNotifications([])
       }
+      setError('Notifications could not be refreshed.')
     } finally {
-      setIsLoading(false)
+      if (current === revision.current) setIsLoading(false)
     }
   }, [])
 
   useEffect(() => {
+    blocked.current = false
     void refresh()
-    const poll = window.setInterval(() => void refresh(), POLL_INTERVAL_MS)
     const refetch = () => void refresh()
-    const refetchWhenVisible = () => {
-      if (document.visibilityState === 'visible') void refresh()
-    }
+    const poll = window.setInterval(refetch, 30_000)
     window.addEventListener('online', refetch)
     window.addEventListener('focus', refetch)
     window.addEventListener(notificationsUpdatedEvent, refetch)
-    document.addEventListener('visibilitychange', refetchWhenVisible)
-
+    document.addEventListener('visibilitychange', refetch)
     return () => {
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- This numeric generation invalidates pending requests, not a DOM ref.
+      ++revision.current
       window.clearInterval(poll)
       window.removeEventListener('online', refetch)
       window.removeEventListener('focus', refetch)
       window.removeEventListener(notificationsUpdatedEvent, refetch)
-      document.removeEventListener('visibilitychange', refetchWhenVisible)
+      document.removeEventListener('visibilitychange', refetch)
     }
   }, [refresh])
 
-  useEffect(() => {
-    function closeOnOutsideClick(event: MouseEvent) {
-      if (rootRef.current && !rootRef.current.contains(event.target as Node)) setIsOpen(false)
+  async function openNotification(notification: AdminNotification, close?: () => void) {
+    if (pendingId) return
+    setPendingId(notification.id)
+    try {
+      if (!notification.read_at) await markNotificationRead(notification.id)
+      announceNotificationsUpdated()
+      close?.()
+      const destination = notification.resource_type === 'support_ticket' && isUuid(notification.resource_id)
+        ? `/support-tickets/${notification.resource_id}` : safeInternalDestination(notification.destination)
+      navigate(destination ?? '/notifications')
+    } catch {
+      setError('This notification could not be marked as read.')
+    } finally {
+      setPendingId(null)
     }
-    function closeOnEscape(event: KeyboardEvent) {
-      if (event.key === 'Escape') setIsOpen(false)
-    }
-    document.addEventListener('mousedown', closeOnOutsideClick)
-    document.addEventListener('keydown', closeOnEscape)
-    return () => {
-      document.removeEventListener('mousedown', closeOnOutsideClick)
-      document.removeEventListener('keydown', closeOnEscape)
-    }
-  }, [])
-
-  async function openNotification(notification: AdminNotification) {
-    if (!notification.read_at) {
-      try {
-        await markNotificationRead(notification.id)
-        announceNotificationsUpdated()
-      } catch {
-        setError('This notification could not be marked as read.')
-        return
-      }
-    }
-    setIsOpen(false)
-    const destination = notification.resource_type === 'support_ticket' && isUuid(notification.resource_id)
-      ? `/support-tickets/${notification.resource_id}`
-      : safeInternalDestination(notification.destination)
-    navigate(destination ?? '/notifications')
   }
 
-  const status = isLoading
-    ? 'Notifications are loading'
-    : `${unreadCount} unread ${unreadCount === 1 ? 'notification' : 'notifications'}`
-
-  return (
-    <div className="relative" ref={rootRef}>
-      <span aria-live="polite" className="sr-only">{status}</span>
-      <button
-        aria-expanded={isOpen}
-        aria-haspopup="dialog"
-        aria-label={`Notifications. ${status}.`}
-        className="relative grid size-11 place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-950 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
-        onClick={() => setIsOpen((value) => !value)}
-        type="button"
-      >
-        <FaBell aria-hidden="true" />
-        {unreadCount > 0 && (
-          <span className="absolute -right-1.5 -top-1.5 min-w-5 rounded-md bg-[#4C1268] px-1 text-center text-[11px] font-bold leading-5 text-white">
-            {unreadCount > 99 ? '99+' : unreadCount}
-          </span>
-        )}
-      </button>
-
-      {isOpen && (
-        <div
-          aria-label="Recent notifications"
-          className="absolute right-0 top-12 z-40 w-[min(24rem,calc(100vw-2rem))] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg dark:border-white/10 dark:bg-[#17111d]"
-          role="dialog"
-        >
-          <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 dark:border-white/10">
-            <p className="font-semibold">Notifications</p>
-            <Link className="inline-flex min-h-11 items-center text-sm font-semibold text-[#4C1268] hover:text-[#3D0E54] dark:text-[#C4B5FD]" onClick={() => setIsOpen(false)} to="/notifications">
-              View all
-            </Link>
-          </div>
-
-          {isLoading ? (
-            <p className="px-4 py-8 text-center text-sm text-slate-500 dark:text-slate-400">Loading notifications…</p>
-          ) : error ? (
-            <div className="px-4 py-6 text-center">
-              <FaTriangleExclamation aria-hidden="true" className="mx-auto text-amber-500" />
-              <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{error}</p>
-              <button className="mt-3 min-h-11 text-sm font-semibold text-[#4C1268] dark:text-[#C4B5FD]" onClick={() => void refresh()} type="button">Try again</button>
-            </div>
-          ) : notifications.length === 0 ? (
-            <div className="px-4 py-8 text-center">
-              <FaCheck aria-hidden="true" className="mx-auto text-emerald-600 dark:text-emerald-400" />
-              <p className="mt-2 text-sm font-medium">You’re all caught up.</p>
-              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Important Admin updates will appear here.</p>
-            </div>
-          ) : (
-            <ul className="max-h-96 divide-y divide-slate-100 overflow-y-auto dark:divide-white/[0.07]">
-              {notifications.map((notification) => (
-                <li key={notification.id}>
-                  <button className="w-full px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-white/5" onClick={() => void openNotification(notification)} type="button">
-                    <span className="flex items-start gap-3">
-                      <span aria-hidden="true" className={`mt-1.5 size-2 shrink-0 rounded-full ${notification.read_at ? 'bg-slate-300 dark:bg-slate-600' : 'bg-[#4C1268] dark:bg-[#C4B5FD]'}`} />
-                      <span className="min-w-0">
-                        <span className="block text-sm font-semibold">{notification.title}</span>
-                        <span className="mt-1 block text-sm leading-5 text-slate-500 dark:text-slate-400">{notification.summary}</span>
-                        <span className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs"><NotificationCategoryLabel category={notification.category} categoryLabel={notification.category_label} role="admin" /><span className="text-slate-500 dark:text-slate-400">{formatNotificationTime(notification.created_at)}</span></span>
-                      </span>
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
-    </div>
-  )
+  return <NotificationPopover role="admin" items={notifications} unreadCount={unreadCount} loading={isLoading}
+    error={error} pendingId={pendingId} onRefresh={() => void refresh()}
+    renderAction={(notification, props) => <button {...props} type="button" disabled={pendingId !== null}
+      onClick={() => void openNotification(notification, props.onClick)} />}
+    renderViewAll={props => <Link {...props} to="/notifications" />}
+  />
 }

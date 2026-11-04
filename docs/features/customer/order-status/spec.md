@@ -119,3 +119,10 @@ Account menu → Orders → paginated Customer-owned list
 - API tests cover role/status denial, IDOR-safe not-found behavior, group allow-lists, pagination, status mapping, event ordering, no-store headers, and map/action capability truthfulness. Image response tests cover approved Variant precedence, Product default/first approved gallery fallback, unavailable/foreign media, null and removed Product/Variant relations without rewriting purchase snapshots.
 - Storefront tests cover login return paths, default All tab, group filtering, loading/empty/error/retry states, timeline ordering, accessibility, and stale/unavailable map states.
 - Do not add a shipment migration or provider-specific tracking field here. Follow `docs/workspace.md`, `docs/schema.md`, `docs/domains/Buyer.md`, `docs/domains/Logistics.md`, and `docs/domains/Courier.md` before operational work.
+
+### Reviewed address changes — 2026-11-04
+
+- While an owned pending-COD Order remains `placed`, **Change delivery address** selects a saved shipping address, obtains a ten-minute server quote and confirms the reviewed address, shipping fee and COD. Seller approval closes the action. The [mutation specification](../order-modification-cancellation/spec.md) owns exact requests, versioning and retry rules.
+- Detail and Batch show the latest committed address/pricing and effective shipping saving; historical checkout/voucher snapshots remain immutable. Item/provider selection changes remain unavailable.
+
+- The separate `customer-order.address-changed` notification is emitted only for a committed reviewed address/pricing revision. It uses safe reference-only text, Orders category and the existing Order destination; legacy contact-only requests do not add this event. The paired Seller alert stays Shop-scoped.

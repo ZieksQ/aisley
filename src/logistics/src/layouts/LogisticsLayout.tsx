@@ -64,6 +64,8 @@ export function LogisticsLayout() {
       ? 'Courier vehicle'
     : location.pathname.startsWith('/vehicles')
       ? 'Vehicles'
+    : location.pathname.startsWith('/fleet-monitoring')
+      ? 'Fleet monitoring'
     : location.pathname.startsWith('/fleet')
       ? 'Company fleet'
     : location.pathname.startsWith('/operations')

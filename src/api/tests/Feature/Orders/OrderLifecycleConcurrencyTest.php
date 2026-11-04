@@ -7,13 +7,18 @@ use App\Enums\UserRole;
 use App\Enums\UserStatus;
 use App\Exceptions\Customer\CheckoutException;
 use App\Exceptions\Seller\SellerOrderException;
+use App\Models\CustomerOrderModification;
+use App\Models\OrderPricingSnapshot;
 use App\Models\User;
 use App\Services\Customer\CheckoutService;
 use App\Services\Customer\CustomerOrderMutationService;
+use App\Services\Customer\OrderAddressChange;
 use App\Services\Seller\AcceptSellerOrder;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Support\OrderLifecycleFixtures;
 use Tests\TestCase;
 
@@ -91,6 +96,56 @@ class OrderLifecycleConcurrencyTest extends TestCase
         $this->assertDatabaseCount('inventory_movements', $cancelled ? 2 : 1);
     }
 
+    #[DataProvider('addressCompetitors')]
+    public function test_address_confirmation_serializes_with_other_order_actions(string $competitor): void
+    {
+        $context = $this->lifecycleContext(false);
+        $payload = $this->lifecycleQuote($context, $context['customer']);
+        $batch = app(CheckoutService::class)->place($context['customer'], $payload, (string) Str::uuid());
+        $order = $batch->orders->sole();
+        $address = $context['address']->replicate()->fill(['address_line_1' => 'Changed delivery street', 'is_default' => false]);
+        $address->save();
+        $quote = app(OrderAddressChange::class)->quote($context['customer'], $order->id, $address->id, 1);
+        $change = ['action' => 'modify', 'actor_id' => $context['customer']->id, 'order_id' => $order->id,
+            'address_id' => $address->id, 'quote_id' => $quote['quoteId'], 'key' => (string) Str::uuid()];
+        $other = $competitor === 'modify' ? [...$change, 'key' => (string) Str::uuid()] : [
+            'action' => $competitor, 'actor_id' => $context[$competitor === 'approve' ? 'seller' : 'customer']->id,
+            'order_id' => $order->id, 'key' => (string) Str::uuid(),
+        ];
+        $results = $this->lifecycleWorkers([$change, $other]);
+        if ($competitor === 'modify') {
+            $statuses = array_column($results, 'status');
+            sort($statuses);
+            $this->assertSame([200, 409], $statuses, json_encode($results));
+        } else {
+            $this->assertSame(200, $results[1]['status'], json_encode($results));
+            $this->assertContains($results[0]['status'], [200, 409], json_encode($results));
+            $this->assertSame($competitor === 'approve' ? OrderStatus::SellerProcessing : OrderStatus::Cancelled, $order->fresh()->status);
+        }
+        $changes = CustomerOrderModification::where('order_id', $order->id)->count();
+        $this->assertSame($changes + 1, $order->addressVersions()->count());
+        $this->assertSame($changes + 1, OrderPricingSnapshot::where('order_id', $order->id)->count());
+        $this->assertSame($competitor === 'cancel' ? 0 : 1, $context['balance']->fresh()->reserved);
+    }
+
+    public static function addressCompetitors(): array
+    {
+        return [['approve'], ['cancel'], ['modify']];
+    }
+
+    protected function tearDown(): void
+    {
+        // This suite owns a disposable database. Clear it before Laravel's rollback
+        // callback, which intentionally refuses to collapse committed pricing history.
+        if ($this->app !== null && DB::getDriverName() === 'pgsql'
+            && str_starts_with((string) config('database.connections.pgsql.database'), 'aisley_pod_test_')
+            && Schema::hasTable('order_pricing_snapshots')
+            && DB::table('order_pricing_snapshots')->where('version', '>', 1)->exists()) {
+            $this->artisan('migrate:fresh', ['--force' => true]);
+        }
+        parent::tearDown();
+    }
+
     private function lifecycleQuote(array $context, User $customer): array
     {
         $this->asLifecycleActor($customer);
@@ -134,6 +189,7 @@ class OrderLifecycleConcurrencyTest extends TestCase
                         $result = match ($job['action']) {
                             'place' => app(CheckoutService::class)->place($actor, $job['payload'], $job['key']),
                             'approve' => app(AcceptSellerOrder::class)->handle($actor, $job['order_id'], $job['key']),
+                            'modify' => app(CustomerOrderMutationService::class)->modifyAddress($actor, $job['order_id'], $job['address_id'], $job['key'], 1, $job['quote_id']),
                             'cancel' => app(CustomerOrderMutationService::class)->cancel($actor, $job['order_id'], $job['key'], 'Changed plans.'),
                         };
                         $output = ['status' => 200, 'id' => $result->id];

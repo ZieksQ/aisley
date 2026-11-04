@@ -1635,3 +1635,9 @@ Before adding these tables:
 ### Chat media storage — 2026-10-06
 
 `chat_attachments` stores UUID, authenticated uploader/upload replay key, immutable relationship scope hash, optional conversation/message FKs and position, private storage disk/generated path, optional preview path, safe filename, kind/detected MIME/byte size/checksum, dimensions/duration, processing state/error/attempts and expiry/timestamps. Unique `(uploader_id, upload_key)` deduplicates uploads. Message binding is serialized and atomic; each upload belongs to one committed message. String states map to `ChatAttachmentState`; file bytes are never database content. Unbound uploads expire after 24 hours; bound records follow existing historical access. Additive migration: `2026_10_06_000200_create_chat_attachments_table.php`. See [media contract](features/shared/chat-media/spec.md).
+
+### Order address repricing revisions — 2026-11-04
+
+- `order_pricing_snapshots` now has positive integer `version` (default 1) and `address_version` (default 1), with uniqueness on `(order_id, version)` replacing uniqueness on `order_id`. The Order's current pricing relation selects the greatest version; older snapshots are immutable history. `address_version` associates confirmed repricing with its address snapshot; legacy contact-only revisions may retain an earlier pricing address version because location/pricing did not change.
+- `order_modification_quotes` stores UUID ID, Customer/Order/saved-address foreign keys, expected address revision, SHA-256 state fingerprint, expiry and timestamps. It stores no raw address/quote payload. Saved-address deletion removes the short-lived quote; persisted mutation-key replay still resolves before source/quote lookup.
+- Existing migrations remain unchanged. Rollback after committed pricing revisions is intentionally refused to preserve history; release recovery uses a forward migration.

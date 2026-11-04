@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { FaBell, FaXmark } from 'react-icons/fa6'
 import { Link } from 'react-router-dom'
-import { NotificationCategoryLabel } from '@aisley/ui/notifications'
-import { listNotifications, markNotificationRead, relativeNotificationTime } from '../../lib/notifications'
+import { NotificationPopover } from '@aisley/ui/notifications'
+import { useAuth } from '../../auth/useAuth'
+import { ApiError } from '../../lib/api'
+import { listNotifications, markNotificationRead } from '../../lib/notifications'
 import type { SellerNotification } from '../../types/notifications'
 
 const previewLimit = 5
@@ -17,66 +18,71 @@ function isUuid(value: string | null): value is string {
 }
 
 export function NotificationBell() {
-  const container = useRef<HTMLDivElement>(null)
-  const [open, setOpen] = useState(false)
+  const { seller } = useAuth()
+  return seller ? <SellerNotificationPreview key={seller.id} /> : null
+}
+
+function SellerNotificationPreview() {
+  const revision = useRef(0)
+  const blocked = useRef(false)
   const [notifications, setNotifications] = useState<SellerNotification[]>([])
-  const [unreadCount, setUnreadCount] = useState(0)
-  const [loading, setLoading] = useState(false)
+  const [unreadCount, setUnreadCount] = useState<number | null>(null)
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   const load = useCallback(async () => {
+    if (blocked.current || document.visibilityState !== 'visible') return
+    const current = ++revision.current
     setLoading(true)
-    setError('')
     try {
       const unread = await listNotifications('unread', previewLimit)
-      setUnreadCount(unread.meta.total)
       const unreadItems = unread.data.slice(0, previewLimit)
-      if (unreadItems.length === previewLimit) setNotifications(unreadItems)
-      else {
-        const read = await listNotifications('read', previewLimit - unreadItems.length)
-        setNotifications([...unreadItems, ...read.data].slice(0, previewLimit))
+      const read = unreadItems.length < previewLimit ? await listNotifications('read', previewLimit - unreadItems.length) : null
+      if (current !== revision.current) return
+      setUnreadCount(unread.meta.total)
+      setNotifications([...unreadItems, ...(read?.data ?? [])].slice(0, previewLimit))
+      setError('')
+    } catch (caught) {
+      if (current !== revision.current) return
+      if (caught instanceof ApiError && [401, 403].includes(caught.status)) {
+        blocked.current = true
+        setUnreadCount(null)
+        setNotifications([])
       }
-    } catch {
       setError('Notifications could not be loaded.')
     } finally {
-      setLoading(false)
+      if (current === revision.current) setLoading(false)
     }
   }, [])
 
   useEffect(() => {
+    blocked.current = false
     void load()
-    const timer = window.setInterval(() => { if (document.visibilityState === 'visible') void load() }, 60_000)
     const refresh = () => void load()
+    const timer = window.setInterval(refresh, 60_000)
     window.addEventListener('seller-notifications-updated', refresh)
-    return () => { window.clearInterval(timer); window.removeEventListener('seller-notifications-updated', refresh) }
+    window.addEventListener('focus', refresh)
+    window.addEventListener('online', refresh)
+    document.addEventListener('visibilitychange', refresh)
+    return () => {
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- This numeric generation invalidates pending requests, not a DOM ref.
+      ++revision.current
+      window.clearInterval(timer)
+      window.removeEventListener('seller-notifications-updated', refresh)
+      window.removeEventListener('focus', refresh)
+      window.removeEventListener('online', refresh)
+      document.removeEventListener('visibilitychange', refresh)
+    }
   }, [load])
 
-  useEffect(() => {
-    if (!open) return
-    const close = (event: MouseEvent) => { if (!container.current?.contains(event.target as Node)) setOpen(false) }
-    const escape = (event: KeyboardEvent) => { if (event.key === 'Escape') setOpen(false) }
-    document.addEventListener('mousedown', close)
-    document.addEventListener('keydown', escape)
-    return () => { document.removeEventListener('mousedown', close); document.removeEventListener('keydown', escape) }
-  }, [open])
-
-  return <div className="relative" ref={container}>
-    <button aria-expanded={open} aria-haspopup="dialog" aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ''}`} className="relative grid size-11 place-items-center rounded-lg border border-zinc-300 text-zinc-600 hover:bg-zinc-100 focus-visible:outline-2 dark:border-white/15 dark:text-zinc-300 dark:hover:bg-white/10" onClick={() => { setOpen((value) => !value); if (!open) void load() }} title="Notifications" type="button">
-      <FaBell aria-hidden="true" />
-      {unreadCount ? <span aria-hidden="true" className="absolute right-1 top-1 min-w-4 rounded bg-[#4C1268] px-1 text-center text-[10px] font-semibold leading-4 text-white">{unreadCount > 99 ? '99+' : unreadCount}</span> : null}
-    </button>
-    {open ? <div aria-label="Recent notifications" className="absolute right-0 top-12 z-40 w-[min(24rem,calc(100vw-2rem))] overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-lg dark:border-white/15 dark:bg-[#18181b]" role="dialog">
-      <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-2 dark:border-white/10"><h2 className="font-semibold">Notifications</h2><button aria-label="Close notifications" className="grid size-11 place-items-center rounded text-zinc-500 hover:bg-zinc-100 dark:hover:bg-white/10" onClick={() => setOpen(false)} type="button"><FaXmark aria-hidden="true" /></button></div>
-      <div aria-live="polite">
-        {loading && notifications.length === 0 ? <p className="px-4 py-8 text-center text-sm text-zinc-500">Loading notifications…</p> : null}
-        {error ? <div className="px-4 py-6 text-center text-sm text-red-700 dark:text-red-300"><p>{error}</p><button className="mt-2 font-medium underline" onClick={() => void load()} type="button">Try again</button></div> : null}
-        {!loading && !error && notifications.length === 0 ? <p className="px-4 py-8 text-center text-sm text-zinc-500">You’re all caught up.</p> : null}
-        {notifications.map((notification) => {
-          const ticketDestination = supportTicketDestination(notification)
-          return <Link className={`block border-b border-zinc-100 px-4 py-3 hover:bg-zinc-50 dark:border-white/[0.07] dark:hover:bg-white/[0.05] ${notification.read_at ? '' : 'bg-purple-50 dark:bg-[#4C1268]/20'}`} key={notification.id} onClick={() => { setOpen(false); if (ticketDestination && !notification.read_at) void markNotificationRead(notification.id).then(() => window.dispatchEvent(new Event('seller-notifications-updated'))).catch(() => undefined) }} to={ticketDestination ?? `/notifications/${notification.id}`}><p className="text-sm font-medium">{notification.read_at ? null : <span className="sr-only">Unread notification: </span>}{notification.title}</p><p className="mt-1 line-clamp-2 text-xs leading-5 text-zinc-500 dark:text-zinc-400">{notification.summary}</p><span className="mt-1 block"><NotificationCategoryLabel category={notification.category} categoryLabel={notification.category_label} role="seller" /></span><time className="mt-1 block text-xs text-zinc-500">{relativeNotificationTime(notification.created_at)}</time></Link>
-        })}
-      </div>
-      <Link className="block px-4 py-3 text-center text-sm font-semibold text-[#4C1268] hover:bg-purple-50 dark:text-purple-300 dark:hover:bg-white/[0.05]" onClick={() => setOpen(false)} to="/notifications">View all notifications</Link>
-    </div> : null}
-  </div>
+  return <NotificationPopover role="seller" items={notifications} unreadCount={unreadCount} loading={loading}
+    error={error} onRefresh={() => void load()}
+    renderAction={(notification, props) => <Link {...props} to={supportTicketDestination(notification) ?? `/notifications/${notification.id}`}
+      onClick={() => {
+        props.onClick?.()
+        if (supportTicketDestination(notification) && !notification.read_at) void markNotificationRead(notification.id)
+          .then(() => window.dispatchEvent(new Event('seller-notifications-updated'))).catch(() => undefined)
+      }} />}
+    renderViewAll={props => <Link {...props} to="/notifications" />}
+  />
 }

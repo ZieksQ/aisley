@@ -57,8 +57,8 @@ class CheckoutBatchResource extends JsonResource
                     'code' => $voucher->code,
                     'issuerType' => $voucher->issuer_type->value,
                     'benefitType' => $voucher->benefit_type->value,
-                    'qualifyingBasis' => $voucher->qualifying_basis,
-                    'discountAmount' => $voucher->discount_amount,
+                    'qualifyingBasis' => $voucher->benefit_type->value === 'shipping' && ($order->pricingSnapshot?->version ?? 1) > 1 ? $order->shipping_fee : $voucher->qualifying_basis,
+                    'discountAmount' => $order->effectiveVoucherDiscount($voucher),
                     'termsSummary' => $voucher->terms_summary,
                 ])->values(),
                 'shippingQuote' => $order->pricingSnapshot === null ? null : [

@@ -4,6 +4,7 @@ use App\Http\Middleware\Admin\EnsureActiveAdmin;
 use App\Http\Middleware\Admin\EnsureAdminPermission;
 use App\Http\Middleware\Courier\EnsureActiveCourier;
 use App\Http\Middleware\Customer\EnsureActiveCustomer;
+use App\Http\Middleware\Customer\PrivateOrderModificationResponse;
 use App\Http\Middleware\Logistics\EnsureActiveLogistics;
 use App\Http\Middleware\Policy\EnsureActivePolicyActor;
 use App\Http\Middleware\Policy\EnsurePolicyConsent;
@@ -26,6 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trustProxies(at: '*');
 
         $middleware->statefulApi();
+        $middleware->append(PrivateOrderModificationResponse::class);
 
         $middleware->alias([
             'admin.active' => EnsureActiveAdmin::class,

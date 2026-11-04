@@ -144,3 +144,8 @@ The owner and home hub never change. Confirmed operational events, not GPS, dete
 - `/fleet` uses shared portal tables for company truck location, availability, reservations/capacity, current trip, and approved driver capability. Distinguish loading, failed reads, authoritative empty results, and successful mutations in both themes.
 - Register/edit use a labelled, viewport-bounded dialog instead of browser prompts. Validate whole parcel limits (1–10,000), preserve safe values and field-addressable server errors on failure, confirm unsaved discard, and restore trigger focus. Make/model remain optional; registration and optimistic revision payloads are unchanged.
 - Truck activation/deactivation requires explicit confirmation. Driver capability and truck changes retain server resource/active-work checks and CSRF/session authorization; this redesign changes no API or external Courier contract.
+
+## Fleet monitoring — 2026-11-04
+
+- The separate read-only [Fleet monitoring](../fleet-monitoring/spec.md) workspace presents owned truck locations, active assignments, schedules, overdue departures and paginated event history. Company fleet registration/capabilities and existing dispatch/receiving actions remain in their owning workspaces.
+- Monitoring resolves active trips independently of historical pagination, includes visiting-truck returns and distinguishes driver arrival reports from Logistics confirmation. It adds no GPS telemetry or Courier client contract.

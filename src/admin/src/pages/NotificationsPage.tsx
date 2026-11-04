@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react'
-import { FaBell, FaCheckDouble, FaChevronLeft, FaChevronRight, FaRotateRight } from 'react-icons/fa6'
+import { FaCheckDouble } from 'react-icons/fa6'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { NotificationCategoryLabel, NotificationFilters, isNotificationCategory, notificationCategoryOptions } from '@aisley/ui/notifications'
+import { NotificationCenter, isNotificationCategory, notificationCategoryOptions } from '@aisley/ui/notifications'
 import { useAuth } from '../auth/useAuth'
 import { ApiError } from '../lib/api'
 import {
   announceNotificationsUpdated,
   fetchNotifications,
-  formatNotificationTime,
   markAllNotificationsRead,
   markNotificationRead,
 } from '../lib/notifications'
@@ -22,6 +21,11 @@ function safeInternalDestination(value: string | null): string | null {
 }
 
 export function NotificationsPage() {
+  const { admin } = useAuth()
+  return admin ? <AdminNotificationCenter key={admin.id} /> : null
+}
+
+function AdminNotificationCenter() {
   const { logout } = useAuth()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -51,6 +55,7 @@ export function NotificationsPage() {
     setError(null)
     fetchNotifications(query, controller.signal)
       .then((nextResponse) => {
+        if (controller.signal.aborted) return
         setResponse(nextResponse)
         setLoadedKey(requestKey)
       })
@@ -129,72 +134,21 @@ export function NotificationsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-5 py-8 sm:px-8 sm:py-10">
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-        <div>
-          <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">Notifications</h2>
-          <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Review platform events and work that needs your attention.</p>
-        </div>
-        <button className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 dark:border-white/10 dark:text-slate-200 dark:hover:bg-white/5" disabled={isMarkingAll || currentLoading || !responseIsCurrent || !response?.data.some((item) => !item.read_at)} onClick={() => void markAllRead()} type="button">
-          <FaCheckDouble aria-hidden="true" />
-          {isMarkingAll ? 'Updating…' : 'Mark all read'}
-        </button>
-      </div>
-
-      <div className="mt-5">
-        <NotificationFilters
-          category={category}
-          categories={notificationCategoryOptions('admin', currentCategories)}
-          onCategoryChange={(nextCategory) => updateFilters(status, nextCategory)}
-          onStatusChange={(nextStatus) => updateFilters(nextStatus, category)}
-          role="admin"
-          status={status}
-        />
-      </div>
-
-      {error && (
-        <div className="mt-5 flex items-start justify-between gap-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-200" role="alert">
-          <span>{error.status === 403 ? 'Your administrator account does not have permission to view notifications.' : error.message}</span>
-          <button className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand-focus)]" onClick={() => setReloadKey((value) => value + 1)} type="button">Retry</button>
-        </div>
-      )}
-
-      <div className="mt-4 overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-white/10 dark:bg-white/[0.035]">
-        {currentLoading ? (
-          <div className="space-y-px bg-slate-100 dark:bg-white/10" aria-label="Loading notifications">
-            {[1, 2, 3, 4].map((item) => <div className="h-24 animate-pulse bg-white dark:bg-[#111018]" key={item} />)}
-          </div>
-        ) : error ? (
-          <div className="px-5 py-8 text-center text-sm text-slate-600 dark:text-slate-300" role="status">Notifications could not be shown for these filters. Retry the request above.</div>
-        ) : responseIsCurrent && response?.data.length === 0 ? (
-          <div className="grid min-h-72 place-items-center p-8 text-center">
-            <div><FaBell aria-hidden="true" className="mx-auto text-xl text-slate-400" /><p className="mt-3 font-semibold">No {status === 'all' ? '' : `${status} `}notifications{category === 'all' ? '' : ` in ${notificationCategoryOptions('admin', currentCategories).find((item) => item.key === category)?.label ?? 'Other'}`}</p><p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Updates addressed to you will appear here.</p></div>
-          </div>
-        ) : (
-          <ul className="divide-y divide-slate-100 dark:divide-white/[0.07]">
-            {response?.data.map((notification) => (
-              <li className={notification.read_at ? '' : 'bg-[#F1EAF4]/60 dark:bg-[#2E1B3B]/30'} key={notification.id}>
-                <button className="flex w-full items-start gap-4 px-5 py-4 text-left hover:bg-slate-50 disabled:opacity-60 dark:hover:bg-white/[0.035]" disabled={pendingId === notification.id} onClick={() => void openNotification(notification)} type="button">
-                  <span aria-hidden="true" className={`mt-2 size-2 shrink-0 rounded-full ${notification.read_at ? 'bg-slate-300 dark:bg-slate-600' : 'bg-[#4C1268] dark:bg-[#C4B5FD]'}`} />
-                  <span className="min-w-0 flex-1"><span className="flex flex-wrap items-center justify-between gap-2"><span className="font-semibold">{notification.title}</span><span className="text-xs text-slate-500 dark:text-slate-400">{formatNotificationTime(notification.created_at)}</span></span><span className="mt-1 block text-sm leading-6 text-slate-600 dark:text-slate-300">{notification.summary}</span><span className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs"><NotificationCategoryLabel category={notification.category} categoryLabel={notification.category_label} role="admin" /><span className="font-medium text-slate-500 dark:text-slate-400">{notification.read_at ? 'Read' : 'Unread'}{notification.destination || notification.resource_type === 'support_ticket' ? ' · Open related item' : ''}</span></span></span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
-      {responseIsCurrent && !currentLoading && !error && response && response.meta.last_page > 1 && (
-        <nav aria-label="Notification pages" className="mt-5 flex items-center justify-between">
-          <p className="text-sm text-slate-500 dark:text-slate-400">Page {response.meta.current_page} of {response.meta.last_page}</p>
-          <div className="flex gap-2">
-            <button aria-label="Previous page" className="grid size-11 place-items-center rounded-lg border border-slate-200 disabled:opacity-40 dark:border-white/10" disabled={page <= 1} onClick={() => setPage(page - 1)} type="button"><FaChevronLeft aria-hidden="true" /></button>
-            <button aria-label="Next page" className="grid size-11 place-items-center rounded-lg border border-slate-200 disabled:opacity-40 dark:border-white/10" disabled={page >= response.meta.last_page} onClick={() => setPage(page + 1)} type="button"><FaChevronRight aria-hidden="true" /></button>
-          </div>
-        </nav>
-      )}
-
-      {!currentLoading && error && <button className="mt-5 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-[#4C1268] dark:text-[#C4B5FD]" onClick={() => setReloadKey((value) => value + 1)} type="button"><FaRotateRight aria-hidden="true" />Try again</button>}
+    <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
+      <NotificationCenter headingLevel={2} role="admin" description="Review platform events and work that needs your attention."
+        items={responseIsCurrent ? response?.data ?? [] : []} total={responseIsCurrent ? response?.meta.total : undefined}
+        loading={currentLoading} pendingId={pendingId}
+        error={error ? error.status === 403 ? 'Your administrator account does not have permission to view notifications.' : error.message : null}
+        onRetry={() => setReloadKey(value => value + 1)}
+        status={status} category={category} categories={notificationCategoryOptions('admin', currentCategories)}
+        onStatusChange={next => updateFilters(next, category)} onCategoryChange={next => updateFilters(status, next)}
+        page={page} lastPage={responseIsCurrent ? response?.meta.last_page ?? 1 : 1} onPageChange={setPage}
+        actions={<button className="notification-button" disabled={isMarkingAll || currentLoading || !responseIsCurrent || !response?.data.some(item => !item.read_at)} onClick={() => void markAllRead()} type="button">
+          <FaCheckDouble aria-hidden="true" />{isMarkingAll ? 'Updating…' : 'Mark all read'}
+        </button>}
+        renderAction={(notification, props) => <button {...props} type="button" disabled={pendingId !== null || isMarkingAll}
+          onClick={() => void openNotification(notification)} />}
+      />
     </div>
   )
 }

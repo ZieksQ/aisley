@@ -389,7 +389,7 @@ Named types define all nested fields locally. Status201 replay semantics vary: S
 - Request: reason optional nullable string≤500; UUID header; placed COD only.
 - Response: HTTP 200; `{data:Order}`.
 - Retry: UUID Idempotency-Key required. Freeze payload/key; exact retry only after uncertain outcome. Changed intent uses a new key after reconciliation.
-- Notes: Only recipient/contact may change at identical trimmed location and seven-decimal pin; location changes return 422 ADDRESS_LOCATION_CHANGE_NOT_ALLOWED on address_id. Edited original rows are allowed; frozen prices/provider/routes stay unchanged.
+- Notes: Legacy contact-only behavior is unchanged. Reviewed saved-address repricing is additive through quote_id; see [quote and confirmation contract](order-address-change.md).
 - [Synthetic examples](examples/order-modification-cancellation.json).
 
 ## op-036
@@ -400,7 +400,7 @@ Named types define all nested fields locally. Status201 replay semantics vary: S
 - Request: address_id owned shipping UUID; expected_revision optional nullable int≥1 (send deliveryAddress.version); UUID header; placed COD only.
 - Response: HTTP 200; `{data:Order}`.
 - Retry: UUID Idempotency-Key required. Freeze payload/key; exact retry only after uncertain outcome. Changed intent uses a new key after reconciliation.
-- Notes: Only recipient/contact may change at identical trimmed location and seven-decimal pin; location changes return 422 ADDRESS_LOCATION_CHANGE_NOT_ALLOWED on address_id. Edited original rows are allowed; frozen prices/provider/routes stay unchanged.
+- Notes: Legacy contact-only behavior is unchanged. Reviewed saved-address repricing is additive through quote_id; see [quote and confirmation contract](order-address-change.md).
 - [Synthetic examples](examples/order-modification-cancellation.json).
 
 ## op-037
@@ -1226,3 +1226,7 @@ Stable `voucher-collection-001` through `voucher-collection-007` in [operation i
 ### Atomic policy acceptance — policy-consent-batch-v1
 
 `POST /api/v1/policy-consent/accept` accepts one or two pending, explicitly confirmed current Terms/Privacy versions in one transaction. See the [shared policy contract](../features/shared/policy-viewing-consent/spec.md#combined-acceptance--policy-consent-batch-v1-2026-11-03) for exact JSON, response, authorization, conflict, cache and retry behavior. The single-policy operation remains compatible with older clients.
+
+## Order address quotation — 2026-11-04
+
+`POST /api/v1/customer/orders/{order}/modification/quote` requires active Customer + consent, owned eligible Order, `address_id` and integer `expected_revision >= 1`. HTTP 200 `{data:OrderAddressQuote}` carries a ten-minute review; it has no Order effects. Explicit PATCH confirmation adds `quote_id` and UUID key. See [complete operation/DTO/retry rules](order-address-change.md). External Flutter adoption remains pending.

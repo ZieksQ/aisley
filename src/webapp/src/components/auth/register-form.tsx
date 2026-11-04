@@ -1,9 +1,10 @@
 "use client";
 
-import { RegistrationEmailGate, type VerifiedRegistrationEmail } from "@aisley/ui/registration-email";
+import { RegistrationEmailGate, type RegistrationSubmission, type VerifiedRegistrationEmail } from "@aisley/ui/registration-email";
 import { registrationEmailClient } from "@/lib/registration-email";
 import { Button, SelectField, TextField } from "@aisley/ui";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
 import {
   FiArrowRight,
@@ -22,11 +23,38 @@ function value(form: FormData, field: string) {
 }
 
 export function RegisterForm() {
-  return <RegistrationEmailGate client={registrationEmailClient}>{(verification) => <RegistrationDetails verification={verification} />}</RegistrationEmailGate>;
+  const router = useRouter();
+  const pathname = usePathname();
+  const step = pathname.endsWith("/verify-email") ? "verify-email" : pathname.endsWith("/success") ? "success" : "details";
+  return (
+    <>
+      <h1 className="mb-6 text-2xl font-semibold tracking-tight sm:text-3xl">
+        {step === "success" ? "Account created successfully" : step === "verify-email" ? "Verify your email" : "Create your account"}
+      </h1>
+      <RegistrationEmailGate
+        showTitle={false}
+        client={registrationEmailClient}
+        navigation={{
+          step,
+          navigate: (next, replace) => {
+            const path = next === "details" ? "/register" : `/register/${next}`;
+            if (replace) router.replace(path); else router.push(path);
+          },
+        }}
+      >
+        {(verification) => <RegistrationDetails verification={verification} />}
+      </RegistrationEmailGate>
+      {step === "details" && (
+        <p className="mt-7 text-center text-sm">
+          Already have an account?{" "}
+          <Link href="/login" className="font-semibold text-[#4C1268] underline-offset-4 hover:underline">Sign in</Link>
+        </p>
+      )}
+    </>
+  );
 }
 
 function RegistrationDetails({ verification }: { verification: VerifiedRegistrationEmail }) {
-  const router = useRouter();
   const [error, setError] = useState<ApiError | null>(null);
   const submitting = verification.submitting;
 
@@ -34,9 +62,13 @@ function RegistrationDetails({ verification }: { verification: VerifiedRegistrat
     event.preventDefault();
     if (submitting) return;
     const form = new FormData(event.currentTarget);
-    if (verification.continueToVerification()) return
+    const submit = (attempt: RegistrationSubmission) => submitRegistration(form, attempt);
+    if (verification.continueToVerification(submit)) return;
     const attempt = verification.beginSubmission();
-    if (!attempt) return;
+    if (attempt) await submit(attempt);
+  }
+
+  async function submitRegistration(form: FormData, attempt: RegistrationSubmission) {
     setError(null);
 
     try {
@@ -52,7 +84,7 @@ function RegistrationDetails({ verification }: { verification: VerifiedRegistrat
         password_confirmation: value(form, "password_confirmation"),
         sex: value(form, "sex"),
       }, attempt.signal);
-      if (attempt.complete()) router.push(customer.status === "active" ? "/login?registered=1" : "/waiting-for-approval?registered=1");
+      attempt.complete(customer.status === "active" ? "active" : "pending");
     } catch (caught) {
       if (!attempt.isCurrent()) return;
       const failure = caught instanceof ApiError && caught.status > 0 && caught.status < 500 && caught.status !== 408
@@ -155,7 +187,6 @@ function RegistrationDetails({ verification }: { verification: VerifiedRegistrat
           onChange={(event) => verification.setEmail(event.target.value)}
           type="email"
           label="Email address"
-          placeholder="you@example.com"
           autoComplete="email"
           inputMode="email"
           required
@@ -195,7 +226,7 @@ function RegistrationDetails({ verification }: { verification: VerifiedRegistrat
         isLoading={submitting}
         loadingLabel="Creating account"
       >
-        {verification.ready ? "Submit registration" : "Continue to email verification"}
+        {verification.ready ? "Create account" : "Continue to email verification"}
         <FiArrowRight aria-hidden="true" />
       </Button>
     </form>

@@ -17,6 +17,7 @@ class OrderPricingSnapshot extends Model
     protected function casts(): array
     {
         return [
+            'version' => 'integer', 'address_version' => 'integer',
             'shipping_pricing_model' => ShippingPricingModel::class,
             'billable_weight_grams' => 'integer', 'base_fee_cents' => 'integer',
             'additional_weight_fee_cents' => 'integer', 'destination_surcharge_cents' => 'integer',

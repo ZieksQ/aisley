@@ -7,11 +7,14 @@ use App\Http\Requests\Customer\CancelOrderRequest;
 use App\Http\Requests\Customer\ListOrdersRequest;
 use App\Http\Requests\Customer\ListOrderTrackingRequest;
 use App\Http\Requests\Customer\ModifyOrderRequest;
+use App\Http\Requests\Customer\QuoteOrderModificationRequest;
+use App\Http\Resources\Customer\AddressResource;
 use App\Http\Resources\Customer\OrderResource;
 use App\Http\Resources\Customer\OrderSummaryResource;
 use App\Http\Resources\Customer\OrderTrackingResource;
 use App\Services\Customer\CustomerOrderMutationService;
 use App\Services\Customer\CustomerOrderStatusMapper;
+use App\Services\Customer\OrderAddressChange;
 use App\Services\Customer\OrderTrackingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -63,6 +66,16 @@ class OrderController extends Controller
         )))->response()->header('Cache-Control', 'no-store, private');
     }
 
+    public function quoteModification(QuoteOrderModificationRequest $request, string $order, OrderAddressChange $changes): JsonResponse
+    {
+        $quote = $changes->quote(
+            $request->user(), $order, $request->validated('address_id'), $request->integer('expected_revision'),
+        );
+
+        return response()->json(['data' => [...$quote, 'address' => new AddressResource($quote['address'])]])
+            ->header('Cache-Control', 'no-store, private');
+    }
+
     public function modify(ModifyOrderRequest $request, string $order): JsonResponse
     {
         return (new OrderResource($this->mutations->modifyAddress(
@@ -71,6 +84,7 @@ class OrderController extends Controller
             $request->validated('address_id'),
             $request->idempotencyKey(),
             $request->validated('expected_revision'),
+            $request->validated('quote_id'),
         )))->response()->header('Cache-Control', 'no-store, private');
     }
 }

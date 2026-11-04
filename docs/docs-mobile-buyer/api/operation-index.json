@@ -3425,12 +3425,12 @@
       "feature": "order-modification-cancellation",
       "method": "PATCH",
       "path": "/api/v1/customer/orders/{order}/modification",
-      "request_contract": "address_id owned complete shipping UUID with changed recipient/contact and identical trimmed location/seven-decimal coordinates (both pairs absent allowed); expected_revision optional nullable int≥1 (send deliveryAddress.version); UUID header; placed COD only.",
+      "request_contract": "address_id owned complete shipping UUID; expected_revision required with quote_id; quote_id UUID from reviewed quotation; UUID Idempotency-Key. Legacy omission of quote_id retains contact-only restrictions.",
       "response_contract": "{data:Order}",
       "status": 200,
       "retry": "UUID Idempotency-Key required. Freeze payload/key; exact retry only after uncertain outcome. Changed intent uses a new key after reconciliation.",
       "access": "Active Customer + consent",
-      "notes": "2026-10-10 B02: frozen prices/provider/route preserved; edited original source row allowed; location changes return 422 ADDRESS_LOCATION_CHANGE_NOT_ALLOWED. External adoption/live verification pending G21.",
+      "notes": "Reviewed destination changes use current-provider repricing, capped shipping saving and immutable revisions. Legacy contact-only PATCH remains unchanged. See api/order-address-change.md; Flutter adoption of reviewed changes pending.",
       "request_example": {
         "query": {},
         "headers": {
@@ -8278,6 +8278,67 @@
         }
       },
       "id": "op-117"
+    },
+    {
+      "id": "order-address-quote-2026-11-04",
+      "feature": "order-modification-cancellation",
+      "method": "POST",
+      "path": "/api/v1/customer/orders/{order}/modification/quote",
+      "access": "Active Customer + consent",
+      "request_contract": "address_id owned complete shipping UUID; expected_revision required integer >=1. No extra fields.",
+      "response_contract": "{data:OrderAddressQuote}",
+      "status": 200,
+      "retry": "Safe to request another review; explicit confirmation requires a UUID Idempotency-Key on PATCH.",
+      "notes": "Ten-minute current-provider delivery review; see api/order-address-change.md. External Flutter adoption pending.",
+      "request_example": {
+        "query": {},
+        "headers": {},
+        "body": {
+          "address_id": "11111111-1111-4111-8111-111111111111",
+          "expected_revision": 1
+        }
+      },
+      "response_example": {
+        "data": {
+          "quoteId": "11111111-1111-4111-8111-111111111111",
+          "expiresAt": "2026-11-04T10:10:00.000000Z",
+          "expectedRevision": 1,
+          "address": {
+            "id": "11111111-1111-4111-8111-111111111111",
+            "type": "shipping",
+            "label": "Home",
+            "recipientName": "Synthetic recipient",
+            "contactNumber": "09171234567",
+            "addressLine1": "456 Example Street",
+            "addressLine2": null,
+            "barangay": "San Antonio",
+            "cityMunicipality": "Makati City",
+            "province": "Metro Manila",
+            "region": "NCR",
+            "postalCode": "1204",
+            "country": "Philippines",
+            "latitude": null,
+            "longitude": null,
+            "isDefault": false
+          },
+          "shippingProvider": {
+            "id": "11111111-1111-4111-8111-111111111111",
+            "businessName": "Synthetic provider"
+          },
+          "previous": {
+            "shippingFee": "50.00",
+            "shippingDiscount": "30.00",
+            "payable": "120.00",
+            "currency": "PHP"
+          },
+          "proposed": {
+            "shippingFee": "10.00",
+            "shippingDiscount": "10.00",
+            "payable": "100.00",
+            "currency": "PHP"
+          }
+        }
+      }
     }
   ],
   "adopted_client_checkout": "57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50",
@@ -8304,5 +8365,6 @@
     "date": "2026-10-15",
     "finding": "D02",
     "flutter_adoption": "Revised eligibility/recovery unverified; historical adoption and live/device gates retained."
-  }
+  },
+  "order_address_revision": "2026-11-04; backend/storefront revision only; external Flutter adoption pending"
 }

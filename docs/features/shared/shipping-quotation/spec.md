@@ -102,3 +102,8 @@ Example Logistics draft (UUID and numeric limits are illustrative):
 
 - Discovery omits all `unplanned` calculator results. Explicit quote requires a complete `local`/`planned` route; placement revalidates and maps newly unavailable coverage to `QUOTE_STALE` before transaction effects. Already committed exact-key placement replays remain available even after coverage loss. No API request/response shape changed. Historical Orders, internal fallback pricing and Finance reconciliation remain readable.
 - The storefront selects the lowest-fee available provider per Shop by default and offers a separate draft/Apply delivery selection page. It confirms the reviewed address, providers and COD totals before sending placement.
+
+### Confirmed pre-approval address revisions — 2026-11-04
+
+- Automatic tariff/route changes still never reprice a placed Order. The sole new exception is the Customer's explicitly reviewed and confirmed saved-address change while pending COD remains `placed`, governed by the [mutation contract](../../customer/order-modification-cancellation/spec.md).
+- Retain the selected provider and stored parcel/origin/category inputs, obtain current complete-route pricing, preserve merchandise and existing discount funding (shipping saving capped at the new fee), and append a pricing revision atomically with the new address revision and current COD. Keep original commission policies; recompute Logistics commission/pool from the new shipping budget. Downstream reads resolve the latest committed revision; historical snapshots remain readable. No provider substitution or unplanned fallback is allowed.

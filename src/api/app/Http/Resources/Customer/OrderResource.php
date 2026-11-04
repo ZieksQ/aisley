@@ -86,7 +86,7 @@ class OrderResource extends JsonResource
                 'code' => $voucher->code,
                 'issuerType' => $voucher->issuer_type->value,
                 'benefitType' => $voucher->benefit_type->value,
-                'discountAmount' => $voucher->discount_amount,
+                'discountAmount' => $this->resource->effectiveVoucherDiscount($voucher),
                 'currency' => $voucher->currency,
                 'termsSummary' => $voucher->terms_summary,
             ])->values(),

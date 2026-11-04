@@ -3,7 +3,7 @@ feature: logistics-auth
 title: Logistics Authentication
 system: AISLEY
 type: Feature Specification
-version: 1.5
+version: 1.6
 status: Implemented auth foundation and Logistics hub-pin capture
 role: Logistics
 scope: Logistics React SPA and Laravel API
@@ -35,9 +35,9 @@ multipart register
 
 ## Registration email verification — 2026-10-14
 
-- Registration details/evidence → six-digit email OTP → explicit registration submission → existing pending approval. Require the role/email-bound `email_verification_token` on every registration; consume it atomically and record `email_verified_at`. Existing accounts keep their current login/approval behavior.
+- Registration details/evidence → dedicated six-digit email OTP page → automatic initial registration submission → existing pending approval. Require the role/email-bound `email_verification_token` on every registration; consume it atomically and record `email_verified_at`. Existing accounts keep their current login/approval behavior.
 - Use the exact public code/verify routes, limits, error/retry behavior, mail delivery and deployment contract in [registration email verification](../../../references/registration-email-verification.md). Email verification issues no authentication credential and never replaces approval.
-- Web final submission locks the verified identity, details, confirmed hub pin, and evidence synchronously. Only its current mounted verification attempt may show errors or navigate to login with the approval notice; defer local expiry while pending, retain drafts/selected files on failure/reverification, and preserve unconfirmed-result/sign-in guidance. Follow the shared contract's submission lifecycle and obsolete-response rules.
+- Web final submission locks the verified identity, details, confirmed hub pin, and evidence synchronously. Only its current mounted verification attempt may show errors or navigate to confirmed success explaining Admin approval; defer local expiry while pending, retain drafts/selected files on failure/reverification, and preserve unconfirmed-result/sign-in guidance. Follow the shared contract's submission lifecycle and obsolete-response rules.
 
 ## MUST
 

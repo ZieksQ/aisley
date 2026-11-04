@@ -73,6 +73,7 @@ class NotificationController extends Controller
             ->whereIn('type', [
                 'customer-announcement.published',
                 'customer-order.status-changed',
+                'customer-order.address-changed',
                 'customer-promo.ongoing',
                 'customer-campaign.promotion',
                 'customer-product-qa.answered',

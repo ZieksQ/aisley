@@ -7,7 +7,7 @@ flutter_status: Implemented including 22b0a48 shipping; live/device acceptance p
 backend_baseline: 7b1a08a0c89d7983a0e0503c5e8d322d2c2fa2a0
 contract_inspected_checkout: 57e9eb20e569321b1c7ab7ae22265a3e5cbd7c50
 current_contract_inspected_checkout: 22b0a48f9575ead182d03c35ab87345711c23b90
-documentation_synced_on: 2026-10-12
+documentation_synced_on: 2026-11-04
 ---
 
 # Order cancellation and address correction
@@ -15,7 +15,7 @@ documentation_synced_on: 2026-10-12
 ## WHAT
 
 Backend: Eligible placed COD mutations, locked reservations, new address snapshots and replay
-implemented; contact-only corrections preserve frozen location, shipping and prices (B02).
+implemented; reviewed saved-address repricing is now available separately from legacy contact-only correction.
 
 Flutter: **implemented including current shipping selection/projections**. See [G25 evidence](../../../references/shipping-selection-verification.md); live-account/device gates remain open.
 
@@ -23,7 +23,7 @@ Owned eligible Order → confirm cancellation or select saved shipping row → l
 
 - Only server-eligible placed COD/pending-payment Orders with required records and no pickup/waybill/task may change. Seller processing closes the window; no invented grace timer.
 - Cancel uses optional reason ≤500 and UUID key, releases only its reserved stock once and makes no refund/payment-reversal promise. Modification uses address_id, optional expected_revision and UUID key, validating own complete shipping row and creating new immutable version/history.
-- The 2026-10-10 B02 fix preserves frozen shipping/provider/route: Laravel rejects location changes with 422 ADDRESS_LOCATION_CHANGE_NOT_ALLOWED. Geographic repricing remains deferred; Buyer adopts pin checks and specific 422 recovery (B10); live verification remains G21.
+- Legacy contact-only PATCH retains B02/B10 location/pin restrictions. The 2026-11-04 [reviewed address contract](../../../api/order-address-change.md) adds quote_id confirmation and delivery repricing; Flutter adoption of that new flow remains pending, separately from existing G21/G25 evidence.
 - On 409 refetch capabilities; freeze uncertain key/payload for exact replay. No quantity/variant/voucher/price/status changes. Address Book edits do not modify Order snapshots.
 
 The current [shipping contract](../../../api/shipping-selection.md) governs provider selection and DTOs;
@@ -63,9 +63,9 @@ Phone/tablet padding, natural content heights and keyboard/text resizing follow 
   repeat stock release.
 - Changing reason/address after uncertainty requires reconciliation before a new key.
 - Do not queue an offline correction/cancellation or optimistically advance Order status.
-- Address correction checks completeness/eligibility but does not demonstrate new
-  published-rate/coverage recalculation.
-- G21 permits only recipient/contact changes with identical trimmed street lines/localities/postal/country;
+- Legacy contact correction preserves frozen shipping. New destination changes require the separate
+  ten-minute server quote, reviewed totals and explicit quote_id confirmation; no provider substitution.
+- Existing G21 client behavior permits only recipient/contact changes with identical trimmed street lines/localities/postal/country;
   normalize empty optional line two to null and block differing or unverifiable locations.
 - Buyer parses frozen Order pins and requires identical seven-decimal pairs or both pairs absent; partial/invalid pins fail closed (B10).
 - Address version in returned Order is refreshed along with actions/timeline/totals after success.
@@ -221,3 +221,7 @@ Follow [architecture](../../../architecture.md), [setup](../../../setup.md) and
 
 Shipping adoption 2026-10-09: [G25 evidence](../../../references/shipping-selection-verification.md) records current client checks.
 Live/device commerce and deployment configuration remain open under G25.
+
+### Reviewed destination-change handoff — 2026-11-04
+
+- Follow [Order address change](../../../api/order-address-change.md) for exact quote/PATCH shapes, unchanged-provider coverage, capped shipping saving, effective snapshots, expiry/staleness and exact uncertain retries. Existing Flutter implementation/status above is preserved; this new flow is not certified by backend/storefront checks.
