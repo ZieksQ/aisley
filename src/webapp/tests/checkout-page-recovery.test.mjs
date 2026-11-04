@@ -10,7 +10,7 @@ const root = new URL('../', import.meta.url);
 const require = createRequire(new URL('package.json', root));
 const ts = require('typescript');
 const controllerSource = readFileSync(new URL('src/lib/checkout/placement.ts', root), 'utf8');
-const controllerJs = ts.transpileModule(controllerSource, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText;
+const controllerJs = ts.transpileModule(controllerSource.replace('import { clearAddressReturn } from "./address-return";', 'const clearAddressReturn = () => {};'), { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText;
 const { createPlacementController } = await import(`data:text/javascript;base64,${Buffer.from(controllerJs).toString('base64')}`);
 const source = readFileSync(new URL('src/components/checkout/checkout-provider.tsx', root), 'utf8');
 const ast = ts.createSourceFile('checkout.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);

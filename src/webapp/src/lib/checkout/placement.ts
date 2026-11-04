@@ -1,3 +1,4 @@
+import { clearAddressReturn } from "./address-return";
 import type { CheckoutBatch, CheckoutIntent, CheckoutRequestPayload } from "./types";
 
 type PlacementPayload = CheckoutRequestPayload & { quote_id: string };
@@ -58,7 +59,8 @@ export function createPlacementController(storage: () => Storage) {
         return batch;
       }).catch((error: unknown) => {
         const failure = error as { status?: number; code?: string } | null;
-        if (started === revision && failure?.status === 409 && refreshableCodes.has(failure.code ?? "")) {
+        if (started === revision && ((failure?.status === 409 && refreshableCodes.has(failure.code ?? ""))
+          || (failure?.status === 422 && failure.code === "ADDRESS_PIN_REQUIRED"))) {
           this.clear();
         }
         throw error;
@@ -73,6 +75,7 @@ export function createPlacementController(storage: () => Storage) {
 export const checkoutPlacement = createPlacementController(() => sessionStorage);
 export function clearCheckoutPlacement() {
   try {
+    clearAddressReturn();
     checkoutPlacement.clear();
   } catch {
     // Storage may be disabled.

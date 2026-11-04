@@ -1,8 +1,10 @@
+import { clearAddressReturn } from "./address-return";
 import type { CheckoutIntent, CheckoutRequestPayload, LogisticsSelection, VoucherSelection } from "./types";
 
 const checkoutIntentKey = "aisley:checkout-intent";
 
 export function saveCheckoutIntent(intent: CheckoutIntent) {
+  clearAddressReturn();
   sessionStorage.setItem(checkoutIntentKey, JSON.stringify(intent));
 }
 
@@ -68,6 +70,7 @@ export function checkoutPayloadForIntent(
 }
 
 export function clearCheckoutIntent() {
+  clearAddressReturn();
   sessionStorage.removeItem(checkoutIntentKey);
 }
 

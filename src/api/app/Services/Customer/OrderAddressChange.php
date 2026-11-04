@@ -11,6 +11,7 @@ use App\Models\OrderModificationQuote;
 use App\Models\OrderPricingSnapshot;
 use App\Models\User;
 use App\Services\Logistics\Sorting\SortingLocks;
+use App\Support\AddressCoordinates;
 use Illuminate\Support\Facades\DB;
 
 class OrderAddressChange
@@ -105,10 +106,8 @@ class OrderAddressChange
                 throw CheckoutException::invalid('ADDRESS_INCOMPLETE', 'The selected address is incomplete.', 'address_id');
             }
         }
-        if (($address->latitude !== null || $address->longitude !== null)
-            && (! is_numeric($address->latitude) || ! is_numeric($address->longitude)
-                || abs((float) $address->latitude) > 90 || abs((float) $address->longitude) > 180)) {
-            throw CheckoutException::invalid('ADDRESS_INCOMPLETE', 'The saved address has an incomplete map pin.', 'address_id');
+        if (! AddressCoordinates::valid($address->latitude, $address->longitude)) {
+            throw CheckoutException::invalid('ADDRESS_PIN_REQUIRED', 'Pin this address in your Address Book before changing the delivery address.', 'address_id');
         }
         $same = collect(self::ADDRESS_FIELDS)->every(fn ($field) => trim((string) $address->{$field}) === trim((string) $order->address->{$field}));
         if ($same) {

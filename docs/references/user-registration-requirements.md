@@ -48,6 +48,7 @@ All Customer, Seller, Logistics, and Courier applicants complete their existing 
   - Required manual entry between Province and City/Municipality: Postal code
   - Manual entry: Street, House number, etc.
   - Preserve a complete manual fallback when the bundled PSGC data is unavailable or incomplete
+- **Business address pin (required)** — confirm a complete finite latitude/longitude pair; manual coordinate entry remains available during map outages.
 - **Business name**
 - **Line of business (category)**
   - Dropdown to pick from sellers shop catagories
@@ -96,9 +97,9 @@ All Customer, Seller, Logistics, and Courier applicants complete their existing 
   - Dropdown: Province, Municipality, Barangay
   - Manual entry: Street, House number, etc.
 - Business name
-- Operational hub map pin (planned)
+- Operational hub map pin (required)
   - After completing the hub address, use Geoapify assistance and Leaflet to confirm the actual hub location; save latitude and longitude together.
-  - No Mapbox. Map failure preserves text-only registration and shows an unpinned state; complete the pin later in Logistics Account Settings.
+  - No Mapbox. Map failure preserves the draft; enter and confirm coordinates manually before submitting. Existing accounts may correct pins in Logistics Account Settings.
   - The pin refers to the organization's sole hub, not the applicant's residence; coordinate correction does not authorize relocation.
 - Upload ID
 - Upload business/DTI permit

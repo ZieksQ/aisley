@@ -42,7 +42,7 @@ scope: Seller Web Application and Laravel API
 ### Pickup addresses
 
 - An active Seller may list, create, edit, and delete only addresses owned by that Seller. Seller pickup addresses are operational `both` addresses; clients cannot submit `user_id` or override the stored address type.
-- Use the shared PSGC Region → Province → City/Municipality → Barangay flow with searchable options and manual fallback. Coordinates remain optional, must be a complete valid pair, and are cleared when textual location fields change without a newly confirmed pin. When Geoapify is configured, the Seller may geocode the completed address and click or drag the Leaflet pin to the exact courier entrance, matching the Customer address-book interaction.
+- Use the shared PSGC Region → Province → City/Municipality → Barangay flow with searchable options and manual fallback. Coordinates are required on address create/edit, must be a complete finite valid pair, and are cleared when textual location fields change without a newly confirmed pin. When Geoapify is configured, the Seller may geocode the completed address and click or drag the Leaflet pin to the exact courier entrance, matching the Customer address-book interaction.
 - The first saved address becomes default automatically. Setting another default clears the previous default; deleting the default promotes one remaining address so a non-empty address book always has one default.
 - Address-book edits affect future selections only. Each committed pickup Order keeps the immutable pickup snapshot stored on its waybill.
 

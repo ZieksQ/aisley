@@ -14,7 +14,7 @@ This document defines the approved provider, privacy, fallback, and cost boundar
 | Road-distance ranking | Geoapify Route Matrix API | Compare one Seller pickup coordinate with a bounded set of eligible Logistics hub coordinates server-side. |
 | Courier pickup route line | Geoapify Routing API | Build bounded road-following geometry through the server-authoritative hub → pickups → hub stop order. |
 | Current-device coordinates | Browser or mobile operating-system geolocation | Populate coordinates after explicit permission. |
-| Persistence and validation | Laravel API and Postgres | Validate and save authoritative address fields and optional coordinates. |
+| Persistence and validation | Laravel API and Postgres | Validate and save authoritative address fields and role-required coordinates. |
 
 PSGC names and manually reviewed address fields remain authoritative. Coordinates assist routing; they do not replace the readable address or prove deliverability. Mapbox is not used.
 
@@ -32,12 +32,12 @@ Select cascading PSGC address
   -> Laravel validates and persists the address and coordinates
 ```
 
-There is no provider request while the user types. Changing a populated textual location field clears the coordinate pair; the user must pin again. Manual saving remains available when Geoapify is unavailable.
+There is no provider request while the user types. Changing a populated textual location field clears the coordinate pair; the user must pin again. Customer Address Book saving remains available without a pin. Checkout and Order destination changes require a saved pin; Seller registration/address saves/new pickups and new Logistics registrations require a pin. When Geoapify is unavailable, users can enter and confirm coordinates manually.
 
 ## Route Matrix ranking
 
 - Logistics hub coordinates are operator-confirmed routing inputs, not GPS-certified evidence. Save a complete validated pair on the hub's linked Address; unknown remains null.
-- Registration may fall back to text-only with an unpinned message; existing Logistics accounts add/correct their pin through the protected Account Settings endpoint. No extra hub/address or access gate is created.
+- New Logistics registrations require a confirmed hub pin, including during provider outages through manual coordinate entry. Existing Logistics accounts retain access and add/correct their pin through the protected Account Settings endpoint. No extra hub/address or general access gate is created.
 - Same-premises corrections preserve committed waybill/Order/manifest snapshots and invalidate future coordinate-fingerprint caches. Relocation and active-route replanning require their owning workflow.
 - Reuse origin-restricted browser credentials for intentional geocoding/tiles; never expose the server Route Matrix/Routing credential. Provide attribution and accessible coordinate adjustment when drag interaction is unavailable.
 

@@ -1,3 +1,4 @@
+import { validPin } from "@aisley/ui/address-pin";
 import Link from "next/link";
 import { FiCheck, FiMapPin } from "react-icons/fi";
 
@@ -16,16 +17,17 @@ function addressSummary(address: CustomerAddress) {
     .join(", ");
 }
 
-export function CheckoutDeliverySection({ address }: { address: CustomerAddress | undefined }) {
+export function CheckoutDeliverySection({ address, onManageAddress }: { address: CustomerAddress | undefined; onManageAddress?: () => boolean }) {
   return (
     <section className="border border-[#DED7E1] bg-white p-4 sm:p-5" aria-labelledby="delivery-heading">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 id="delivery-heading" className="text-base font-semibold text-[#2D2231]">Delivery address</h2>
         <Link
           href="/account/addresses?returnTo=%2Fcheckout"
+          onClick={(event) => { if (onManageAddress && !onManageAddress()) event.preventDefault(); }}
           className="inline-flex min-h-9 items-center rounded-md px-2 text-sm font-semibold text-[#4C1268] hover:bg-[#F6F0F8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A]"
         >
-          {address ? "Change address" : "Add address"}
+          {address ? validPin(address.latitude, address.longitude) ? "Change address" : "Pin this address" : "Add address"}
         </Link>
       </div>
       {address ? (
@@ -38,6 +40,7 @@ export function CheckoutDeliverySection({ address }: { address: CustomerAddress 
             </p>
             <p className="mt-1 text-[#514656]">{address.recipientName} · {address.contactNumber}</p>
             <p className="mt-1 leading-5 text-[#746978]">{addressSummary(address)}</p>
+            {!validPin(address.latitude, address.longitude) ? <p role="status" className="mt-2 text-sm text-amber-800">Pin this address in your Address Book before checkout.</p> : null}
           </div>
         </div>
       ) : (

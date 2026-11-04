@@ -19,13 +19,15 @@ export function registrationRoleModules(compile) {
     firstFieldError:(error,key)=>error?.errors?.[key]?.[0]};`
   return {
     './register-customer': compile('src/webapp/src/components/auth/register-form.tsx'),
-    './register-seller': compile('src/seller/src/pages/RegisterPage.tsx'),
+    './register-seller': compile('src/seller/src/pages/RegisterPage.tsx').replaceAll('import.meta.env', '({})'),
     './register-logistics': compile('src/logistics/src/pages/RegisterPage.tsx').replaceAll('import.meta.env', '({})'),
     './email-customer': compile('src/webapp/src/lib/registration-email.ts'),
     './email-seller': compile('src/seller/src/lib/registration-email.ts'),
     './email-logistics': compile('src/logistics/src/lib/registration-email.ts'),
     '@/lib/customer-auth': compile('src/webapp/src/lib/customer-auth.ts'),
     '@aisley/ui': fields,
+    '@aisley/ui/address-pin': compile('packages/ui/src/address-pin/index.tsx'),
+    '../components/GeoapifyLocationPicker': `module.exports={GeoapifyLocationPicker:()=>null};`,
     './fields': fields,
     '../components/FormField': "module.exports=require('./fields')",
     '../components/Field': "module.exports=require('./fields')",
@@ -57,11 +59,11 @@ export function registrationRoleModules(compile) {
           React.createElement(Field,{key:name,name:'address['+name+']',label:name,defaultValue:'Fixture',required:true})))};`,
     '../components/FlatpickrInput': `${react}const {Field}=require('./fields');
       module.exports={FlatpickrField:({options,onChange,...props})=>React.createElement(Field,{...props,type:'date',onChange:event=>onChange(event.target.value)})};`,
-    '../components/HubLocationPicker': `${react}module.exports={HubLocationPicker:()=>React.createElement('p',null,'Synthetic map')};`,
+    '../components/HubLocationPicker': compile('src/logistics/src/components/HubLocationPicker.tsx'),
     './form-alert': compile('src/webapp/src/components/auth/form-alert.tsx'),
     './password-field': compile('src/webapp/src/components/auth/password-field.tsx'),
     'react-icons/fi': `${react}module.exports=Object.fromEntries(['FiArrowRight','FiCalendar','FiMail','FiPhone','FiUser','FiEye','FiEyeOff','FiLock','FiAlertCircle','FiCheckCircle'].map(name=>[name,()=>React.createElement('span')]));`,
-    'react-icons/fa6': `${react}module.exports={FaCircleCheck:()=>null,FaCircleExclamation:()=>null};`,
+    'react-icons/fa6': `${react}module.exports={FaCircleCheck:()=>null,FaCircleExclamation:()=>null,FaLocationDot:()=>null,FaSatelliteDish:()=>null};`,
   }
 }
 

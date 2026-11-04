@@ -1,6 +1,8 @@
+import { AddressPinFields, validPin, type Coordinates } from '@aisley/ui/address-pin'
+import { GeoapifyLocationPicker } from '../components/GeoapifyLocationPicker'
 import { RegistrationEmailGate, type RegistrationSubmission, type VerifiedRegistrationEmail } from "@aisley/ui/registration-email"
 import { registrationEmailClient } from "../lib/registration-email"
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { FaCircleExclamation } from 'react-icons/fa6'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
@@ -25,6 +27,24 @@ function ageFromBirthDate(birthDate: string): number | null {
 }
 
 function RegistrationDetails({ verification }: { verification: VerifiedRegistrationEmail }) {
+  const formRef = useRef<HTMLFormElement>(null)
+  const [pin, setPin] = useState<Coordinates | null>(null)
+  const [pinConfirmed, setPinConfirmed] = useState(false)
+  const [address, setAddress] = useState({ addressLine1: '', barangay: '', cityMunicipality: '', province: '', region: '', postalCode: '', country: 'Philippines' })
+
+  const [addressRevision, setAddressRevision] = useState(0)
+  function addressChanged() {
+    setPin(null)
+    setPinConfirmed(false)
+    setAddressRevision((revision) => revision + 1)
+  }
+  useEffect(() => {
+    const form = formRef.current
+    if (!form) return
+    const data = new FormData(form)
+    const value = (name: string) => String(data.get(`address[${name}]`) ?? '')
+    setAddress({ addressLine1: value('address_line_1'), barangay: value('barangay'), cityMunicipality: value('city_municipality'), province: value('province'), region: value('region'), postalCode: value('postal_code'), country: 'Philippines' })
+  }, [addressRevision])
   const [errors, setErrors] = useState<Record<string, string[]>>({})
   const [formError, setFormError] = useState<string | null>(null)
   const isSubmitting = verification.submitting
@@ -53,7 +73,13 @@ function RegistrationDetails({ verification }: { verification: VerifiedRegistrat
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (isSubmitting) return
+    if (!pinConfirmed || !validPin(pin?.latitude, pin?.longitude)) {
+      setFormError('Pin and confirm the business address before continuing.')
+      return
+    }
     const formData = new FormData(event.currentTarget)
+    formData.set('latitude', String(pin!.latitude))
+    formData.set('longitude', String(pin!.longitude))
     const submit = (attempt: RegistrationSubmission) => submitRegistration(formData, attempt)
     if (verification.continueToVerification(submit)) return
     const attempt = verification.beginSubmission()
@@ -93,7 +119,7 @@ function RegistrationDetails({ verification }: { verification: VerifiedRegistrat
 
   return (
     <section aria-label="Registration details">
-      <form className="space-y-7" encType="multipart/form-data" onSubmit={handleSubmit}>
+      <form ref={formRef} className="space-y-7" encType="multipart/form-data" onSubmit={handleSubmit}>
         <p className="text-sm text-zinc-500 dark:text-zinc-400">Fields marked with * are required.</p>
 
         <fieldset>
@@ -128,7 +154,7 @@ function RegistrationDetails({ verification }: { verification: VerifiedRegistrat
           </div>
         </fieldset>
 
-        <fieldset className="border-t border-zinc-200 pt-6 dark:border-white/10">
+        <fieldset onChange={addressChanged} className="border-t border-zinc-200 pt-6 dark:border-white/10">
           <legend className="mb-1 font-semibold">Business address</legend>
           <p className="mb-4 text-sm text-zinc-500 dark:text-zinc-400">Select the administrative address in order. Postal code and street details remain manual because they are not included in the address dataset.</p>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -136,6 +162,13 @@ function RegistrationDetails({ verification }: { verification: VerifiedRegistrat
           </div>
           <p className="mt-4 text-xs text-zinc-500 dark:text-zinc-400">Administrative options are served from Aisley’s bundled Q2 2026 PSGC dataset.</p>
         </fieldset>
+
+        <section aria-label="Business address pin">
+          {import.meta.env.GEOAPIFY_API_KEY ? <GeoapifyLocationPicker key={addressRevision} address={address} apiKey={import.meta.env.GEOAPIFY_API_KEY} latitude={pin?.latitude ?? null} longitude={pin?.longitude ?? null} onChange={(next) => { setPin(next); setPinConfirmed(false) }} /> : null}
+          <AddressPinFields latitude={pin?.latitude ?? null} longitude={pin?.longitude ?? null} confirmed={pinConfirmed}
+            onChange={setPin} onConfirm={() => { setPinConfirmed(true); setFormError(null) }} onInvalidate={() => setPinConfirmed(false)} />
+          {errors.latitude?.[0] || errors.longitude?.[0] ? <p role="alert" className="mt-2 text-sm text-red-700 dark:text-red-300">{errors.latitude?.[0] ?? errors.longitude?.[0]}</p> : null}
+        </section>
 
         <fieldset className="border-t border-zinc-200 pt-6 dark:border-white/10">
           <legend className="mb-1 font-semibold">Verification documents</legend>

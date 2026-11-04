@@ -5,6 +5,7 @@ namespace App\Http\Requests\Seller;
 use App\Enums\CategoryStatus;
 use App\Enums\UserSex;
 use App\Services\Auth\RegistrationEmailVerification;
+use App\Support\AddressCoordinates;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Str;
@@ -43,6 +44,8 @@ class RegisterRequest extends FormRequest
             'address.province' => ['required', 'string', 'max:255'],
             'address.region' => ['required', 'string', 'max:255'],
             'address.postal_code' => ['required', 'string', 'max:10'],
+            'latitude' => AddressCoordinates::rules('latitude'),
+            'longitude' => AddressCoordinates::rules('longitude'),
             'address.latitude' => ['prohibited'],
             'address.longitude' => ['prohibited'],
             'government_id' => $this->evidenceRules(),

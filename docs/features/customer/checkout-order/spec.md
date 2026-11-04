@@ -55,10 +55,10 @@ Buy Now or selected Cart lines
 ### Address and Logistics selection boundary
 
 - Accept one `address_id` that belongs to the authenticated Customer and is eligible for shipping (`shipping` or `both`). Revalidate completeness at quote and placement.
-- Copy recipient, contact, address lines, PSGC/manual locality names, country, and optional coordinates into one `order_addresses` row per Order inside the placement transaction.
+- Copy recipient, contact, address lines, PSGC/manual locality names, country, and required confirmed coordinates into one `order_addresses` row per Order inside the placement transaction.
 - Address Book edits/deletes never rewrite a placed Order snapshot.
-- Quote state includes the saved address ID/timestamp, type, label, recipient/contact, every delivery address field, and optional coordinates at the stored seven-decimal precision. A same-second change invalidates the reviewed quote; placement returns `409 QUOTE_STALE` before any Order, inventory, voucher, Cart, or notification effects.
-- Manual/PSGC address fields are authoritative. Optional coordinates come from the Customer's confirmed pin; provider IDs and suggestion payloads are not authoritative.
+- Quote state includes the saved address ID/timestamp, type, label, recipient/contact, every delivery address field, and confirmed coordinates at the stored seven-decimal precision. A same-second change invalidates the reviewed quote; placement returns `409 QUOTE_STALE` before any Order, inventory, voucher, Cart, or notification effects.
+- Manual/PSGC address fields are authoritative. Required coordinates come from the Customer's confirmed pin; provider IDs and suggestion payloads are not authoritative.
 - Return final-fee Logistics options per Shop from `POST /checkout/logistics-options`; accept one `logistics_selections` entry per Shop for quote and placement.
 - Show the selected provider and final shipping fee per Shop, with Change opening `/checkout/delivery?shop=<UUID>`. Default to the lowest-fee eligible provider (ties retain API order), preserve available accepted choices on refresh, and apply draft changes only after a successful server quote. Back/Cancel retains the accepted selection.
 - Never expose billable weight, parcel dimensions, tariff components, route hops, Logistics rules, commission, or payout shares to the Customer.
@@ -139,7 +139,7 @@ Buy Now or selected Cart lines
 ### Storefront placement recovery — 2026-10-10 (B01)
 
 - Freeze the placement payload, quote ID and Customer-scoped idempotency key before sending. Block shipping refresh, provider/voucher changes and concurrent placement while pending or uncertain; expose an explicit Retry original order action after failure.
-- Retain the exact request through transport failures, throttling, server errors and unrecognized conflicts. Only `409 QUOTE_EXPIRED`, `QUOTE_INPUT_CHANGED` or `QUOTE_STALE` releases it for fresh shipping/totals review; key collisions and already-placed quote conflicts never trigger a new purchase.
+- Retain the exact request through transport failures, throttling, server errors and unrecognized conflicts. Only `409 QUOTE_EXPIRED`, `QUOTE_INPUT_CHANGED`, `QUOTE_STALE` or explicit `422 ADDRESS_PIN_REQUIRED` releases it for fresh shipping/totals review; key collisions and already-placed quote conflicts never trigger a new purchase.
 - Keep recovery IDs, quantities and selections (no address/contact snapshot) in same-tab session storage before transport. Returning to checkout or reloading prioritizes this record over any new Buy Now/Cart handoff. Storage failure prevents an unrecorded placement. Clear recovery on success, confirmed rejection, logout/authorization loss or account change; ignore late responses from departed checkout sessions.
 - Recovery uses the existing exact-key placement endpoint; it adds no API or Flutter contract. Cross-tab/device recovery, browser storage deletion and recovery after logout remain outside this session-scoped fix.
 - Regression tests execute the actual checkout handlers for both audit races and test lost-response replay, reload, conflict classification, 429/5xx, account cleanup and unavailable storage. Browser/layout verification is reported separately in the progress log.
@@ -171,3 +171,9 @@ Buy Now or selected Cart lines
 ### Order address revision boundary — 2026-11-04
 
 - Checkout remains immutable at placement. A separate, explicit [Customer Order action](../order-modification-cancellation/spec.md) may supersede address and shipping pricing before Seller approval after a fresh review and confirmation. Batch retrieval projects the current committed Order destination/totals and effective shipping saving; original checkout/address/pricing/voucher records remain historical facts. Checkout placement replay and its stock/voucher effects are unchanged.
+
+### Required delivery pin — 2026-11-05
+
+- Address Book saves may remain unpinned. Shipping options, checkout quotes/placement, and Order destination-change preview/confirmation require a saved finite coordinate pair within latitude -90..90 and longitude -180..180.
+- Reject missing/invalid pins with `422 ADDRESS_PIN_REQUIRED`, field `address_id`, before purchase or modification effects. Successful exact-key placement replays remain available after Address Book changes.
+- Offer address editing and explicit map/manual coordinate confirmation; text edits invalidate the pin. Preserve entered fields on provider failure and never fabricate coordinates.

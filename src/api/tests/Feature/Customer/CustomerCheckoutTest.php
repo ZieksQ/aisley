@@ -432,6 +432,41 @@ class CustomerCheckoutTest extends TestCase
         return $customer;
     }
 
+    public function test_unpinned_addresses_cannot_get_shipping_options_quotes_or_place_orders(): void
+    {
+        $customer = $this->customer();
+        $address = $this->address($customer);
+        $product = Product::where('slug', 'compact-everyday-camera')->firstOrFail();
+        $payload = $this->buyNowPayload($product, $address);
+        $quote = $this->postJson('/api/v1/customer/checkout/quote', $payload)->assertOk()->json('data.quoteId');
+        $address->update(['latitude' => null, 'longitude' => null]);
+        foreach (['logistics-options', 'quote'] as $endpoint) {
+            $this->postJson('/api/v1/customer/checkout/'.$endpoint, $payload)->assertUnprocessable()
+                ->assertJsonPath('code', 'ADDRESS_PIN_REQUIRED')->assertJsonValidationErrors('address_id');
+        }
+        $this->withHeader('Idempotency-Key', (string) Str::uuid())->postJson('/api/v1/customer/checkout/place', [...$payload, 'quote_id' => $quote])
+            ->assertUnprocessable()->assertJsonPath('code', 'ADDRESS_PIN_REQUIRED');
+        $this->assertDatabaseCount('orders', 0);
+        $this->assertSame(0, InventoryMovement::where('movement_type', 'reserve')->count());
+        $this->assertSame(0, InventoryBalance::query()->sum('reserved'));
+    }
+
+    public function test_committed_placement_replays_after_the_saved_pin_is_removed(): void
+    {
+        $customer = $this->customer();
+        $address = $this->address($customer);
+        $payload = $this->buyNowPayload(Product::where('slug', 'compact-everyday-camera')->firstOrFail(), $address);
+        $quote = $this->postJson('/api/v1/customer/checkout/quote', $payload)->assertOk()->json('data.quoteId');
+        $placement = [...$payload, 'quote_id' => $quote];
+        $this->withHeader('Idempotency-Key', (string) Str::uuid());
+        $first = $this->postJson('/api/v1/customer/checkout/place', $placement)->assertOk();
+        $address->update(['latitude' => null, 'longitude' => null]);
+        $again = $this->postJson('/api/v1/customer/checkout/place', $placement);
+        $again->assertSuccessful();
+        $this->assertSame($first->json('data.id'), $again->json('data.id'));
+        $this->assertDatabaseCount('orders', 1);
+    }
+
     private function address(User $customer): Address
     {
         return Address::create([
@@ -440,6 +475,7 @@ class CustomerCheckoutTest extends TestCase
             'address_line_1' => '123 Test Street', 'barangay' => 'San Antonio',
             'city_municipality' => 'Makati City', 'province' => 'Metro Manila',
             'region' => 'NCR', 'postal_code' => '1203', 'country' => 'Philippines',
+            'latitude' => 14.55, 'longitude' => 121.02,
         ]);
     }
 

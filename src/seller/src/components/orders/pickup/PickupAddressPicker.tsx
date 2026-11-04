@@ -26,7 +26,7 @@ export function PickupAddressSection({ address, addressLoading, addressesAvailab
                 {pickupAddressSummary(address)}
               </p>
               {address.latitude === null || address.longitude === null ? (
-                <p className="portal-secondary mt-1 text-xs">No exact map pin saved.</p>
+                <p className="portal-secondary mt-1 text-xs">Pin this address before requesting pickup. <Link className="underline" to="/account">Manage addresses</Link></p>
               ) : null}
             </>
           ) : <p className="portal-secondary mt-1 text-sm">{addressLoading ? 'Loading addresses…' : 'Choose a saved pickup address.'}</p>}

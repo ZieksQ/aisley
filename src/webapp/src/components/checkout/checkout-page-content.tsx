@@ -28,6 +28,7 @@ export function CheckoutPageContent() {
     message,
     loadShippingOptions,
     placeOrder,
+    rememberAddressReturn,
   } = useCheckout();
   const [reviewedQuote, setReviewedQuote] = useState<CheckoutQuote | null>(null);
   if (!customerId || status === "loading") return <CheckoutLoading />;
@@ -40,7 +41,7 @@ export function CheckoutPageContent() {
   return (
     <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
       <div className="space-y-5">
-        <CheckoutDeliverySection address={selectedAddress} />
+        <CheckoutDeliverySection onManageAddress={rememberAddressReturn} address={selectedAddress} />
         <CheckoutPaymentSection />
 
         {logisticsOptions?.groups.map((group) => {

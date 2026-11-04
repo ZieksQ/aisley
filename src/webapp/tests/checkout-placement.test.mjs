@@ -4,7 +4,7 @@ import test from "node:test";
 import ts from "typescript";
 
 const source = await readFile(new URL("../src/lib/checkout/placement.ts", import.meta.url), "utf8");
-const { outputText } = ts.transpileModule(source, {
+const { outputText } = ts.transpileModule(source.replace('import { clearAddressReturn } from "./address-return";', 'const clearAddressReturn = () => {};'), {
   compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
 });
 const { createPlacementController } = await import(`data:text/javascript;base64,${Buffer.from(outputText).toString("base64")}`);
@@ -148,4 +148,14 @@ test("malformed success responses remain unresolved and preserve exact retry", a
     return { id: "confirmed-batch" };
   });
   assert.equal(batch.id, "confirmed-batch");
+});
+
+
+test("explicit missing-pin rejection releases the request for address correction", async () => {
+  const store = storage();
+  const stable = createPlacementController(() => store);
+  await assert.rejects(stable.submit("customer", draft(), async () => {
+    throw { status: 422, code: "ADDRESS_PIN_REQUIRED" };
+  }));
+  assert.equal(stable.read("customer"), null);
 });

@@ -33,6 +33,7 @@ const assets = resolve('src/seller/dist/assets')
 const css = readdirSync(assets).filter(name => name.endsWith('.css')).map(name => readFileSync(resolve(assets, name), 'utf8')).join('\n').replaceAll('url(/assets/', 'url(/src/seller/dist/assets/')
 const browser = await openChatBrowser()
 const js = browser.evaluate
+await js("const viewport=document.createElement('meta');viewport.name='viewport';viewport.content='width=device-width, initial-scale=1';document.head.append(viewport)")
 async function fill(name, value) {
   await js(`(() => {const el=document.querySelector('[name="${name}"]');Object.getOwnPropertyDescriptor(el.tagName==='SELECT'?HTMLSelectElement.prototype:HTMLInputElement.prototype,'value').set.call(el,${JSON.stringify(value)});el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));})()`)
 }
@@ -46,6 +47,16 @@ async function details(role, { otp = true, failure = false } = {}) {
   if (role !== 'customer') {
     await fill('business_name', 'Retained business')
     if (role === 'seller') await fill('shop_category_id', 'category')
+    if (!failure) {
+      await click(otp ? 'Continue to email verification' : 'Create account')
+      assert.equal(await js('window.registrationPath'), '/register')
+      assert.equal(await js('window.finalQueue.length'), 0)
+    }
+    for (const [axis, value] of [['latitude', '14.55'], ['longitude', '121.02']]) {
+      await js(`(()=>{const el=document.querySelector('input[id$="-${axis}"]');Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(el,'${value}');el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));})()`)
+    }
+    await click('Confirm location')
+
     await js("for(const name of ['government_id','business_permit']) {const dt=new DataTransfer();dt.items.add(new File(['fixture'],name+'.png',{type:'image/png'}));document.querySelector('[name='+name+']').files=dt.files;}")
   }
   if (otp && !failure) {
@@ -62,6 +73,10 @@ async function verify() {
   await click('Verify email')
   await browser.until('window.finalQueue.length===1', 'automatic single registration')
   assert.equal(await js('window.finalQueue[0].body.first_name'), 'Retained')
+  if (await js("window.role!=='customer'")) {
+    assert.equal(await js('window.finalQueue[0].body.latitude'), '14.55')
+    assert.equal(await js('window.finalQueue[0].body.longitude'), '121.02')
+  }
   assert.equal(await js('window.finalQueue[0].body.email_verification_token'), 'a'.repeat(64))
   assert.equal(await js("document.body.innerText.includes('Account created successfully')"), false)
 }
@@ -133,6 +148,33 @@ try {
   await js("window.resolveFinal(0,'active')")
   await browser.until("document.body.innerText.includes('Your account is ready')", 'active customer')
   assert.equal(await js("document.body.innerText.includes('Please wait for Admin approval')"), false)
+  for (const role of ['seller', 'logistics']) {
+    await details(role, { otp: false })
+    await fill('address[address_line_1]', 'Changed entrance')
+    await click('Create account')
+    assert.equal(await js('window.finalQueue.length'), 0)
+    assert.equal(await js('window.registrationPath'), '/register')
+    await click('Confirm location')
+    assert(await js("document.body.innerText.includes('Enter latitude from -90 to 90')"))
+    assert.equal(await js('window.finalQueue.length'), 0)
+    for (const [axis, value] of [['latitude', '14.55'], ['longitude', '121.02']]) {
+      await js(`(()=>{const el=document.querySelector('input[id$="-${axis}"]');Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(el,'${value}');el.dispatchEvent(new Event('input',{bubbles:true}));})()`)
+    }
+    await click('Confirm location')
+    for (const dark of [false, true]) {
+      await js(`document.documentElement.classList.toggle('dark', ${dark})`)
+      for (const width of [320, 390, 768, 1440]) {
+        await browser.viewport(width)
+        assert(await js('document.documentElement.scrollWidth <= innerWidth'), `${role} pin overflow`)
+        await browser.screenshot(resolve(artifacts, `${role}-required-pin-${dark ? 'dark' : 'light'}-${width}.png`))
+      }
+    }
+    await click('Create account')
+    await browser.until('window.finalQueue.length===1', 'pin-confirmed OTP bypass')
+    assert.equal(await js('window.finalQueue[0].body.latitude'), '14.55')
+    await js('window.resolveFinal()')
+    await browser.until("window.registrationPath==='/register/success'", 'pin-confirmed success')
+  }
   await checkRegistrationSubmissions(browser, { js, click, fill, details, verify }, artifacts)
   console.log('All three web roles pass dedicated OTP, automatic submission, success, configuration and draft checks.')
   }

@@ -112,6 +112,8 @@ class AuthController extends Controller
                 $user->addresses()->create([
                     'type' => AddressType::Both,
                     'label' => 'Business address',
+                    'latitude' => $request->validated('latitude'),
+                    'longitude' => $request->validated('longitude'),
                     'recipient_name' => $recipientName,
                     'contact_number' => (string) $request->input('contact_number'),
                     'address_line_1' => $address['address_line_1'],

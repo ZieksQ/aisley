@@ -124,3 +124,8 @@ Seller opens Seller-scoped processing Order
 - Package and label APIs must return capabilities derived from the locked current state, so the UI cannot infer readiness from stale status text.
 
 **References:** `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, `docs/domains/Seller.md`, `docs/domains/Logistics.md`, `docs/domains/Courier.md`, Seller Order Approval, and Inventory.
+
+### Pickup pin requirement — 2026-11-05
+
+- New solo/bulk pickup requests require a valid saved pin on the Seller-owned pickup address, including legacy addresses. Missing/invalid pairs return field-addressable `422` on `pickup_address_id`; direct users to Account settings to pin the address.
+- Revalidate under the existing address lock before any pickup/waybill/status effects. Existing requests, immutable snapshots, and committed exact-key replays are preserved.

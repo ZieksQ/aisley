@@ -13,7 +13,8 @@
     "./brand": "./src/brand.ts",
     "./password-change": "./src/password-change/index.ts",
     "./registration-email": "./src/registration-email/index.ts",
-    "./policy-consent": "./src/policy-consent/index.ts"
+    "./policy-consent": "./src/policy-consent/index.ts",
+    "./address-pin": "./src/address-pin/index.tsx"
   },
   "peerDependencies": {
     "react": "^19.2.8",

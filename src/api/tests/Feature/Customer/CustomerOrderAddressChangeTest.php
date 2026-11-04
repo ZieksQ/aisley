@@ -126,8 +126,8 @@ class CustomerOrderAddressChangeTest extends TestCase
         [$customer, $order, $address] = $this->placed();
         $address->update(['type' => AddressType::Billing]);
         $this->quote($order, $address)->assertUnprocessable()->assertJsonPath('code', 'ADDRESS_NOT_SHIPPING');
-        $address->update(['type' => AddressType::Both, 'latitude' => 14.5]);
-        $this->quote($order, $address)->assertUnprocessable()->assertJsonPath('code', 'ADDRESS_INCOMPLETE');
+        $address->update(['type' => AddressType::Both, 'latitude' => 14.5, 'longitude' => null]);
+        $this->quote($order, $address)->assertUnprocessable()->assertJsonPath('code', 'ADDRESS_PIN_REQUIRED');
         $address->update(['latitude' => null, 'user_id' => User::factory()->create()->id]);
         $this->quote($order, $address)->assertUnprocessable()->assertJsonPath('code', 'ADDRESS_NOT_FOUND');
         $this->postJson($this->url($order).'/quote', ['address_id' => $address->id, 'expected_revision' => 1, 'shipping_fee' => 0])->assertUnprocessable();
@@ -259,6 +259,17 @@ class CustomerOrderAddressChangeTest extends TestCase
         }
         $summary = app(OrderFundingAuditService::class)->scan(fn () => null, $order->id);
         $this->assertSame(1, $summary['scanned_snapshots']);
+    }
+
+    public function test_pin_removal_after_address_review_blocks_confirmation_without_new_versions(): void
+    {
+        [$customer, $order, $address] = $this->placed();
+        $quote = $this->quote($order, $address)->assertOk()->json('data.quoteId');
+        $address->update(['latitude' => null, 'longitude' => null]);
+        $this->confirm($order, $address, $quote)->assertUnprocessable()
+            ->assertJsonPath('code', 'ADDRESS_PIN_REQUIRED')->assertJsonValidationErrors('address_id');
+        $this->assertDatabaseCount('order_addresses', 1);
+        $this->assertSame(1, $order->fresh('address')->address->version);
     }
 
     private function placed(?string $voucherIssuer = null): array
