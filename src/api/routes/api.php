@@ -81,6 +81,7 @@ use App\Http\Controllers\Logistics\DeliveryProofPhotoController;
 use App\Http\Controllers\Logistics\DeployRiderController;
 use App\Http\Controllers\Logistics\DispatchScheduleController;
 use App\Http\Controllers\Logistics\FinanceController as LogisticsFinanceController;
+use App\Http\Controllers\Logistics\FleetMonitoringController;
 use App\Http\Controllers\Logistics\FulfillmentStatusController;
 use App\Http\Controllers\Logistics\HubRoutingController;
 use App\Http\Controllers\Logistics\LinehaulController;
@@ -581,6 +582,9 @@ Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', '
     Route::get('/rate-cards', [RateCardController::class, 'index'])->name('rate-cards.index');
     Route::post('/rate-cards', [RateCardController::class, 'store'])->name('rate-cards.store');
     Route::post('/rate-cards/{card}/publish', [RateCardController::class, 'publish'])->whereUuid('card')->name('rate-cards.publish');
+    Route::get('/fleet/monitoring', [FleetMonitoringController::class, 'index']);
+    Route::get('/fleet/monitoring/{truck}', [FleetMonitoringController::class, 'show'])->whereUuid('truck');
+    Route::get('/fleet/monitoring/{truck}/trips', [FleetMonitoringController::class, 'trips'])->whereUuid('truck');
     Route::get('/fleet', [CompanyFleetController::class, 'index'])->name('fleet.index');
     Route::post('/fleet/trucks', [CompanyFleetController::class, 'store'])->name('fleet.trucks.store');
     Route::patch('/fleet/trucks/{truck}', [CompanyFleetController::class, 'update'])->whereUuid('truck')->name('fleet.trucks.update');
