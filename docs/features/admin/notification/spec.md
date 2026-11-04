@@ -12,6 +12,16 @@ implementation_reviewed_on: 2026-10-29
 
 # Admin Notifications
 
+### Shared web presentation — 2026-11-04
+
+- The inbox and header bell now consume the shared center, filters, rows/list, and nonmodal bell panel from `@aisley/ui/notifications`. The owning app retains API requests, account/role authorization, URL filters/pagination, notification ordering, destination resolution, and read behavior. The [web design contract](../../../design.md) governs appearance and role themes.
+- Status controls combine with a labeled category selector; changing either resets the URL page. API category labels and stale-response guards remain authoritative. Lists/previews never mark all entries read merely by opening.
+- The five-item bell preview refreshes on opening and existing role polling/events. Account-keyed mounts discard old preview state; superseded requests cannot overwrite the latest results. Loading, filtered-empty, failed refresh/retry, unknown count, and per-item pending states stay distinct.
+- The anchored panel stays within the viewport, scrolls internally, supports outside-pointer/focus and Escape dismissal, and restores trigger focus after Escape/Close. Next.js/React Router navigation remains native to its app.
+- Admin retains its existing global Mark all read action and read-before-navigation failure behavior. Seller and Logistics retain their notification-detail links and support-ticket overrides. Detail screens, API/DB contracts, campaign sending, and external Flutter clients are unchanged.
+- Executed checks and acceptance limits are recorded in [web notification verification](../../../references/web-notifications-verification.md).
+
+
 ## WHAT
 
 ### Current implementation — 2026-10-12
