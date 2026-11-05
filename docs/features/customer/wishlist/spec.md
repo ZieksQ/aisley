@@ -55,7 +55,7 @@ GET    /api/v1/customer/wishlist/status?product_ids[]=...
 
 ### Customer experience
 
-- Add accessible Save/Remove controls to Product Detail and reusable Product Cards. Guest activation redirects to sign-in with a same-origin return path, then requires an intentional retry; do not silently persist a guest click.
+- Add accessible Save/Remove controls to Product Detail and reusable Product Cards. Homepage rails/feed explicitly hide these controls; Search, Shop and account card consumers retain them. Guest activation redirects to sign-in with a same-origin return path, then requires an intentional retry; do not silently persist a guest click.
 - `/account/wishlist` requires Customer auth and provides loading, empty, paginated, error/retry, and removed/unavailable-item states.
 - Each saved Product uses the existing Product-card presentation and current server price/availability. The page offers Add to Cart only through the existing Cart flow; variant-required Products route the Customer to Product Detail.
 - Use optimistic toggles only with pending/disabled controls, rollback on failure, and server reconciliation. Heart/icon styling cannot be the only state indicator.

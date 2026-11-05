@@ -99,3 +99,7 @@ Short, dated implementation log. Append entries; archive complete logs after 150
 
 - Added `policy-consent-batch-v1` to the shared contract: atomic pending-version acceptance, two confirmations and one Accept action; preserved current/history reads, legacy acceptance, actor gates and exact-version retries. The external Buyer app now implements the combined flow.
 - External source verification: 46 consent/repository/widget/session tests and Flutter analysis passed; responsive/theme/large-text captures reviewed. These are local client checks, not live/deployed or installed-device acceptance. Updated affected endpoint/operation/response examples alongside the shared specification.
+
+## 2026-11-05 — Homepage main-category API contract
+
+- Documented that homepage categories now identify active main `ShopCategory` groups with the existing DTO and null image URLs. Web homepage icons and Save removal do not establish Flutter adoption; client and live/device status remain unchanged.

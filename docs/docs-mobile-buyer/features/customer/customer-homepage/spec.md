@@ -20,7 +20,7 @@ Flutter: **implemented; acceptance partial**. See [Phase 2 evidence](../../../re
 
 Home sections → Products/Shops search or detail → bounded discovery load more.
 
-- Render eligible server-selected ads/categories/deals/top/history/feed; omit empty optional rails and unavailable destinations. Category cards use Products keyword search by Category name, not an exact global category filter.
+- Render eligible server-selected ads/categories/deals/top/history/feed; omit empty optional rails and unavailable destinations. Category cards use Products keyword search by Category name, not an exact global category filter. Current API categories are active main `ShopCategory` groups with group IDs/slugs and nullable `imageUrl` (currently null); Flutter adoption remains unverified.
 - Card numeric prices/compact availability never authorize purchase. Purchase rails use purchasable visibility; recency may show visible out-of-stock Products. Cart badge comes from Cart API, not the Home viewer.cartItemCount placeholder.
 - Backend public Home remains credential-free; Buyer Home mounts only after identity/consent verification. Clear viewer/history/feed immediately on account change, ignore old responses, deduplicate Product IDs, respect opaque cursor/end/client cap and preserve items on page errors. Impressions never record recency.
 - Home links to voucher discovery; Bazaar/MoneyFest and absent shortcut result pages remain deferred.

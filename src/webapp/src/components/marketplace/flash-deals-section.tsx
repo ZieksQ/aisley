@@ -90,6 +90,7 @@ export function FlashDealsSection() {
         {deal.products.map((product, index) => (
           <div key={product.id} className="snap-start">
             <ProductCard
+              showWishlist={false}
               product={product}
               position={index + 1}
               section="flash_deals"

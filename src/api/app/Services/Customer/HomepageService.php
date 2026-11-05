@@ -9,12 +9,12 @@ use App\Enums\HomepageCampaignPlacement;
 use App\Http\Resources\Customer\HomepageCampaignResource;
 use App\Http\Resources\Customer\HomepageCategoryResource;
 use App\Http\Resources\Customer\ProductSummaryResource;
-use App\Models\Category;
 use App\Models\FlashDeal;
 use App\Models\HomepageAdvertisementConfiguration;
 use App\Models\HomepageCampaign;
 use App\Models\Product;
 use App\Models\RecentlyViewedProduct;
+use App\Models\ShopCategory;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\CursorPaginator;
 use Illuminate\Pagination\Cursor;
@@ -206,15 +206,14 @@ class HomepageService
     {
         /** @var array<int, array<string, mixed>> $categories */
         $categories = Cache::remember(
-            Category::HOMEPAGE_CACHE_KEY,
+            ShopCategory::HOMEPAGE_CACHE_KEY,
             max(1, (int) config('homepage.public_cache_seconds', 300)),
-            fn () => Category::query()
-                ->whereNull('parent_id')
+            fn () => ShopCategory::query()
                 ->where('status', CategoryStatus::Active)
                 ->orderBy('name')
                 ->limit((int) config('homepage.categories_limit', 20))
                 ->get()
-                ->map(fn (Category $category) => (new HomepageCategoryResource($category))->resolve())
+                ->map(fn (ShopCategory $category) => (new HomepageCategoryResource($category))->resolve())
                 ->all(),
         );
 

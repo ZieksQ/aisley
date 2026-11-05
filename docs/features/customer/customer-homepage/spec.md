@@ -43,7 +43,7 @@ The current page renders these sections in order; optional empty rails are omitt
 | Utility bar and marketplace header | Existing search, navigation, messages, notifications, Cart, account/login controls; account widgets use their owning providers. |
 | Hero advertisements | `advertisementLayer` when present, otherwise legacy `campaigns.hero/side`; generic discovery artwork/copy when no campaign exists. |
 | Quick actions | Configured Vouchers, Flash Deals, Free Shipping, Top Products, New Arrivals, Shops, and Categories shortcuts; UI displays at most eight. |
-| Categories | Up to 20 active root Categories, name ascending; cards open Products keyword search using the Category name, not an exact Category filter. No requirement that each Category already has visible Products. |
+| Categories | Up to 20 active main groups (`ShopCategory`), name ascending; cards open Products keyword search using the Category name, not an exact Category filter. No requirement that each Category already has visible Products. |
 | Flash deals | One active in-window deal, earliest ending first, with up to 12 eligible discounted Products; omitted when no eligible deal Products exist. |
 | Top products | Up to 12 purchasable Products ranked by sold count, review count, average rating, then publication time, all descending. |
 | Recently viewed | Up to 12 current visible Products from Customer-owned history or resolved guest-local history, newest first. |
@@ -51,7 +51,7 @@ The current page renders these sections in order; optional empty rails are omitt
 
 - There is no separate Homepage Shop-results rail or New Arrivals collection; a shortcut does not certify that its destination feature is implemented.
 - Header submission opens the owning `/search` Products mode with an encoded query; Shops mode belongs to Search.
-- Product cards open `/products/{id}` and reuse Wishlist controls. They do not perform Homepage-specific variant quick-add.
+- Homepage Product cards open `/products/{id}` and hide Wishlist Save controls; other Product-card consumers retain their Wishlist controls. They do not perform Homepage-specific variant quick-add.
 - The live Cart badge comes from `CartProvider`; Homepage `viewer.cartItemCount` currently remains zero and is not an authoritative Cart count.
 
 ### Access, visibility, and safe projections
@@ -95,7 +95,7 @@ The current page renders these sections in order; optional empty rails are omitt
 - Any authenticated identity receives `private, no-store`, even if its role/status prevents personalization; both routes vary by `Accept, Authorization, Cookie`.
 - Server Homepage fetches omit credentials and revalidate after 60 seconds; route ISR also uses 60 seconds. Shared HTML contains only public initial data.
 - Laravel caches Categories, legacy campaigns, and the published ad configuration for configurable 300 seconds by default; Product/history queries are not stored in those public caches.
-- Category/campaign model saves/deletes invalidate their caches; advertisement publication clears the layer cache. Time-window expiry is checked after cache retrieval.
+- Main-group (`ShopCategory`)/campaign model saves/deletes invalidate their caches; advertisement publication clears the layer cache. Time-window expiry is checked after cache retrieval.
 - These are distinct cache layers, not instant global invalidation; already-rendered cards/artwork may remain stale until refresh or cache expiry.
 - Browser discovery restoration uses bounded `sessionStorage` under `aisley:homepage-discovery:v3:{encoded owner}` with `guest` or `customer:{Customer UUID}` ownership, feed signature, limits, cursor, and scroll position; storage failure is non-blocking. The unscoped v2 cache and other accounts' caches are removed once identity is resolved or a known session is invalidated.
 - Customer-private state must never enter shared cache or analytics. Logout, account switch, and authorization loss must discard obsolete private data and pending results.
@@ -175,3 +175,8 @@ Checked items describe inspected implementation/source coverage, not a new runti
 - Local Chromium with an isolated mock API and a real second tab verifies keyboard logout, account switching, supported BroadcastChannel logout, immediate old-history/feed removal, delayed Homepage/page completion, same-base-signature account separation, reload/restoration, loading/page failure/retry, blocked storage, 390/768/1280px containment, light-only styling, and search focus. This is not live authenticated production certification.
 - SQLite `CustomerHomepageTest` passes (5 tests/99 assertions). The combined Homepage/Recently Viewed regression has 9 passing and 2 failing tests (159 assertions): two unchanged Recently Viewed tests create Products using today's publication date before moving their clock back to September 3, causing correct visibility `404`s. Both pass individually when the clock is set before fixture creation (9 and 23 assertions); no backend/test fix was included in this frontend task.
 - No API contract, migration, seed, dependency, or application database changed; PostgreSQL was not rerun for this frontend-only change. Remaining Homepage integration gates stay unchecked.
+
+### Main-category presentation (2026-11-05)
+
+- Homepage categories now project active `ShopCategory` groups rather than product-category roots. The unchanged DTO returns group `id/slug/name` and null `imageUrl`; the web homepage renders a distinct icon per known group, with a grid fallback. Group changes invalidate a dedicated versioned cache.
+- Names, alphabetical selection, 20-item limit and Products keyword-search navigation remain. Homepage Flash Deals, Top Products, Recently Viewed and Discovery hide Save; Search, Shop and account card consumers retain it.
