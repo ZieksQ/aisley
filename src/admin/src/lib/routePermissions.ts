@@ -1,4 +1,5 @@
 export function routePermission(path: string): string | undefined {
+  if (path === '/notification-campaigns/new') return 'notification-campaigns.manage'
   if (path === '/admin-accounts/new') return 'admin-accounts.create'
   const prefixes: [string, string][] = [
     ['/admin-accounts', 'admin-accounts.view'],

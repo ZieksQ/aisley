@@ -35,7 +35,7 @@ export type CampaignPreview = {
 
 const path = '/api/v1/admin/notification-campaigns'
 
-export const listCampaigns = (page = 1) => apiRequest<{ data: Campaign[]; meta: { current_page: number; last_page: number; total: number } }>(`${path}?page=${page}`)
+export const listCampaigns = (page = 1, signal?: AbortSignal) => apiRequest<{ data: Campaign[]; meta: { current_page: number; last_page: number; total: number } }>(`${path}?page=${page}`, { signal })
 export const getCampaign = (id: string) => apiRequest<{ data: Campaign }>(`${path}/${id}`)
 export const createCampaign = (input: CampaignInput) => apiRequest<{ data: Campaign }>(path, { method: 'POST', body: JSON.stringify(input) })
 export const updateCampaign = (id: string, input: CampaignInput, revision: number) => apiRequest<{ data: Campaign }>(`${path}/${id}`, { method: 'PATCH', body: JSON.stringify({ ...input, revision }) })

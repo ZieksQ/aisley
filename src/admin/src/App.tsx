@@ -69,6 +69,7 @@ function App() {
             <Route element={<AuditLogDetailPage />} path="/audit-logs/:auditLogId" />
             <Route element={<NotificationsPage />} path="/notifications" />
             <Route element={<NotificationCampaignsPage />} path="/notification-campaigns" />
+            <Route element={<NotificationCampaignDetailPage />} path="/notification-campaigns/new" />
             <Route element={<NotificationCampaignDetailPage />} path="/notification-campaigns/:campaignId" />
             <Route element={<SupportTicketsPage />} path="/support-tickets" />
             <Route element={<SupportTicketsPage />} path="/support-tickets/:ticketId" />

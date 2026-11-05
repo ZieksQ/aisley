@@ -1,190 +1,97 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { LuArrowLeft, LuRefreshCw } from 'react-icons/lu'
+import { ConfirmationDialog, PortalSkeleton, PortalState } from '@aisley/ui/portal'
 import { useAuth } from '../auth/useAuth'
 import { CampaignForm } from '../components/campaigns/CampaignForm'
-import { ApiError } from '../lib/api'
-import { getCampaign, previewCampaign, sendCampaign, updateCampaign } from '../lib/notificationCampaigns'
-import type { Campaign, CampaignInput, CampaignPreview } from '../lib/notificationCampaigns'
-
-function message(error: unknown) {
-  if (error instanceof ApiError) return Object.values(error.errors)[0]?.[0] ?? error.message
-  return error instanceof Error ? error.message : 'The request could not be completed.'
-}
+import { CampaignAudienceReview } from '../components/campaigns/CampaignAudienceReview'
+import { CampaignDeliveryResults } from '../components/campaigns/CampaignDeliveryResults'
+import { CampaignNavigationGuard } from '../components/campaigns/CampaignNavigationGuard'
+import { CampaignDestination, CampaignMessagePreview, CampaignStatusBadge } from '../components/campaigns/presentation'
+import { campaignDate, campaignNumber } from '../components/campaigns/format'
+import { useCampaignEditor } from '../components/campaigns/useCampaignEditor'
+import '../components/campaigns/campaigns.css'
 
 export function NotificationCampaignDetailPage() {
   const { campaignId } = useParams<{ campaignId: string }>()
   const { admin } = useAuth()
-  const canView = admin?.permissions.includes('notification-campaigns.view') ?? false
   const canManage = admin?.permissions.includes('notification-campaigns.manage') ?? false
-  const [campaign, setCampaign] = useState<Campaign | null>(null)
-  const [preview, setPreview] = useState<CampaignPreview | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [busy, setBusy] = useState(false)
-  const [confirming, setConfirming] = useState(false)
-  const [error, setError] = useState('')
-  const [notice, setNotice] = useState('')
-  const sendKey = useRef<string | null>(null)
-  const activeStatus = campaign?.status
-
-  const refresh = useCallback(async () => {
-    if (!campaignId) return
-    const result = await getCampaign(campaignId)
-    setCampaign(result.data)
-  }, [campaignId])
-
-  useEffect(() => {
-    document.title = 'Notification campaign | Aisley Admin'
-    if (!canView) return
-    let current = true
-    getCampaign(campaignId ?? '').then((response) => {
-      if (current) setCampaign(response.data)
-    }).catch((reason) => {
-      if (current) setError(message(reason))
-    }).finally(() => {
-      if (current) setLoading(false)
-    })
-    return () => { current = false }
-  }, [campaignId, canView])
-
-  useEffect(() => {
-    if (!activeStatus || !['preparing', 'queued', 'sending'].includes(activeStatus)) return
-    const timer = window.setInterval(() => {
-      void refresh().catch((reason) => setError(message(reason)))
-    }, 5000)
-    return () => window.clearInterval(timer)
-  }, [activeStatus, refresh])
-
-  async function save(input: CampaignInput) {
-    if (!campaignId || !campaign) return
-    setBusy(true)
-    setError('')
-    setNotice('')
-    try {
-      const response = await updateCampaign(campaignId, input, campaign.revision)
-      setCampaign(response.data)
-      setPreview(null)
-      setConfirming(false)
-      setNotice('Draft saved. Preview the updated revision before sending.')
-    } catch (reason) {
-      setError(message(reason))
-      if (reason instanceof ApiError && reason.status === 409) void refresh()
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function calculatePreview() {
-    if (!campaignId || !campaign) return
-    setBusy(true)
-    setError('')
-    setNotice('')
-    try {
-      const result = await previewCampaign(campaignId, campaign.revision)
-      setPreview(result.data)
-      await refresh()
-    } catch (reason) {
-      setError(message(reason))
-      if (reason instanceof ApiError && reason.status === 409) void refresh()
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function confirmSend() {
-    if (!campaignId || !campaign || !preview?.dispatch_allowed) return
-    setBusy(true)
-    setError('')
-    setNotice('')
-    sendKey.current ??= crypto.randomUUID()
-    try {
-      const result = await sendCampaign(campaignId, campaign.revision, sendKey.current)
-      setCampaign(result.data)
-      setConfirming(false)
-      setNotice('Campaign queued. Persisted delivery results will update here.')
-    } catch (reason) {
-      try {
-        await refresh()
-      } catch { /* Keep the same idempotency key for the next retry. */ }
-      setError(`${message(reason)} The campaign was refreshed; if it is still a draft, retry with the same send request.`)
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  if (!canView) {
-    return <p className="mx-auto max-w-5xl p-8 text-sm" role="alert">You do not have permission to view notification campaigns.</p>
-  }
-
-  return (
-    <div className="mx-auto max-w-5xl space-y-6 px-5 py-8 sm:px-8">
-      <Link className="text-sm font-medium text-[#4C1268] dark:text-pink-300" to="/notification-campaigns">← Campaign history</Link>
-      {loading ? (
-        <p className="text-sm text-slate-500 dark:text-slate-400">Loading campaign…</p>
-      ) : !campaign ? (
-        <p className="text-sm text-rose-700 dark:text-rose-300" role="alert">{error || 'Campaign not found.'}</p>
-      ) : (
-        <>
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h2 className="text-xl font-semibold">{campaign.title}</h2>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{campaign.status.replaceAll('_', ' ')} · Revision {campaign.revision}</p>
-            </div>
-            <button className="rounded-md border border-slate-300 px-3 py-2 text-sm dark:border-white/20" onClick={() => void refresh().catch((reason) => setError(message(reason)))} type="button">Refresh status</button>
-          </div>
-          {notice && <p className="border-l-2 border-emerald-600 bg-emerald-50 p-3 text-sm text-emerald-800 dark:bg-emerald-400/10 dark:text-emerald-200" role="status">{notice}</p>}
-          {error && <p className="border-l-2 border-rose-600 bg-rose-50 p-3 text-sm text-rose-800 dark:bg-rose-400/10 dark:text-rose-200" role="alert">{error}</p>}
-          {campaign.status === 'draft' ? (
-            <>
-              <section className="rounded-lg border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-[#180f20]">
-                <h3 className="mb-4 font-semibold">Draft message</h3>
-                {canManage ? (
-                  <CampaignForm busy={busy} buttonLabel="Save draft" initial={campaign} key={campaign.revision} onSave={save} />
-                ) : <p className="whitespace-pre-wrap text-sm">{campaign.body}</p>}
-              </section>
-              {canManage && (
-                <section className="rounded-lg border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-[#180f20]">
-                  <h3 className="font-semibold">Preview and send</h3>
-                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">The count is advisory. Eligible recipients are frozen when you confirm.</p>
-                  <button className="mt-4 rounded-md border border-slate-300 px-4 py-2 text-sm font-medium disabled:opacity-50 dark:border-white/20" disabled={busy} onClick={() => void calculatePreview()} type="button">Calculate eligible audience</button>
-                  {preview && (
-                    <div className="mt-4 border-t border-slate-200 pt-4 text-sm dark:border-white/10">
-                      <p>{preview.audience_label}: <strong>{preview.eligible_count}</strong> eligible at {new Date(preview.calculated_at).toLocaleString()}</p>
-                      {!preview.dispatch_allowed && <p className="mt-2 text-amber-700 dark:text-amber-300">A send requires 1–10,000 eligible Customers.</p>}
-                    </div>
-                  )}
-                  {preview?.dispatch_allowed && !confirming && (
-                    <button className="mt-4 rounded-md bg-[#4C1268] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50" disabled={busy} onClick={() => setConfirming(true)} type="button">Review send</button>
-                  )}
-                  {confirming && (
-                    <div aria-label="Confirm campaign send" className="mt-4 border border-slate-300 p-4 text-sm dark:border-white/20" role="group">
-                      <h4 className="font-semibold">Confirm send</h4>
-                      <p className="mt-2">{campaign.title}</p>
-                      <p className="mt-1 whitespace-pre-wrap">{campaign.body}</p>
-                      <p className="mt-3">Audience: {preview?.audience_label} · Estimated {preview?.eligible_count}</p>
-                      <div className="mt-4 flex gap-2">
-                        <button className="rounded-md bg-[#4C1268] px-4 py-2 font-semibold text-white disabled:opacity-50" disabled={busy} onClick={() => void confirmSend()} type="button">{busy ? 'Sending…' : 'Confirm and queue'}</button>
-                        <button className="rounded-md border border-slate-300 px-4 py-2 dark:border-white/20" disabled={busy} onClick={() => setConfirming(false)} type="button">Cancel</button>
-                      </div>
-                    </div>
-                  )}
-                </section>
-              )}
-            </>
-          ) : (
-            <section className="rounded-lg border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-[#180f20]">
-              <h3 className="font-semibold">Delivery results</h3>
-              <p className="mt-2 whitespace-pre-wrap text-sm">{campaign.body}</p>
-              <dl className="mt-4 grid grid-cols-2 gap-4 border-t border-slate-200 pt-4 text-sm dark:border-white/10 sm:grid-cols-4">
-                <div><dt>Frozen audience</dt><dd className="font-semibold">{campaign.snapshot_count}</dd></div>
-                <div><dt>Persisted</dt><dd className="font-semibold">{campaign.delivered_count}</dd></div>
-                <div><dt>Skipped</dt><dd className="font-semibold">{campaign.skipped_count}</dd></div>
-                <div><dt>Failed</dt><dd className="font-semibold">{campaign.failed_count}</dd></div>
-              </dl>
-              <p className="mt-4 text-xs text-slate-500 dark:text-slate-400">Persisted means saved to the Customer inbox, not read by a Customer.</p>
-            </section>
-          )}
-        </>
-      )}
+  if (!admin?.permissions.includes('notification-campaigns.view') || (!campaignId && !canManage))
+    return <div className="portal-page">
+      <PortalState title="Access restricted" description="You do not have permission to open this campaign workspace." error />
     </div>
-  )
+  return <CampaignEditor key={`${admin.id}:${admin.permissions.join(',')}:${campaignId ?? 'new'}`} id={campaignId} canManage={canManage} />
+}
+function CampaignEditor({ id, canManage }: { id?: string; canManage: boolean }) {
+  const editor = useCampaignEditor(id, canManage)
+  const { campaign, input, preview, dirty, busy, uncertain } = editor
+  const [confirming, setConfirming] = useState(false)
+  const navigate = useNavigate()
+  useEffect(() => { document.title = `${id ? 'Campaign detail' : 'New campaign'} | Aisley Admin` }, [id])
+  useEffect(() => { if (editor.createdId) navigate(`/notification-campaigns/${editor.createdId}`, { replace: true }) }, [editor.createdId, navigate])
+  if (editor.denied) return <div className="portal-page">
+    <PortalState title="Access restricted" description="Your campaign access has changed. Refresh your session to continue." error />
+  </div>
+  const isDraft = !id || campaign?.status === 'draft'
+  const locked = busy || editor.refreshing || uncertain
+  return <div className="portal-page campaigns-page">
+    <CampaignNavigationGuard dirty={dirty && isDraft && canManage} busy={busy} uncertain={uncertain} />
+    <Link className="portal-link campaign-back" to="/notification-campaigns">
+      <LuArrowLeft aria-hidden="true" />Campaign history</Link>
+    <div className="portal-page-header">
+      <div>
+        <h2 className="portal-page-heading">{!id ? 'New campaign' : isDraft ? 'Campaign draft' : 'Campaign delivery'}</h2>
+        <p className="portal-page-description">{!id ? 'Prepare an in-app message. Review and confirm before sending.' : campaign?.title ?? 'Review the message and its delivery status.'}</p>
+        {campaign && <div className="campaign-detail-meta">
+          <CampaignStatusBadge status={campaign.status} />
+          <span>Revision {campaign.revision}</span>
+          <span>Created {campaignDate(campaign.created_at)}</span>
+        </div>}
+      </div>
+      {id && <div className="campaign-refresh">
+        <button className="portal-button" disabled={busy || editor.refreshing} onClick={() => void editor.refresh()} type="button">
+          <LuRefreshCw aria-hidden="true" />{editor.refreshing ? 'Checking…' : 'Check status'}</button>
+        {editor.updatedAt && <p className="portal-secondary">Updated {campaignDate(editor.updatedAt)}</p>}
+      </div>}
+    </div>
+    {editor.notice && <p className="campaign-notice" role="status">{editor.notice}</p>}
+    {editor.error && <PortalState title={editor.error.operation === 'load' ? 'Could not load campaign status' : `Could not ${editor.error.operation === 'preview' ? 'calculate audience' : editor.error.operation === 'send' ? 'confirm the send outcome' : 'save the draft'}`}
+      description={`${editor.error.message}${uncertain ? ' Check status to reconcile this request. Editing and sending are paused.' : ''}`} error
+      action={editor.error.operation === 'load' || uncertain ? <button className="portal-button" disabled={busy || editor.refreshing} onClick={() => void editor.refresh()}>Retry status check</button> : undefined} />}
+    {editor.loading ? <PortalSkeleton label="Loading campaign" /> : id && !campaign ? (!editor.error && <PortalState title="Campaign unavailable" description="Return to campaign history to choose another campaign." />) : <>
+      {isDraft && canManage ? <div className="campaign-editor-grid">
+        <CampaignForm input={input} busy={locked} dirty={dirty} errors={editor.errors} onChange={editor.change} onSave={() => void editor.save()} isNew={!id} />
+        <div className="campaign-editor-aside">
+          <CampaignMessagePreview input={input} />
+          {campaign && id && <CampaignAudienceReview preview={preview} dirty={dirty} busy={busy || editor.refreshing} uncertain={uncertain} onCalculate={() => void editor.calculate()} onReview={() => setConfirming(true)} />}
+          {!id && <section className="portal-panel campaign-review">
+            <h3>Before you send</h3>
+            <p className="portal-secondary">Create the draft first, then calculate the eligible audience and review the saved message. You will confirm once more before it is queued.</p>
+          </section>}
+          {campaign && editor.conflict && <CampaignMessagePreview input={campaign} saved />}
+        </div>
+      </div> : campaign && (campaign.status === 'draft' ? <div className="campaign-editor-grid">
+        <CampaignMessagePreview input={campaign} saved />
+        <section className="portal-panel campaign-review">
+          <h3>Draft details</h3>
+          <p className="portal-secondary">{campaign.audience_label}</p>
+          <p className="campaign-note">This draft has not been sent. Your access allows viewing campaigns only.</p>
+        </section>
+      </div> : <div className="campaign-editor-grid">
+        <CampaignDeliveryResults campaign={campaign} />
+        <CampaignMessagePreview input={campaign} saved />
+      </div>)}
+    </>}
+    {confirming && campaign?.status === 'draft' && preview?.dispatch_allowed && !dirty && !uncertain && <ConfirmationDialog
+      title="Send this campaign?" confirmLabel="Confirm and queue" busy={busy} confirmDisabled={editor.refreshing}
+      onClose={() => setConfirming(false)} onConfirm={() => { void editor.send().finally(() => setConfirming(false)) }}>
+      <div className="campaign-confirm-message">
+        <p className="campaign-message-title">{campaign.title}</p>
+        <p className="campaign-message-body">{campaign.body}</p>
+        <CampaignDestination input={campaign} />
+      </div>
+      <p>{preview.audience_label}: approximately <strong>{campaignNumber(preview.eligible_count)}</strong> Customers.</p>
+      <p>Revision {campaign.revision}. Eligibility is finalized on confirmation. Once queued, the message cannot be edited.</p>
+    </ConfirmationDialog>}
+  </div>
 }

@@ -30,3 +30,8 @@ Short, dated log of what has been implemented across the whole app. Append new e
 
 - Homepage now lists active main category groups with matching icons and a fallback, and hides Save across homepage product sections while retaining it elsewhere. Added main-group cache invalidation and updated canonical/Buyer API documentation without changing Flutter status.
 - Verification: 6 API tests (111 assertions), Customer TypeScript/build, scoped ESLint/Pint, URL/session regressions and synthetic Chromium responsive/navigation/session checks passed. Reviewed Taste captures; category source lint passed, while the full-page inspector retains existing commerce/shell and fixture findings. See [verification](features/customer/customer-homepage/verification-2026-11-05.md).
+
+## 2026-11-05 — Admin Campaigns UI/UX refresh
+
+- Refreshed Campaigns with history-first URL pagination, a dedicated draft composer and live plain-text preview, saved-revision audience review, accessible confirmation, delivery-first results and responsive Admin themes. Added stale-revision comparison, uncertain-send reconciliation with stable retry keys, and session/permission-safe disposal; preserved API/mobile contracts.
+- Verification: Admin TypeScript/build, scoped lint and diff checks passed; 4 existing API tests (67 assertions) and 91 synthetic Chromium checks passed. Reviewed before/after captures and final Taste inspections at 1440/768/390px in both themes: no failures, with documented natural-height column warnings. PostgreSQL/deployed acceptance remains open. See [verification](features/admin/push-notification-bar/verification-2026-11-05.md).
