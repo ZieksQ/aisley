@@ -22,6 +22,7 @@ export function PolicyConsentPanel({ api, historyBaseUrl = '', onComplete, accen
     '--consent-ink': 'var(--portal-text, #231429)',
     '--consent-muted': 'var(--portal-muted, #4b5563)',
     '--consent-surface': 'var(--portal-surface, #fff)',
+    '--consent-document-surface': 'var(--portal-subtle, #f7f5f7)',
     '--consent-border': 'var(--portal-border, #d1d5db)',
     color: 'var(--consent-ink)',
   } as CSSProperties;
@@ -49,7 +50,14 @@ export function PolicyConsentPanel({ api, historyBaseUrl = '', onComplete, accen
                     <>
                     <p className="mt-1 text-sm text-[var(--consent-muted)]">Version {document.version} · Published {date(document.published_at)}</p>
                     {document.change_summary && <p className="mt-3 text-sm leading-6"><strong>What changed:</strong> {document.change_summary}</p>}
-                    <div className="mt-4 whitespace-pre-wrap break-words text-base leading-7">{document.content}</div>
+                    <div
+                      aria-labelledby={`consent-${type}`}
+                      className="mt-4 max-h-[clamp(10rem,25dvh,16rem)] overflow-y-auto overscroll-contain rounded-md border border-[var(--consent-border)] bg-[var(--consent-document-surface)] p-4 text-base leading-7 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--consent-brand)]"
+                      role="region"
+                      tabIndex={0}
+                    >
+                      <p className="whitespace-pre-wrap break-words">{document.content}</p>
+                    </div>
                     </>
                   ) : (
                     <p className="mt-3 text-sm text-[var(--consent-muted)]">

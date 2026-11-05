@@ -35,3 +35,8 @@ Short, dated log of what has been implemented across the whole app. Append new e
 
 - Refreshed Campaigns with history-first URL pagination, a dedicated draft composer and live plain-text preview, saved-revision audience review, accessible confirmation, delivery-first results and responsive Admin themes. Added stale-revision comparison, uncertain-send reconciliation with stable retry keys, and session/permission-safe disposal; preserved API/mobile contracts.
 - Verification: Admin TypeScript/build, scoped lint and diff checks passed; 4 existing API tests (67 assertions) and 91 synthetic Chromium checks passed. Reviewed before/after captures and final Taste inspections at 1440/768/390px in both themes: no failures, with documented natural-height column warnings. PostgreSQL/deployed acceptance remains open. See [verification](features/admin/push-notification-bar/verification-2026-11-05.md).
+
+## 2026-11-05 — Policy consent reading boxes
+
+- Terms and Privacy now use separate bounded, keyboard-focusable scroll regions on Customer, Seller, Admin, and Logistics consent screens. Confirmation checkboxes and Accept remain outside the reading regions; the shared policy specification records this interaction.
+- Verification: Seller, Admin, and Logistics production builds, scoped Oxlint/ESLint, and 28 synthetic Chromium role/theme/viewport checks plus acceptance and independent-scroll flows passed. The Customer Next.js build stalled during optimized compilation and was stopped; Customer production-build verification remains open.

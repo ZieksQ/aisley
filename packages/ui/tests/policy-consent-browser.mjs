@@ -35,12 +35,13 @@ const source = `const process={env:{NODE_ENV:'production'}};const sources=${JSON
 function require(name){if(cache[name])return cache[name].exports;const module={exports:{}};cache[name]=module;new Function('module','exports','require',sources[name])(module,module.exports,require);return module.exports;}
 const React=require('react'),root=require('react-dom/client').createRoot(document.getElementById('root')),Panel=require('./panel').PolicyConsentPanel;
 window.sequence=0;
+window.longPolicyContent=true;
 window.mount=(role='seller',pending=[true,true],mode='ok')=>{
   window.role=role;window.mode=mode;window.calls=[];window.completed=0;window.reads=0;window.release=null;
   window.current=['terms_of_service','privacy_policy'].map((type,i)=>({type,label:i?'Privacy Policy':'Terms of Service',required:pending[i],accepted:!pending[i],accepted_at:pending[i]?null:'2026-10-01T00:00:00Z',accepted_version:pending[i]?null:{version:1,accepted_at:'2026-10-01T00:00:00Z'},current_version:{id:type+'-1',version:1,change_summary:i?null:'Clarified account responsibilities.',published_at:'2026-11-03T00:00:00Z'}}));
   const current=window.current;
   const snapshot=()=>structuredClone({policies:current,all_required_accepted:current.every(p=>!p.required)});
-  const api={status:async()=>{window.reads++;if(window.mode==='readError')throw new Error('Could not load policies.');return {data:snapshot()};},document:async(type)=>({data:{version:{...current.find(p=>p.type===type).current_version,content:(type==='terms_of_service'?'Terms govern your AISLEY account, purchases and delivery services.':'Privacy describes how AISLEY handles account, purchase and delivery information.')+'\\n\\n<example>Policy text stays plain and readable.</example>\\n\\nReview the complete published document before confirming your acceptance.'}}}),accept:async(selections)=>{
+  const api={status:async()=>{window.reads++;if(window.mode==='readError')throw new Error('Could not load policies.');return {data:snapshot()};},document:async(type)=>{const content=(type==='terms_of_service'?'Terms govern your AISLEY account, purchases and delivery services.':'Privacy describes how AISLEY handles account, purchase and delivery information.')+'\\n\\n<example>Policy text stays plain and readable.</example>\\n\\nReview the complete published document before confirming your acceptance.';return {data:{version:{...current.find(p=>p.type===type).current_version,content:window.longPolicyContent?Array.from({length:40},()=>content).join(' '):content}}};},accept:async(selections)=>{
     window.calls.push(structuredClone(selections));
     if(window.mode==='delayed') await new Promise(resolve=>window.release=resolve);
     if(window.mode==='throttle'){const error=new Error('Too many attempts. Wait before retrying.');error.status=429;error.retryAfter=1;throw error;}
@@ -77,6 +78,9 @@ try {
         assert(await js('document.documentElement.scrollWidth<=innerWidth'), `${role} ${theme} ${width} overflow`);
         assert.equal(await js("document.querySelectorAll('button[type=submit]').length"), 1);
         assert(await js("document.querySelector('button[type=submit]').disabled"));
+        assert(await js("document.querySelectorAll('[role=region][tabindex=\"0\"][aria-labelledby]').length===2"), `${role} ${theme} ${width} has two named scroll regions`);
+        assert(await js("[...document.querySelectorAll('[role=region]')].every(el=>el.scrollHeight>el.clientHeight&&getComputedStyle(el).overflowY==='auto')"), `${role} ${theme} ${width} policy text scrolls independently`);
+        assert(await js("document.querySelectorAll('[role=region] form').length===0"), `${role} ${theme} ${width} keeps acceptance controls outside the reading regions`);
         if ([390, 1440].includes(width)) {
           await js('scrollTo(0,0)');
           await browser.screenshot(resolve(artifacts, `${role}-${theme}-${width}-reading.png`));
@@ -96,6 +100,17 @@ try {
       assert(await js("[...document.querySelectorAll('input[type=checkbox]')].every(el=>el.checked&&el.disabled)"));
     }
   }
+  await mount('seller');
+  await browser.viewport(390);
+  await js("document.documentElement.classList.add('dark');window.scrollTo(0,0)");
+  const scrollPoints = await js("[...document.querySelectorAll('[role=region]')].map(region=>{const box=region.getBoundingClientRect();return {x:box.left+box.width/2,y:box.top+box.height/2}})");
+  await browser.cdp('Input.dispatchMouseEvent', { type: 'mouseWheel', ...scrollPoints[0], deltaX: 0, deltaY: 240 });
+  await browser.until("document.querySelectorAll('[role=region]')[0].scrollTop>0", 'Terms region wheel scroll');
+  assert(await js("document.querySelectorAll('[role=region]')[1].scrollTop===0"), 'scrolling Terms leaves Privacy at its own position');
+  await browser.cdp('Input.dispatchMouseEvent', { type: 'mouseWheel', ...scrollPoints[1], deltaX: 0, deltaY: 240 });
+  await browser.until("document.querySelectorAll('[role=region]')[1].scrollTop>0", 'Privacy region wheel scroll');
+  assert(await js("[...document.querySelectorAll('[role=region]')].every(region=>region.scrollTop>0)"), 'both policy regions scroll independently');
+
   await mount('seller', [false, true]);
   assert(await js("document.querySelector('input').checked && document.querySelector('input').disabled"));
   await check(1); await clickAccept();
@@ -152,10 +167,11 @@ try {
   await browser.until("document.querySelectorAll('input[type=checkbox]').length===2", 'read retry');
   await browser.viewport(390);
   await browser.cdp('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
+  await js("document.activeElement.blur();true");
   await browser.cdp('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Tab', code: 'Tab', windowsVirtualKeyCode: 9 });
   await browser.cdp('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Tab', code: 'Tab', windowsVirtualKeyCode: 9 });
-  assert(await js("document.activeElement.matches('a,input,button')"), 'keyboard reaches a real control');
+  assert(await js("document.activeElement.matches('[role=region][tabindex=\"0\"]')"), 'keyboard tab order reaches a policy reading region');
   assert.equal(browser.errors.length, 0);
-  writeFileSync(resolve(artifacts, 'results.json'), JSON.stringify({ responsiveChecks: checks, workflows: 'initial/combined/pending-only/covered/stale/uncertain/retry/throttle/duplicate/read-recovery/keyboard', errors: browser.errors }, null, 2));
+  writeFileSync(resolve(artifacts, 'results.json'), JSON.stringify({ responsiveChecks: checks, longDocumentChecks: checks, workflows: 'initial/combined/pending-only/covered/stale/uncertain/retry/throttle/duplicate/read-recovery/keyboard-focus/independent-scroll', errors: browser.errors }, null, 2));
   console.log(`Passed ${checks} viewport/theme checks and combined-consent workflows; captures: ${artifacts}`);
 } finally { await browser.close(); }
