@@ -1,5 +1,9 @@
 # Progress
 
+## 2026-11-05 — Shared AISLEY logo on landing page
+
+- Replaced the landing page header and footer text wordmarks with the existing shared AISLEY logo SVG, retaining accessible names and the Early access labels.
+
 ## 2026-10-31 — Stitch landing design context
 
 - Reused AISLEY Landing Page project and generated an Astro desktop reference refinement; saved project/screen IDs, screenshot URLs, project thumbnail, exact prompt, response and contract review in src/landing-page/docs/stitch. Flagged unsupported generated copy for correction; full-resolution screenshot downloads require authentication (HTTP 401). Frontend and Flutter unchanged.

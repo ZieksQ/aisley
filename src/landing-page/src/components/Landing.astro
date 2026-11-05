@@ -7,13 +7,14 @@ import Workflow from './stitch/Workflow.astro';
 import Apps from './stitch/Apps.astro';
 import Faq from './stitch/Faq.astro';
 import Portals from './stitch/Portals.astro';
+import brandLogo from '../../../../packages/ui/public/aisley-logo-with-title.svg';
 ---
 <header class="sticky top-0 z-50 w-full bg-surface border-b border-borderPurple">
   <div class="header-inner max-w-[1240px] mx-auto px-8 h-20 flex items-center justify-between">
 
-    <div class="flex items-baseline gap-3">
-      <a href="#hero" class="text-2xl font-bold tracking-tight text-ink hover:text-primaryPurple transition-colors" aria-label="AISLEY Home">
-        AISLEY
+    <div class="flex items-center gap-3">
+      <a href="#hero" class="inline-flex items-center hover:opacity-80 transition-opacity" aria-label="AISLEY Home">
+        <img src={brandLogo.src} width="96" height="32" alt="AISLEY" />
       </a>
       <span class="text-sm font-medium text-muted tracking-normal">
         Early access
@@ -53,8 +54,8 @@ import Portals from './stitch/Portals.astro';
     <div class="grid grid-cols-1 md:grid-cols-12 gap-8 lg:gap-12 mb-12">
 
       <div class="md:col-span-4">
-        <div class="flex items-baseline gap-2 mb-3">
-          <span class="text-2xl font-bold tracking-tight text-ink">AISLEY</span>
+        <div class="flex items-center gap-2 mb-3">
+          <img src={brandLogo.src} width="96" height="32" alt="AISLEY" />
           <span class="text-xs font-medium text-muted">Early access</span>
         </div>
         <p class="text-xs sm:text-sm text-muted leading-relaxed mb-4 max-w-sm">
