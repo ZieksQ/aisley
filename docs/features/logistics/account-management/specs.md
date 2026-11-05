@@ -169,3 +169,10 @@ active Logistics session
 - Before implementing hub relocation, Courier-impacting changes, or operational status actions, revise the owning Logistics/waybill/pickup specifications and schema together.
 
 **References:** `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, `docs/domains/Logistics.md`, `docs/features/logistics/auth/spec.md`, `docs/features/logistics/dashboard/specs.md`, `docs/references/user-registration-requirements.md`, `docs/references/file-upload-requirements.md`, and `docs/design.md`.
+
+
+### Account settings experience — 2026-11-05
+
+- `/settings/account` uses the shared `@aisley/ui/account-settings` presentation with a compact identity summary and Profile, Organization & hub, and Security sections. The `section` query parameter preserves reload and browser history; missing or unsupported values display Profile. Existing routes and outer role navigation remain intact.
+- Ordinary sections mount on first visit and retain unsaved drafts and running uploads when switching sections. Security forms dispose their passwords/codes/challenges when left, while existing authenticated-session password cooldown, pending-operation and reconciliation state survives. Private editor state resets on identity change; obsolete mutation responses cannot refresh a different account.
+- Forms keep their existing API contracts, role/tenant boundaries and field allowlists. Each form has local feedback, readable labels, accessible errors, visible saving states and confirmed image removal. The layout follows `docs/design.md`, including role colors, supported themes, 320px responsiveness and reduced motion. No new backend capability or mobile implementation is implied.

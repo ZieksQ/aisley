@@ -14,7 +14,8 @@
     "./password-change": "./src/password-change/index.ts",
     "./registration-email": "./src/registration-email/index.ts",
     "./policy-consent": "./src/policy-consent/index.ts",
-    "./address-pin": "./src/address-pin/index.tsx"
+    "./address-pin": "./src/address-pin/index.tsx",
+    "./account-settings": "./src/account-settings/index.ts"
   },
   "peerDependencies": {
     "react": "^19.2.8",

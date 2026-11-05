@@ -1,0 +1,29 @@
+@import "/src/seller/src/index.css";
+@source "../../../../src/admin/src";
+@source "../../../../src/seller/src";
+@source "../../../../src/logistics/src";
+@source "../../../../src/webapp/src";
+@source "../../../../packages/ui/src";
+
+.fixture-customer > main {
+  max-width: 1000px;
+  margin: auto;
+  padding: 24px;
+}
+.fixture-top {
+  height: 64px;
+  padding: 20px 32px;
+  border-bottom: 1px solid var(--portal-border);
+  display: flex;
+  justify-content: space-between;
+  background: var(--portal-surface);
+}
+@media (max-width: 900px) {
+  .fixture-customer > main {
+    padding: 16px;
+  }
+  .fixture-top {
+    height: 56px;
+    padding: 16px;
+  }
+}

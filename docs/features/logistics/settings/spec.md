@@ -28,3 +28,5 @@ No API, approval, tenant ownership, financial permission, or policy acceptance c
 Follow [the web design contract](../../../design.md) for appearance, responsive behavior, and supported themes. Preserve visible labels, keyboard focus, mobile navigation closure, and expanded/rail/drawer navigation behavior. Sidebar open/close controls expose expanded state; the mobile drawer contains focus and closes on Escape with trigger focus restoration. Account/group dropdowns are removed.
 
 Verify the four Settings routes at narrow, intermediate and desktop widths; legacy redirects; required-consent access; device theme changes, explicit overrides and reload persistence; Account/Billing/Terms loading and failure feedback. Browser fixtures establish frontend behavior, not live API integration.
+
+Account Settings now groups existing personal, organization/hub and security workflows behind the `section` query parameter. These are sections of `/settings/account`, preserving the Settings sidebar, legacy redirects and consent gates.

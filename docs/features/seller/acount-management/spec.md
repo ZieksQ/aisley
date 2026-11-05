@@ -141,3 +141,10 @@ scope: Seller Web Application and Laravel API
 - Keep API responses consistent with Seller Auth's safe DTO so session bootstrap and Account settings cannot disagree about role/status.
 
 **References:** `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, `docs/domains/Seller.md`, Seller Auth, Admin Account Management, and the shared file-upload policy.
+
+
+### Account settings experience — 2026-11-05
+
+- `/account` uses the shared `@aisley/ui/account-settings` presentation with a compact identity summary and Profile, Storefront, Pickup addresses, and Security sections. The `section` query parameter preserves reload and browser history; missing or unsupported values display Profile. Existing routes and outer role navigation remain intact.
+- Ordinary sections mount on first visit and retain unsaved drafts and running uploads when switching sections. Security forms dispose their passwords/codes/challenges when left, while existing authenticated-session password cooldown, pending-operation and reconciliation state survives. Private editor state resets on identity change; obsolete mutation responses cannot refresh a different account.
+- Forms keep their existing API contracts, role/tenant boundaries and field allowlists. Each form has local feedback, readable labels, accessible errors, visible saving states and confirmed image removal. The layout follows `docs/design.md`, including role colors, supported themes, 320px responsiveness and reduced motion. No new backend capability or mobile implementation is implied.

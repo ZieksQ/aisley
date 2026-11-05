@@ -157,3 +157,10 @@ scope: Customer web application and Laravel API
 - [Laravel password confirmation/current-password support](https://laravel.com/docs/12.x/middleware) and [Laravel password validation](https://laravel.com/docs/12.x/validation) support the intended authenticated password-change boundary.
 - [OWASP Authentication Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html) supports re-authentication and secure handling for sensitive credential changes.
 - [Laravel file uploads and configured disks](https://laravel.com/docs/12.x/requests#storing-uploaded-files) supports disk-agnostic storage through the configured filesystem.
+
+
+### Account settings experience — 2026-11-05
+
+- `/account/profile` uses the shared `@aisley/ui/account-settings` presentation with a compact identity summary and Profile, ID image, Preferences, and Security sections. The `section` query parameter preserves reload and browser history; missing or unsupported values display Profile. Existing routes and outer role navigation remain intact.
+- Ordinary sections mount on first visit and retain unsaved drafts and running uploads when switching sections. Security forms dispose their passwords/codes/challenges when left, while existing authenticated-session password cooldown, pending-operation and reconciliation state survives. Private editor state resets on identity change; obsolete mutation responses cannot refresh a different account.
+- Forms keep their existing API contracts, role/tenant boundaries and field allowlists. Each form has local feedback, readable labels, accessible errors, visible saving states and confirmed image removal. The layout follows `docs/design.md`, including role colors, supported themes, 320px responsiveness and reduced motion. No new backend capability or mobile implementation is implied.
