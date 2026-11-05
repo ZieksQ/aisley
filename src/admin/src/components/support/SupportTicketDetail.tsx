@@ -1,4 +1,4 @@
-import { TicketViewport, TicketHistory, ticketStatusLabel } from '@aisley/ui/chat'
+import { TicketViewport, TicketHistory, TicketStatusBadge } from '@aisley/ui/chat'
 import '../../../../../packages/support-tickets/src/workspace.css'
 import { useEffect, useRef, useState } from 'react'
 import { useBlocker } from 'react-router-dom'
@@ -21,8 +21,8 @@ type Attempt = {
   reason?: string
 }
 
-const actionClass = 'min-h-9 rounded-md border border-slate-300 px-3 text-sm font-semibold hover:bg-slate-50 disabled:opacity-50 dark:border-white/20 dark:hover:bg-white/5'
-const inputClass = 'min-h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-950 focus-visible:outline-2 focus-visible:outline-[#4C1268] dark:border-white/20 dark:bg-[#211c25] dark:text-white dark:focus-visible:outline-[#C4B5FD]'
+const actionClass = 'min-h-11 rounded-md border border-slate-300 px-3 text-sm font-semibold hover:bg-slate-50 disabled:opacity-50 dark:border-white/20 dark:hover:bg-white/5'
+const inputClass = 'min-h-11 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-950 focus-visible:outline-2 focus-visible:outline-[#4C1268] dark:border-white/20 dark:bg-slate-900 dark:text-white dark:focus-visible:outline-[#C4B5FD]'
 
 export function SupportTicketDetail({ detail, assignees, canManage, onChanged, onLoadOlder, loadingOlder }: {
   detail: TicketDetail
@@ -34,6 +34,7 @@ export function SupportTicketDetail({ detail, assignees, canManage, onChanged, o
 }) {
   const ticket = detail.data
   const [reply, setReply] = useState('')
+  const [managementOpen, setManagementOpen] = useState(false)
   const [assigneeId, setAssigneeId] = useState(ticket.assignee_id ?? '')
   const [targetStatus, setTargetStatus] = useState<TicketStatus>(ticket.status === 'resolved' ? 'open' : 'waiting_for_requester')
   const [reason, setReason] = useState('')
@@ -61,6 +62,7 @@ export function SupportTicketDetail({ detail, assignees, canManage, onChanged, o
     if (previousId.current === ticket.id) return
     previousId.current = ticket.id
     setReply('')
+    setManagementOpen(false)
     setAssigneeId(ticket.assignee_id ?? '')
     setTargetStatus(ticket.status === 'resolved' ? 'open' : 'waiting_for_requester')
     setReason('')
@@ -111,7 +113,10 @@ export function SupportTicketDetail({ detail, assignees, canManage, onChanged, o
         <p className="break-all text-xs text-slate-500 dark:text-slate-400">{ticket.reference}</p>
         <h2 className="mt-1 break-words text-lg font-semibold">{ticket.subject}</h2>
       </div>
-      <span className="rounded-md border border-slate-300 px-2 py-1 text-xs font-semibold dark:border-white/20">{ticketStatusLabel(ticket.status)}</span>
+      <div className="flex flex-wrap items-center gap-2">
+        <TicketStatusBadge status={ticket.status} />
+        {canManage && <button className={actionClass} type="button" aria-expanded={managementOpen} aria-controls="admin-ticket-management" onClick={() => setManagementOpen(open => !open)}>{managementOpen ? 'Hide management' : 'Manage ticket'}</button>}
+      </div>
     </div>
     <dl className="admin-ticket-metadata">
       <div><dt>Requester</dt><dd>{ticket.requester_name ?? 'Requester'} · {ticket.requester_role}</dd></div>
@@ -130,21 +135,28 @@ export function SupportTicketDetail({ detail, assignees, canManage, onChanged, o
     <div className="admin-ticket-conversation">
     <TicketHistory key={ticket.id} events={detail.events} hasOlder={Boolean(detail.next_cursor)} loadingOlder={loadingOlder} onLoadOlder={onLoadOlder} />
     {canManage ? <form onSubmit={(event) => { event.preventDefault(); submit('reply', { body: reply.trim() }) }}>
-        <label className="text-sm font-semibold" htmlFor="admin-ticket-reply">Public reply</label>
+        <div className="support-composer-heading">
+          <label className="text-sm font-semibold" htmlFor="admin-ticket-reply">Public reply</label>
+          <span className="support-ticket-hint" id="admin-ticket-reply-count">{reply.length.toLocaleString('en-PH')}/2,000</span>
+        </div>
         <textarea
           className={`${inputClass} mt-2 min-h-20 py-2`}
           disabled={busy || uncertain || ticket.status === 'resolved'}
           id="admin-ticket-reply"
+          aria-describedby="admin-ticket-reply-count admin-ticket-reply-help"
+          placeholder="Write a reply to the requester…"
           maxLength={2000}
           onChange={(event) => setReply(event.target.value)}
           required
           value={reply}
         />
-        <div className="support-ticket-hint mt-1">{reply.length}/2,000{ticket.status === 'resolved' ? ' · Reopen this ticket to reply.' : ''}</div>
-        <button className={`${actionClass} mt-2`} disabled={busy || uncertain || ticket.status === 'resolved' || !reply.trim()} type="submit">Send reply</button>
+        <div className="support-ticket-actions mt-2">
+          <p className="support-ticket-hint" id="admin-ticket-reply-help">{ticket.status === 'resolved' ? 'Open Manage ticket to reopen before replying.' : 'Visible to the requester and Admin support.'}</p>
+          <button className={actionClass} disabled={busy || uncertain || ticket.status === 'resolved' || !reply.trim()} type="submit">{busy && attempt?.kind === 'reply' ? 'Sending…' : 'Send reply'}</button>
+        </div>
       </form> : <p className="support-ticket-hint p-4">You have view-only access to this ticket.</p>}
     </div>
-    {canManage && <div className="admin-ticket-management">
+    {canManage && <aside aria-label="Ticket management" hidden={!managementOpen} id="admin-ticket-management" className="admin-ticket-management">
       <div>
         <h3 className="text-sm font-semibold">Assignment</h3>
         <div className="mt-2 flex flex-wrap gap-2">
@@ -187,7 +199,7 @@ export function SupportTicketDetail({ detail, assignees, canManage, onChanged, o
         <label className="mt-2 block text-xs" htmlFor="admin-ticket-reason">Visible reason {targetStatus === 'in_progress' ? '(optional)' : '(required)'}</label>
         <textarea className={`${inputClass} mt-1 min-h-20 py-2`} disabled={busy || uncertain} id="admin-ticket-reason" maxLength={2000} onChange={(event) => setReason(event.target.value)} value={reason} />
       </div>
-    </div>}
+    </aside>}
     </div>
   </TicketViewport>
 }

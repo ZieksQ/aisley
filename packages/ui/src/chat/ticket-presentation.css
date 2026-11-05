@@ -1,0 +1,107 @@
+.support-ticket-list-item {
+  display: grid;
+  width: 100%;
+  gap: 8px;
+  min-height: 44px;
+  padding: 16px 20px;
+  border: 0;
+  border-bottom: 1px solid var(--ticket-border, #e4dfe7);
+  background: transparent;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+
+.support-ticket-list-item:hover {
+  background: var(--ticket-canvas, #f7f5f7);
+}
+
+.support-ticket-list-item[aria-current="true"] {
+  background: var(--ticket-tint, #f1eaf4);
+  box-shadow: inset 3px 0 var(--ticket-accent, #4c1268);
+}
+
+.support-ticket-list-item:focus-visible {
+  outline: 2px solid var(--ticket-accent, #4c1268);
+  outline-offset: -3px;
+}
+
+.support-ticket-list-item:disabled {
+  cursor: not-allowed;
+  opacity: .65;
+}
+
+.support-ticket-list-item strong {
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.support-list-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 8px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ticket-muted, #625b68);
+}
+
+.support-list-meta time {
+  font-variant-numeric: tabular-nums;
+}
+
+.support-list-category {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ticket-muted, #625b68);
+}
+
+.support-ticket-unread {
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 600;
+  color: var(--ticket-accent, #4c1268);
+}
+
+.support-ticket-status {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  max-width: 100%;
+  padding: 3px 8px;
+  border: 1px solid var(--ticket-border, #ded8e1);
+  border-radius: 4px;
+  color: var(--ticket-muted, #625b68);
+  background: var(--ticket-surface, #fff);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.support-ticket-status[data-status="waiting_for_requester"] {
+  color: #92400e;
+  background: #fffbeb;
+  border-color: #e9c873;
+}
+
+.support-ticket-status[data-status="resolved"] {
+  color: #166534;
+  background: #f0fdf4;
+  border-color: #a7d6b7;
+}
+
+.dark .support-ticket-status[data-status="waiting_for_requester"] {
+  color: #fde68a;
+  background: #422d16;
+  border-color: #806033;
+}
+
+.dark .support-ticket-status[data-status="resolved"] {
+  color: #bbf7d0;
+  background: #163b2e;
+  border-color: #357355;
+}

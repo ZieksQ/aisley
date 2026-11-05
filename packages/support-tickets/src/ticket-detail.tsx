@@ -1,14 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Button } from '@aisley/ui'
-import { TicketHistory } from '@aisley/ui/chat'
+import { TicketHistory, TicketStatusBadge } from '@aisley/ui/chat'
 import type { TicketClient, TicketDetail, TicketDraftState } from './types'
-
-const statusLabel: Record<string, string> = {
-  open: 'Open',
-  in_progress: 'In progress',
-  waiting_for_requester: 'Waiting for you',
-  resolved: 'Resolved',
-}
 
 export function TicketDetailView({ client, detail, olderBusy, onLoadOlder, onChanged, onDraftChange }: {
   client: TicketClient
@@ -64,17 +57,23 @@ export function TicketDetailView({ client, detail, olderBusy, onLoadOlder, onCha
         <p className="support-ticket-reference">{ticket.reference}</p>
         <h2>{ticket.subject}</h2>
       </div>
-      <span className="support-ticket-status">{statusLabel[ticket.status]}</span>
+      <TicketStatusBadge status={ticket.status} requester />
     </div>
     <p className="support-ticket-meta">
       {ticket.category.charAt(0).toUpperCase() + ticket.category.slice(1)} · Updated {new Date(ticket.last_activity_at).toLocaleString('en-PH', { timeZone: 'Asia/Manila' })}
     </p>
+    {ticket.status === 'resolved' && <p className="support-ticket-notice">This ticket is resolved. Send a reply to reopen it if you still need help.</p>}
     <TicketHistory events={detail.events} hasOlder={Boolean(detail.next_cursor)} loadingOlder={olderBusy} onLoadOlder={onLoadOlder} requester />
     <form className="support-ticket-form" onSubmit={submit}>
-      <label htmlFor="ticket-reply">Reply</label>
+      <div className="support-composer-heading">
+        <label htmlFor="ticket-reply">Reply to support</label>
+        <span className="support-ticket-hint" id="ticket-reply-count">{body.length.toLocaleString('en-PH')}/2,000</span>
+      </div>
       <textarea
         disabled={uncertain || busy}
         id="ticket-reply"
+        aria-describedby="ticket-reply-count"
+        placeholder="Write your reply…"
         maxLength={2000}
         minLength={1}
         onChange={(event) => { setBody(event.target.value); setKey(null) }}
@@ -85,7 +84,7 @@ export function TicketDetailView({ client, detail, olderBusy, onLoadOlder, onCha
       {error && <p className="support-ticket-error" role="alert">{error}</p>}
       {uncertain && <p className="support-ticket-hint">The reply may have been saved. Retry the same submission to check safely.</p>}
       <div className="support-ticket-actions">
-        <span className="support-ticket-hint">{body.length}/2,000</span>
+        <span className="support-ticket-hint">Only you and Admin support can read this ticket.</span>
         <Button disabled={busy || body.trim().length === 0} type="submit">
           {busy ? 'Sending…' : uncertain ? 'Retry reply' : 'Send reply'}
         </Button>
