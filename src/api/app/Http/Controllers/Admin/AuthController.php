@@ -51,6 +51,7 @@ class AuthController extends Controller
         RateLimiter::clear($request->throttleKey());
         Auth::guard('web')->login($user, $request->boolean('remember'));
         $request->session()->regenerate();
+        $request->session()->put('admin_session_version', $user->admin_session_version);
 
         try {
             $this->auditService->record(

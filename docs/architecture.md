@@ -107,6 +107,12 @@ Due to native enum column type errors in PostgreSQL migrations, database columns
 * Storefront (`webapp`) uses the root domain.
 * All dashboards and the API are routed via dedicated subdomains.
 
+### Admin provisioning and authority
+
+Admin accounts use live custom role memberships plus existing individual permission grants. The protected initial super admin and promoted super admins receive the complete permission catalog. A single effective-permission resolver/query scope serves middleware, policies, notification recipients, assignees and dashboard projections. Provisioning mutations serialize through an authority-lock row and recheck current credentials, delegation limits and revisions; role edits update affected account revisions.
+
+New admins complete temporary-password replacement and email OTP before operational access. Changed email identities require OTP again. Sanctum sessions carry an account session version; setup completion and account lifecycle changes invalidate older sessions. Existing admins remain grandfathered. Deploy the additive migration before targeted Admin permission/bootstrap seeding; do not run demo seeders. See [Admin provisioning](features/admin/admin-provisioning/spec.md).
+
 ### Transactional SMTP email
 
 Password resets (Customer/Seller/Logistics) and registration decisions (Admin-reviewed Customer/Seller/Logistics and Logistics-reviewed Courier) use encrypted transactional email intents, the existing database queue, and minute scheduler recovery. The existing eight `MAIL_*` settings select the external SMTP service and sender. Delivery failure cannot reverse an account decision; SMTP acceptance does not establish inbox delivery. See [email contract](features/shared/transactional-email/spec.md) and [operations](references/smtp-email.md).

@@ -14,6 +14,11 @@ implementation_reviewed_on: 2026-10-12
 
 ## WHAT
 
+### Provisioning integration — 2026-11-05
+
+[Admin provisioning](../admin-provisioning/spec.md) owns other-admin creation, custom roles, grants and status changes. This feature remains self-service and cannot change privileges. Changing the current Admin email now clears `email_verified_at`, requires OTP at `/setup`, and blocks operational access until verification succeeds. That resolves the earlier open question about verification of changed email identities. Password creation, first-login replacement and ordinary password editing share the existing minimum-eight/mixed-case/numeric rule through one Admin password policy. Existing ordinary password updates retain current-session behavior; first-login completion separately rotates sessions and invalidates other temporary-credential sessions.
+
+
 ### Current implementation — 2026-10-12
 
 Admin AccountController and AccountPage implement current account GET, profile/email PATCH, password PUT and private profile-photo POST/GET/DELETE under `/api/v1/admin/account`. MFA, preferences and security-session APIs below remain conceptual. Source inspection establishes availability; unchecked criteria and live/release gates remain open. No application tests/builds were rerun for this documentation update.

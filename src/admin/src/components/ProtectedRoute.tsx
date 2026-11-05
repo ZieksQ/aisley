@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 import { fetchPolicyConsentStatus } from '../lib/policyConsent'
+import { routePermission } from '../lib/routePermissions'
 import { ApiError } from '../lib/api'
 import { DashboardSkeleton } from '@aisley/ui/portal'
 
@@ -12,6 +13,7 @@ export function SessionRoute() {
   const location = useLocation()
   if (isLoading) return null
   if (!admin) return <Navigate replace state={{ from: `${location.pathname}${location.search}` }} to="/login" />
+  if (admin.setup_required && location.pathname !== '/setup') return <Navigate replace to="/setup" />
   return <Outlet />
 }
 
@@ -25,7 +27,7 @@ export function ProtectedRoute() {
   const [resolvedKey, setResolvedKey] = useState('')
 
   useEffect(() => {
-    if (!admin || isConsentRoute) {
+    if (!admin || admin.setup_required || isConsentRoute) {
       setResolvedKey(consentKey)
       setConsentState('allowed')
       setConsentError('')
@@ -59,6 +61,11 @@ export function ProtectedRoute() {
     return <Navigate replace state={{ from: location.pathname }} to="/login" />
   }
 
+  if (admin.setup_required) return <Navigate replace to="/setup" />
+  const requiredPermission = routePermission(location.pathname)
+  if (requiredPermission && !admin.permissions.includes(requiredPermission)) {
+    return <section className="portal-page"><h2 className="text-2xl font-semibold">Access restricted</h2><p className="mt-3">You do not have permission to open this page.</p></section>
+  }
   if (isConsentRoute) return <Outlet />
 
   if (resolvedKey !== consentKey || consentState === 'checking') return location.pathname === '/dashboard' ? <div className="portal-page"><DashboardSkeleton /></div> : null

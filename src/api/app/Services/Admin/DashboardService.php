@@ -18,7 +18,7 @@ class DashboardService
 
     public function overview(User $admin): array
     {
-        $permissions = $admin->permissions()->pluck('slug');
+        $permissions = $admin->effectiveAdminPermissions();
 
         return [
             'registrations' => $permissions->contains('registrations.view') ? $this->registrationOverview() : null,

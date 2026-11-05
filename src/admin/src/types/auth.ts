@@ -11,6 +11,12 @@ export type AdminUser = {
   status: 'active'
   profile: AdminProfile | null
   permissions: string[]
+  roles: { id: string; name: string }[]
+  is_super_admin: boolean
+  is_initial_admin: boolean
+  setup_required: boolean
+  password_change_required: boolean
+  email_verification_required: boolean
 }
 
 export type AuthResponse = {

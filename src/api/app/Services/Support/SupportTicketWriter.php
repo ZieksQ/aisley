@@ -128,8 +128,8 @@ class SupportTicketWriter
         }
         if ($assigneeId !== null && ! User::query()
             ->whereKey($assigneeId)->where('role', UserRole::Admin->value)->where('status', UserStatus::Active->value)
-            ->whereHas('permissions', fn ($query) => $query->where('slug', 'support-tickets.view'))
-            ->whereHas('permissions', fn ($query) => $query->where('slug', 'support-tickets.manage'))
+            ->withAdminPermission('support-tickets.view')
+            ->withAdminPermission('support-tickets.manage')
             ->exists()) {
             abort(422, 'The assignee must be an active support-authorized administrator.');
         }

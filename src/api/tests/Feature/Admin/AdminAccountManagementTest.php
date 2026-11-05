@@ -77,6 +77,12 @@ class AdminAccountManagementTest extends TestCase
         ])->assertOk()->assertJsonPath('account.email', 'shared@example.com');
 
         $this->putJson('/api/v1/admin/account/password', [
+            'current_password' => 'CurrentAdmin123', 'password' => 'UpdatedAdmin456', 'password_confirmation' => 'UpdatedAdmin456',
+        ])->assertForbidden()->assertJsonPath('code', 'ADMIN_SETUP_REQUIRED');
+        // Full OTP coverage lives in AdminProvisioningTest; resume this password-policy regression after verification.
+        $admin->forceFill(['admin_email_verification_required' => false, 'email_verified_at' => now()])->save();
+
+        $this->putJson('/api/v1/admin/account/password', [
             'current_password' => 'wrong-password',
             'password' => 'UpdatedAdmin456',
             'password_confirmation' => 'UpdatedAdmin456',

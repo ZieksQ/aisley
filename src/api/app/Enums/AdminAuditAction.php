@@ -6,6 +6,8 @@ enum AdminAuditAction: string
 {
     case RegistrationApproved = 'registration.approved';
     case RegistrationRejected = 'registration.rejected';
+    case AdminAccessChanged = 'admin_account.access_changed';
+    case AdminSetupCompleted = 'admin_account.setup_completed';
     case AdminLoginSucceeded = 'admin.login_succeeded';
     case AdminProfileUpdated = 'admin_account.profile_updated';
     case AdminEmailUpdated = 'admin_account.email_updated';
@@ -47,6 +49,8 @@ enum AdminAuditAction: string
         return match ($this) {
             self::RegistrationApproved => 'Registration approved',
             self::RegistrationRejected => 'Registration rejected',
+            self::AdminAccessChanged => 'Admin access changed',
+            self::AdminSetupCompleted => 'Admin setup completed',
             self::AdminLoginSucceeded => 'Admin signed in',
             self::AdminProfileUpdated => 'Admin profile updated',
             self::AdminEmailUpdated => 'Admin email updated',

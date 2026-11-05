@@ -62,6 +62,8 @@ class AppServiceProvider extends ServiceProvider
                 ->by($request->user()?->getAuthIdentifier() ?? $request->ip()));
         }
 
+        RateLimiter::for('admin-provisioning-write', fn (Request $request): Limit => Limit::perMinute(10)->by('admin-provisioning|'.$request->user()?->id));
+
         RateLimiter::for('password-change-code', fn (Request $request): array => [
             Limit::perMinute(5)->by('password-code-user|'.$request->user()?->id),
             Limit::perHour(30)->by('password-code-ip|'.$request->ip()),

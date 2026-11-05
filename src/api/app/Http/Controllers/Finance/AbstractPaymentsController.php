@@ -92,7 +92,7 @@ abstract class AbstractPaymentsController extends Controller
 
         return $this->json(['data' => ['platform' => $platform, 'collection' => $collection, 'timezone' => 'Asia/Manila',
             'next_collection_at' => $platform->collection_enabled && config('finance.gateway_enabled') ? $next->toISOString() : null, 'gateway_enabled' => config('finance.gateway_enabled'),
-            'can_manage' => $this->role() === 'logistics' || ($this->role() === 'admin' && $request->user()->permissions()->where('slug', 'finance.manage')->exists())]]);
+            'can_manage' => $this->role() === 'logistics' || ($this->role() === 'admin' && $request->user()->hasAdminPermission('finance.manage'))]]);
     }
 
     public function updateSettings(AutomationSettingsRequest $request, FinanceSettingsService $settings, FinanceReadService $reads)

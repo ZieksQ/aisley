@@ -43,7 +43,7 @@ class SupportTicketNotificationPresenter
             && ($data['resource_type'] ?? null) === 'support_ticket'
             && $expectedDestination !== null
             && ($data['destination'] ?? null) === $expectedDestination
-            && ($recipientRole !== UserRole::Admin || $recipient->permissions()->where('slug', 'support-tickets.view')->exists());
+            && ($recipientRole !== UserRole::Admin || $recipient->hasAdminPermission('support-tickets.view'));
 
         if (! $valid) {
             return [

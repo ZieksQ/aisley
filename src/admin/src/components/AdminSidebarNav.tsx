@@ -22,6 +22,7 @@ const groups: NavGroup[] = [
     label: 'Accounts',
     items: [
       { label: 'Account registrations', path: '/registrations', icon: LuClipboardCheck, permission: 'registrations.view' },
+      { label: 'Admin accounts', path: '/admin-accounts', icon: LuUserRoundCog, permission: 'admin-accounts.view' },
       { label: 'User accounts', path: '/users', icon: LuUsers, permission: 'users.view' },
       { label: 'Seller compliance', path: '/seller-compliance', icon: LuScale, permission: 'seller_compliance.manage' },
     ],

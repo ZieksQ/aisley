@@ -82,8 +82,8 @@ class DeliverSupportTicketNotification implements ShouldBeUnique, ShouldQueue
                 ->where('role', UserRole::Admin->value)
                 ->where('status', UserStatus::Active->value)
                 ->whereKeyNot($event->actor_user_id)
-                ->whereHas('permissions', fn ($query) => $query->where('slug', 'notifications.view'))
-                ->whereHas('permissions', fn ($query) => $query->where('slug', 'support-tickets.view'));
+                ->withAdminPermission('notifications.view')
+                ->withAdminPermission('support-tickets.view');
 
             if ($this->type === 'support-ticket.requester-replied' && $ticket->assignee_user_id !== null) {
                 $assignee = $eligibleAdmins()->whereKey($ticket->assignee_user_id)->first();

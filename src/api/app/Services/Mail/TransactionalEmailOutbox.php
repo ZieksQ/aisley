@@ -5,6 +5,7 @@ namespace App\Services\Mail;
 use App\Enums\ApplicationStatus;
 use App\Enums\EmailDeliveryStatus;
 use App\Enums\TransactionalEmailKind;
+use App\Models\AdminSetupChallenge;
 use App\Models\PasswordChangeChallenge;
 use App\Models\RegistrationApplication;
 use App\Models\RegistrationEmailChallenge;
@@ -27,6 +28,13 @@ class TransactionalEmailOutbox
         DB::afterCommit(fn () => app(TransactionalEmailDispatcher::class)->dispatch($email->id));
 
         return $email;
+    }
+
+    public function adminSetupCode(User $user, AdminSetupChallenge $challenge, string $code): TransactionalEmail
+    {
+        return $this->record($user, TransactionalEmailKind::AdminSetupCode, 'admin-setup:'.$challenge->id, [
+            'email' => $user->email, 'challenge_id' => $challenge->id, 'code' => $code,
+        ]);
     }
 
     public function passwordChangeCode(User $user, PasswordChangeChallenge $challenge, string $code): TransactionalEmail

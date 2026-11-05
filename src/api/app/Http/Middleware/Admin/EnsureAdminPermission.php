@@ -14,9 +14,7 @@ class EnsureAdminPermission
      */
     public function handle(Request $request, Closure $next, string $permission): Response
     {
-        $hasPermission = $request->user()?->permissions()
-            ->where('slug', $permission)
-            ->exists() ?? false;
+        $hasPermission = $request->user()?->hasAdminPermission($permission) ?? false;
 
         if (! $hasPermission) {
             return new JsonResponse([

@@ -18,19 +18,19 @@ The Admin role reviews Customers, Sellers, and Logistics registrations. Courier 
 
 ## Authentication, permissions, and account boundary
 
-- The initial Admin is bootstrapped from deployment configuration through the existing seeder. There is no public Admin registration flow.
+- The initial Admin is bootstrapped from deployment configuration through the existing seeder and has protected super-admin status with all present and future permissions. There is no public Admin registration flow.
 - Admin web authentication uses the stateful Laravel Sanctum session/cookie flow. Identity is resolved by normalized `email + role`; a same-email Customer, Seller, Courier, or Logistics account cannot authenticate as Admin.
 - Laravel derives the authenticated Admin, role, status, and effective permissions. The browser cannot submit `role`, `admin_id`, `permissions`, or `is_admin` as proof of authority.
 - Pending, suspended, deactivated, expired, or otherwise invalid Admin sessions cannot read or mutate protected Admin data. API gates are authoritative; React route guards are only a usability layer.
 - Current permission slugs are feature-scoped, including `registrations.view`, `registrations.review`, `users.view`, `users.manage`, `seller_compliance.manage`, `platform-settings.view`, `platform-settings.manage`, `notifications.view`, and `audit-logs.view`.
-- Permission assignment and creation of additional Admin accounts are not part of the current self-service Account Management feature. The existing permission tables and initial-admin grant provide the foundation for a later explicitly authorized Admin-management workflow.
+- Permission assignment and creation of additional Admin accounts are not part of the current self-service Account Management feature. [Admin provisioning](../features/admin/admin-provisioning/spec.md) implements them separately through granular account permissions, live custom roles and individual grants.
 - The Admin may manage only its own profile, credentials, and profile photo through Account Management. It cannot change its role, permissions, registration evidence, or another Admin's account through that feature.
 
 Admin authentication must use CSRF protection, secure session settings, generic credential failures, throttling, and safe logout/session invalidation. Deployment secrets are never exposed in the Admin UI or API DTOs.
 
 ## Admin console boundary
 
-Current protected routes are:
+Current protected routes include `/admin-accounts`, `/admin-accounts/new`, `/admin-accounts/:adminId`, and `/admin-roles`. Pending first-login or email verification is handled at `/setup` outside the operational shell. Other protected routes are:
 
 ```text
 /dashboard
@@ -116,7 +116,7 @@ Current protected routes are:
 - **Purpose:** Let the current Admin maintain its own profile and security credentials.
 - **Current state:** `/account` supports allow-listed profile updates, role-aware email changes, current-password-protected password changes, private profile-photo upload/view/replace/remove, session/token safety, and immediate shell identity refresh. Profile images use the configured disk/Azure Blob and the shared upload policy.
 - **Rules:** The API derives the current Admin and never accepts an arbitrary Admin ID. Sensitive changes are validated under the current-password policy and recorded safely; profile-photo responses are owner-only, private, no-store, and never expose raw blob paths.
-- **Deferred:** 2FA/MFA, preference keys, session-device management UI, and additional Admin creation/permission assignment require separate approved contracts. The current implementation does not claim them.
+- **Deferred:** 2FA/MFA, preference keys and session-device management UI remain deferred. Additional Admin creation/permission assignment is implemented through Admin provisioning.
 
 ### 10. Platform-wide Vouchers
 
@@ -181,13 +181,13 @@ Current protected routes are:
 
 Implemented Admin foundation:
 
-- Admin role/profile, environment-backed initial bootstrap, Sanctum authentication, permissions, protected React console, and Admin self-service profile/email/password/profile-photo management.
+- Admin provisioning/custom roles/individual grants, first-login and changed-email OTP, protected super-admin bootstrap, Admin role/profile, environment-backed initial bootstrap, Sanctum authentication, permissions, protected React console, and Admin self-service profile/email/password/profile-photo management.
 - Registration review for Customer, Seller, and Logistics applications with private evidence access, atomic approval/rejection, reviewer history, email notification, and Admin in-app notification.
 - Dashboard registration aggregate/action center and permission-scoped open support/compliance counts with filtered queue navigation, Admin support tickets, Admin notification inbox, consent-gated Customer in-app campaign management, User Account lifecycle management for non-Admin accounts, Seller Compliance cases/restrictions, Platform Settings announcement/policy versioning, and append-only Audit Logs/outbox.
 
 Deferred or dependent Admin operations:
 
-- Additional Admin provisioning and permission administration, full Dashboard KPIs/health metrics, Admin-managed App vouchers, Complaints/Disputes, commission/financial reports, support-ticket linked context/notification fanout, Global Ban/Blocklist, external Push/SMS campaign delivery, and 2FA/preferences.
+- Full Dashboard KPIs/health metrics, Admin-managed App vouchers, Complaints/Disputes, commission/financial reports, support-ticket linked context/notification fanout, Global Ban/Blocklist, external Push/SMS campaign delivery, and 2FA/preferences.
 
 Admin does not own Seller catalog, Customer Cart/Checkout, Logistics hub operations, or Courier mobile UI. It may receive safe notifications or review records from those domains only through explicit feature contracts.
 

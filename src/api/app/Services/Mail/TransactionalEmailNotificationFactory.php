@@ -6,6 +6,7 @@ use App\Enums\ApplicationStatus;
 use App\Enums\TransactionalEmailKind;
 use App\Enums\UserRole;
 use App\Enums\UserStatus;
+use App\Models\AdminSetupChallenge;
 use App\Models\PasswordChangeChallenge;
 use App\Models\RegistrationApplication;
 use App\Models\RegistrationEmailChallenge;
@@ -14,12 +15,14 @@ use App\Models\TransactionalEmail;
 use App\Models\User;
 use App\Notifications\Account\PasswordChangeCodeNotification;
 use App\Notifications\Admin\RegistrationDecisionNotification;
+use App\Notifications\Admin\SetupCodeNotification;
 use App\Notifications\Auth\RegistrationCodeNotification;
 use App\Notifications\Courier\RegistrationDecisionNotification as CourierDecisionNotification;
 use App\Notifications\Customer\ResetPasswordNotification as CustomerResetNotification;
 use App\Notifications\Logistics\ResetPasswordNotification as LogisticsResetNotification;
 use App\Notifications\Seller\ResetPasswordNotification as SellerResetNotification;
 use App\Services\Account\PasswordChangeVerification;
+use App\Services\Admin\Provisioning\AdminSetupService;
 use App\Services\Auth\RegistrationEmailVerification;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Carbon;
@@ -46,6 +49,15 @@ class TransactionalEmailNotificationFactory
         }
         if (! $user || $user->role !== $email->role || $user->email !== $payload['email']) {
             return null;
+        }
+
+        if ($email->kind === TransactionalEmailKind::AdminSetupCode) {
+            $challenge = AdminSetupChallenge::query()->find($payload['challenge_id']);
+            if (! $challenge || ! app(AdminSetupService::class)->isUsable($challenge, $user)) {
+                return null;
+            }
+
+            return new SetupCodeNotification($payload['code']);
         }
 
         if ($email->kind === TransactionalEmailKind::PasswordChangeCode) {

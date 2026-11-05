@@ -16,6 +16,7 @@ scope: Laravel API, database queue, and scheduler
 - Use the existing eight `MAIL_*` settings; no provider SDK, mail-hosting service, new public endpoint, or frontend setting is introduced.
 - Deliver authenticated password-edit verification codes for Customer, Seller, Logistics and Courier under the [verification contract](../../../references/password-change-verification.md).
 - Deliver pre-account registration codes using [registration email verification](../../../references/registration-email-verification.md); nullable User ownership is allowed only for this mail kind.
+- Deliver Admin first-login and changed-email OTP through the dedicated `admin_setup_code` mail kind under [Admin provisioning](../../admin/admin-provisioning/spec.md). Revalidate account role/status, identity, credentials, challenge expiry/attempts and pending setup before delivery. Temporary passwords are never mailed.
 - Admin/Courier recovery, other verification, marketing, order alerts, and general in-app notifications retain their existing boundaries.
 
 ## MUST
