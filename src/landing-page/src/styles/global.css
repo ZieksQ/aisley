@@ -55,6 +55,18 @@ a:focus-visible, button:focus-visible, summary:focus-visible {
   min-height: 44px;
 }
 
+.landing-brand-mark {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 6px;
+  border: 1px solid #8b5a9c;
+  border-radius: 6px;
+  background: var(--brand-primary);
+  line-height: 0;
+}
+
 .product-shot {
   --preview-border: #e5dce7;
   --preview-tint: #f1eaf4;
@@ -296,6 +308,28 @@ details[open] summary svg {
   #apps .flex.items-center.justify-between {
     flex-wrap: wrap;
     gap: 8px;
+  }
+}
+
+@media (max-width: 359px) {
+  .header-inner > div:first-child > span {
+    display: none;
+  }
+
+  .site-nav {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(44px, 1fr));
+    justify-items: center;
+    gap: 0 4px;
+    font-size: 12px;
+  }
+
+  .site-nav a {
+    justify-content: center;
+  }
+
+  #main {
+    padding-top: 16px;
   }
 }
 

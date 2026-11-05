@@ -1,5 +1,10 @@
 # Progress
 
+## 2026-11-05 — Landing logo contrast and responsive spacing
+
+- Framed the shared white AISLEY wordmark on a purple brand tile and reduced header-to-content and section spacing on tablet and phone layouts. Kept navigation targets and desktop section rhythm intact.
+- Verification: Astro production build passed; Chromium screenshots reviewed at 320/390/768/1024/1440px. The 320px navigation wraps into a balanced 3×2 grid without horizontal overflow.
+
 ## 2026-11-05 — Shared AISLEY logo on landing page
 
 - Replaced the landing page header and footer text wordmarks with the existing shared AISLEY logo SVG, retaining accessible names and the Early access labels.
