@@ -28,6 +28,19 @@ export function PortalModal({
       if (previous?.isConnected) previous.focus()
     }
   }, [])
+  useEffect(() => {
+    if (!busy) return
+    function blockBusyEscape(event: KeyboardEvent) {
+      const activeDialog = [...document.querySelectorAll('dialog[open]')].at(-1)
+      if (event.key === 'Escape' && activeDialog === dialog.current) {
+        // Disabling the focused field can move keyboard focus outside the dialog.
+        event.preventDefault()
+        event.stopPropagation()
+      }
+    }
+    document.addEventListener('keydown', blockBusyEscape, true)
+    return () => document.removeEventListener('keydown', blockBusyEscape, true)
+  }, [busy])
   return (
     <dialog
       ref={dialog}

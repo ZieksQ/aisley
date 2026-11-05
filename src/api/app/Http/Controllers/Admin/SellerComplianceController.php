@@ -7,9 +7,11 @@ use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\ListSellerComplianceCasesRequest;
 use App\Http\Requests\Admin\SellerComplianceActionRequest;
+use App\Http\Requests\Admin\SellerComplianceOptionsRequest;
 use App\Http\Requests\Admin\StoreSellerComplianceCaseRequest;
 use App\Http\Resources\Admin\SellerComplianceCaseDetailResource;
 use App\Http\Resources\Admin\SellerComplianceCaseSummaryResource;
+use App\Http\Resources\Admin\SellerComplianceSellerOptionResource;
 use App\Models\PlatformPolicyVersion;
 use App\Models\Product;
 use App\Models\SellerComplianceCase;
@@ -57,20 +59,17 @@ class SellerComplianceController extends Controller
         );
     }
 
-    public function options(Request $request): JsonResponse
+    public function options(SellerComplianceOptionsRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'seller_search' => ['nullable', 'string', 'max:120'],
-            'seller_id' => ['nullable', 'uuid'],
-        ]);
+        $validated = $request->validated();
         $term = isset($validated['seller_search']) ? '%'.mb_strtolower(trim($validated['seller_search'])).'%' : null;
-        $sellers = User::query()->where('role', UserRole::Seller)->with(['sellerProfile', 'shop:id,seller_id,name'])
+        $sellers = User::query()->where('role', UserRole::Seller)->with(['sellerProfile', 'shop:id,seller_id,name,status'])
             ->when($term, fn (Builder $query) => $query->where(function (Builder $query) use ($term): void {
                 $query->whereRaw('LOWER(email) LIKE ?', [$term])
                     ->orWhereHas('sellerProfile', fn (Builder $profile) => $profile->whereRaw('LOWER(first_name) LIKE ?', [$term])->orWhereRaw('LOWER(last_name) LIKE ?', [$term]))
                     ->orWhereHas('shop', fn (Builder $shop) => $shop->whereRaw('LOWER(name) LIKE ?', [$term]));
             }))
-            ->latest()->limit(20)->get();
+            ->orderByDesc('created_at')->orderByDesc('id')->paginate(20, ['*'], 'seller_page');
 
         $products = collect();
         if (! empty($validated['seller_id'])) {
@@ -81,13 +80,12 @@ class SellerComplianceController extends Controller
         $policies = PlatformPolicyVersion::query()->where('status', PlatformPolicyVersionStatus::Published)->with('policy')->orderByDesc('published_at')->get();
 
         return response()->json(['data' => [
-            'sellers' => $sellers->map(fn (User $seller) => [
-                'id' => $seller->id,
-                'email' => $seller->email,
-                'name' => trim(($seller->sellerProfile?->first_name ?? '').' '.($seller->sellerProfile?->last_name ?? '')) ?: $seller->email,
-                'status' => $seller->status->value,
-                'shop_name' => $seller->shop?->name,
-            ]),
+            'sellers' => SellerComplianceSellerOptionResource::collection($sellers->items()),
+            'sellers_meta' => [
+                'current_page' => $sellers->currentPage(),
+                'last_page' => $sellers->lastPage(),
+                'total' => $sellers->total(),
+            ],
             'products' => $products->map(fn (Product $product) => [
                 'id' => $product->id,
                 'name' => $product->name,

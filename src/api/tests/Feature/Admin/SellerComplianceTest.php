@@ -125,6 +125,7 @@ class SellerComplianceTest extends TestCase
             'address_line_1' => '123 Test Street', 'barangay' => 'San Antonio',
             'city_municipality' => 'Makati City', 'province' => 'Metro Manila',
             'region' => 'NCR', 'postal_code' => '1203', 'country' => 'Philippines',
+            'latitude' => 14.5547, 'longitude' => 121.0244,
         ]);
         $this->postJson('/api/v1/customer/checkout/quote', [
             'mode' => 'buy_now',

@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { FaChevronLeft, FaChevronRight, FaMagnifyingGlass, FaPlus, FaRotateRight, FaShieldHalved, FaXmark } from 'react-icons/fa6'
+import { FaPlus, FaXmark } from 'react-icons/fa6'
+import { PortalField, PortalPagination, PortalSkeleton, PortalState, PortalTable } from '@aisley/ui/portal'
+import { SellerIdentity } from '../components/compliance/SellerIdentity'
+import '../components/compliance/compliance.css'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 import { CreateComplianceCaseDialog } from '../components/compliance/CreateComplianceCaseDialog'
@@ -12,7 +15,7 @@ import type { ComplianceCaseListResponse, ComplianceCaseStatus } from '../types/
 const statuses: ComplianceCaseStatus[] = ['open', 'confirmed', 'dismissed', 'closed']
 
 export function SellerCompliancePage() {
-  const { logout } = useAuth()
+  const { admin, logout } = useAuth()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const search = searchParams.get('search') ?? ''
@@ -38,7 +41,7 @@ export function SellerCompliancePage() {
     if (status) query.set('status', status)
     setIsLoading(true); setError(null)
     fetchComplianceCases(query, controller.signal)
-      .then(setResponse)
+      .then((result) => { if (!controller.signal.aborted) setResponse(result) })
       .catch((requestError: unknown) => {
         if (controller.signal.aborted) return
         if (requestError instanceof ApiError && requestError.status === 401) {
@@ -48,7 +51,7 @@ export function SellerCompliancePage() {
       })
       .finally(() => { if (!controller.signal.aborted) setIsLoading(false) })
     return () => controller.abort()
-  }, [logout, navigate, page, queryString, reloadKey, search, sort, status])
+  }, [admin?.id, logout, navigate, page, queryString, reloadKey, search, sort, status])
 
   function updateFilters(updates: Record<string, string>) {
     const next = new URLSearchParams(searchParams)
@@ -59,25 +62,77 @@ export function SellerCompliancePage() {
 
   function submitSearch(event: FormEvent) { event.preventDefault(); updateFilters({ search: draftSearch.trim() }) }
 
-  return <div className="mx-auto max-w-7xl px-5 py-8 sm:px-8 sm:py-10">
-    <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">Seller compliance</h2><p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Review Sellers and Products, preserve decisions, and apply explicit compliance actions.</p></div><button className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#4C1268] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#37104b]" onClick={() => setIsCreateOpen(true)} type="button"><FaPlus />Open case</button></div>
+  return (
+    <div className="portal-page compliance-page">
+      <header className="portal-page-header">
+        <div>
+          <h2 className="portal-page-heading">Seller compliance</h2>
+          <p className="portal-page-description">Review Sellers and Products, document the review basis, and track compliance decisions.</p>
+        </div>
+        <button className="portal-button portal-button-primary" onClick={() => setIsCreateOpen(true)} type="button"><FaPlus aria-hidden="true" />Open case</button>
+      </header>
 
-    <section className="mt-6 overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-white/10 dark:bg-white/[0.035]">
-      <div className="border-b border-slate-200 p-4 dark:border-white/10 sm:p-5">
-        <form className="flex gap-2" onSubmit={submitSearch} role="search"><label className="relative min-w-0 flex-1"><span className="sr-only">Search compliance cases</span><FaMagnifyingGlass className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-slate-400" /><input className="h-11 w-full rounded-lg border border-slate-200 bg-white pl-10 pr-3 text-sm outline-none focus:border-[#E6007A] focus:ring-3 focus:ring-pink-100 dark:border-white/10 dark:bg-white/5 dark:focus:ring-pink-500/10" onChange={(event) => setDraftSearch(event.target.value)} placeholder="Search case, Seller, Product, or reason" type="search" value={draftSearch} /></label><button className="rounded-lg bg-[#4C1268] px-4 text-sm font-semibold text-white" type="submit">Search</button></form>
-        <div className="mt-3 flex flex-col gap-3 sm:flex-row"><label className="text-xs font-medium text-slate-500 dark:text-slate-400 sm:w-52">Status<select className="mt-1 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-[#E6007A] dark:border-white/10 dark:bg-[#17111d]" onChange={(event) => updateFilters({ status: event.target.value })} value={status}><option value="">All statuses</option>{statuses.map((item) => <option key={item} value={item}>{item.charAt(0).toUpperCase() + item.slice(1)}</option>)}</select></label><label className="text-xs font-medium text-slate-500 dark:text-slate-400 sm:w-52">Sort<select className="mt-1 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-[#E6007A] dark:border-white/10 dark:bg-[#17111d]" onChange={(event) => updateFilters({ sort: event.target.value })} value={sort}><option value="newest">Newest first</option><option value="oldest">Oldest first</option></select></label></div>
-        {(search || status || sort === 'oldest') && <button className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white" onClick={() => { setDraftSearch(''); setSearchParams(new URLSearchParams()) }} type="button"><FaXmark />Clear filters</button>}
-      </div>
+      <form className="portal-filter-bar compliance-filters" onSubmit={submitSearch} role="search">
+        <PortalField label="Search cases" type="search" placeholder="Case, Seller, Product, or reason" value={draftSearch} onChange={(event) => setDraftSearch(event.target.value)} />
+        <div className="portal-field">
+          <label htmlFor="compliance-status">Status</label>
+          <select className="portal-input" id="compliance-status" onChange={(event) => updateFilters({ status: event.target.value })} value={status}>
+            <option value="">All statuses</option>
+            {statuses.map((item) => <option key={item} value={item}>{item.charAt(0).toUpperCase() + item.slice(1)}</option>)}
+          </select>
+        </div>
+        <div className="portal-field">
+          <label htmlFor="compliance-sort">Sort</label>
+          <select className="portal-input" id="compliance-sort" onChange={(event) => updateFilters({ sort: event.target.value })} value={sort}>
+            <option value="newest">Newest first</option><option value="oldest">Oldest first</option>
+          </select>
+        </div>
+        <button className="portal-button" type="submit">Search</button>
+        {(search || status || sort === 'oldest') && <button className="portal-button" onClick={() => { setDraftSearch(''); setSearchParams(new URLSearchParams()) }} type="button"><FaXmark aria-hidden="true" />Clear filters</button>}
+      </form>
 
-      {isLoading ? <ListSkeleton /> : error ? <div className="grid min-h-80 place-items-center p-8 text-center"><div><FaRotateRight className="mx-auto text-xl text-rose-500" /><h3 className="mt-3 font-semibold">Unable to load compliance cases</h3><p className="mt-2 max-w-md text-sm text-slate-500 dark:text-slate-400">{error}</p><button className="mt-4 rounded-lg bg-[#4C1268] px-4 py-2.5 text-sm font-semibold text-white" onClick={() => setReloadKey((value) => value + 1)} type="button">Try again</button></div></div> : response?.data.length ? <>
-        <div className="hidden overflow-x-auto md:block"><table className="w-full text-left text-sm"><thead className="bg-slate-50 text-xs text-slate-500 dark:bg-white/[0.025] dark:text-slate-400"><tr><th className="px-5 py-3.5 font-semibold">Seller</th><th className="px-5 py-3.5 font-semibold">Product / scope</th><th className="px-5 py-3.5 font-semibold">Status</th><th className="px-5 py-3.5 font-semibold">Opened</th><th className="px-5 py-3.5"><span className="sr-only">Open</span></th></tr></thead><tbody className="divide-y divide-slate-100 dark:divide-white/[0.07]">{response.data.map((item) => <tr className="hover:bg-slate-50 dark:hover:bg-white/[0.025]" key={item.id}><td className="px-5 py-4"><Link className="font-semibold hover:text-[#E6007A]" to={`/seller-compliance/cases/${item.id}`}>{item.seller.name}</Link><p className="mt-1 text-xs text-slate-400">{item.seller.shop_name ?? item.seller.email}</p></td><td className="px-5 py-4"><p className="font-medium">{item.product?.name ?? 'Seller-level review'}</p><p className="mt-1 max-w-sm truncate text-xs text-slate-400">{item.reason}</p></td><td className="px-5 py-4"><ComplianceStatusBadge status={item.status} /></td><td className="px-5 py-4 text-slate-500 dark:text-slate-400">{formatComplianceDate(item.created_at)}</td><td className="px-5 py-4 text-right"><Link className="font-semibold text-[#b0005d] dark:text-pink-300" to={`/seller-compliance/cases/${item.id}`}>Review</Link></td></tr>)}</tbody></table></div>
-        <div className="divide-y divide-slate-100 dark:divide-white/[0.07] md:hidden">{response.data.map((item) => <article className="p-5" key={item.id}><div className="flex items-start justify-between gap-3"><div className="min-w-0"><Link className="font-semibold hover:text-[#E6007A]" to={`/seller-compliance/cases/${item.id}`}>{item.seller.name}</Link><p className="mt-1 truncate text-xs text-slate-400">{item.product?.name ?? 'Seller-level review'}</p></div><ComplianceStatusBadge status={item.status} /></div><p className="mt-3 line-clamp-2 text-sm text-slate-600 dark:text-slate-300">{item.reason}</p><p className="mt-3 text-xs text-slate-400">Opened {formatComplianceDate(item.created_at)}</p></article>)}</div>
-      </> : <div className="grid min-h-80 place-items-center p-8 text-center"><div><FaShieldHalved className="mx-auto text-xl text-slate-400" /><h3 className="mt-3 font-semibold">No compliance cases found</h3><p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Open a manual case or change the current filters.</p></div></div>}
-
-      {response && response.meta.last_page > 1 && !isLoading && !error && <nav aria-label="Compliance case pages" className="flex items-center justify-between border-t border-slate-200 px-5 py-4 dark:border-white/10"><p className="text-xs text-slate-400">Showing {response.meta.from}–{response.meta.to} of {response.meta.total}</p><div className="flex items-center gap-2"><button aria-label="Previous page" className="grid size-9 place-items-center rounded-lg border border-slate-200 disabled:opacity-40 dark:border-white/10" disabled={page <= 1} onClick={() => updateFilters({ page: String(page - 1) })} type="button"><FaChevronLeft /></button><span className="text-sm font-medium">{page} / {response.meta.last_page}</span><button aria-label="Next page" className="grid size-9 place-items-center rounded-lg border border-slate-200 disabled:opacity-40 dark:border-white/10" disabled={page >= response.meta.last_page} onClick={() => updateFilters({ page: String(page + 1) })} type="button"><FaChevronRight /></button></div></nav>}
-    </section>
-    <CreateComplianceCaseDialog onClose={() => setIsCreateOpen(false)} onCreated={(id) => navigate(`/seller-compliance/cases/${id}`)} open={isCreateOpen} />
-  </div>
+      <section aria-labelledby="compliance-results-heading">
+        <div className="compliance-results-heading">
+          <h3 id="compliance-results-heading" className="font-semibold">Compliance cases</h3>
+          {!isLoading && !error && response && <p className="portal-secondary text-sm" role="status">{response.meta.total} {response.meta.total === 1 ? 'case' : 'cases'}</p>}
+        </div>
+        {isLoading ? <PortalSkeleton label="Loading compliance cases" /> : error ? (
+          <PortalState error title="Unable to load compliance cases" description={error} action={<button className="portal-button" onClick={() => setReloadKey((value) => value + 1)} type="button">Try again</button>} />
+        ) : response?.data.length ? (
+          <>
+            <div className="hidden md:block">
+              <PortalTable label="Seller compliance cases">
+                <thead><tr>{['Seller / Shop', 'Product / review scope', 'Status', 'Opened', 'Action'].map((label) => <th scope="col" key={label}>{label}</th>)}</tr></thead>
+                <tbody>
+                  {response.data.map((item) => (
+                    <tr key={item.id}>
+                      <td className="portal-table-name"><SellerIdentity seller={item.seller} /></td>
+                      <td className="portal-table-name"><p className="font-medium">{item.product?.name ?? 'Seller-level review'}</p><p className="portal-table-meta compliance-reason-preview">{item.reason}</p></td>
+                      <td><ComplianceStatusBadge status={item.status} /></td>
+                      <td className="portal-secondary whitespace-nowrap">{formatComplianceDate(item.created_at)}</td>
+                      <td className="portal-row-action"><Link className="portal-button portal-button-ghost" aria-label={`Review case for ${item.seller.shop_name || item.seller.name}`} to={`/seller-compliance/cases/${item.id}`}>Review</Link></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </PortalTable>
+            </div>
+            <div className="compliance-mobile-cases md:hidden">
+              {response.data.map((item) => (
+                <article className="portal-panel" key={item.id}>
+                  <SellerIdentity seller={item.seller} />
+                  <div className="mt-4"><ComplianceStatusBadge status={item.status} /></div>
+                  <p className="mt-4 text-sm font-medium">{item.product?.name ?? 'Seller-level review'}</p>
+                  <p className="portal-secondary mt-1 text-sm compliance-reason-preview">{item.reason}</p>
+                  <p className="portal-secondary mt-3 text-xs">Opened {formatComplianceDate(item.created_at)}</p>
+                  <Link className="portal-button mt-4" aria-label={`Review case for ${item.seller.shop_name || item.seller.name}`} to={`/seller-compliance/cases/${item.id}`}>Review case</Link>
+                </article>
+              ))}
+            </div>
+          </>
+        ) : <PortalState title="No compliance cases found" description={search || status ? 'Try another search or clear your filters.' : 'Open a case to start a manual Seller or Product review.'} />}
+        {response && !isLoading && !error && <PortalPagination page={response.meta.current_page} lastPage={response.meta.last_page} total={response.meta.total} onPage={(value) => updateFilters({ page: String(value) })} />}
+      </section>
+      <CreateComplianceCaseDialog key={admin?.id} onClose={() => setIsCreateOpen(false)} onCreated={(id) => navigate(`/seller-compliance/cases/${id}`)} open={isCreateOpen} />
+    </div>
+  )
 }
-
-function ListSkeleton() { return <div aria-label="Loading compliance cases" className="divide-y divide-slate-100 p-5 dark:divide-white/[0.07]">{[1, 2, 3, 4, 5].map((item) => <div className="grid animate-pulse grid-cols-4 gap-6 py-5" key={item}><div className="h-4 rounded bg-slate-200 dark:bg-white/10" /><div className="h-4 rounded bg-slate-100 dark:bg-white/5" /><div className="h-4 rounded bg-slate-100 dark:bg-white/5" /><div className="h-4 rounded bg-slate-100 dark:bg-white/5" /></div>)}</div> }

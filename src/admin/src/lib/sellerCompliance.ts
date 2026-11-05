@@ -14,9 +14,10 @@ export function fetchComplianceCase(id: string, signal?: AbortSignal) {
   return apiRequest<ComplianceCaseResponse>(`/api/v1/admin/seller-compliance/cases/${id}`, { signal })
 }
 
-export function createComplianceCase(payload: { seller_id: string; product_id: string | null; policy_version_id: string | null; reason: string }) {
+export function createComplianceCase(payload: { seller_id: string; product_id: string | null; policy_version_id: string | null; reason: string }, signal?: AbortSignal) {
   return apiRequest<ComplianceCaseResponse>('/api/v1/admin/seller-compliance/cases', {
     method: 'POST',
+    signal,
     body: JSON.stringify(payload),
   })
 }
