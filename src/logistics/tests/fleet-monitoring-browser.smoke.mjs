@@ -185,7 +185,7 @@ try {
   await check("document.activeElement !== document.body", 'Keyboard focus reaches a control')
   await js("document.documentElement.classList.remove('dark')")
   const snapshot = await js("document.documentElement.outerHTML")
-  await writeFile(`${directory}/snapshot.html`, snapshot.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '').replace(/(href|src)="\/assets\//g, `$1="${origin}/assets/`))
+  await writeFile(`${directory}/snapshot.html`, '<!doctype html>\n' + snapshot.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '').replace(/(href|src)="\/assets\//g, `$1="${origin}/assets/`))
   await js("window.monitoringFixture.mode='error'; history.pushState(null, '', '/fleet-monitoring?search=initial-failure'); dispatchEvent(new PopStateEvent('popstate'))")
   await until("document.body.innerText.includes('Fleet monitoring unavailable')")
   await check("!document.querySelector('tbody tr') && !document.body.innerText.includes('No matching trucks')", 'Initial failure is distinct from empty results')

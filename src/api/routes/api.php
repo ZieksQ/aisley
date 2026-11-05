@@ -605,6 +605,7 @@ Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', '
     Route::post('/rate-cards', [RateCardController::class, 'store'])->name('rate-cards.store');
     Route::post('/rate-cards/{card}/publish', [RateCardController::class, 'publish'])->whereUuid('card')->name('rate-cards.publish');
     Route::get('/fleet/monitoring', [FleetMonitoringController::class, 'index']);
+    Route::get('/fleet/monitoring/assignments', [\App\Http\Controllers\Logistics\FleetAssignmentController::class, 'index']);
     Route::get('/fleet/monitoring/{truck}', [FleetMonitoringController::class, 'show'])->whereUuid('truck');
     Route::get('/fleet/monitoring/{truck}/trips', [FleetMonitoringController::class, 'trips'])->whereUuid('truck');
     Route::get('/fleet', [CompanyFleetController::class, 'index'])->name('fleet.index');

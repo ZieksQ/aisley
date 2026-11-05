@@ -21,3 +21,13 @@ php src/api/vendor/bin/phpunit --configuration src/api/phpunit.xml --bootstrap s
 ```
 
 The isolated API tests use in-memory SQLite and synthetic configuration, without reading application environment files. Actual PostgreSQL/deployed API, assistive technology and real-account acceptance remain separate checks. No Flutter completion is implied.
+
+## Pickup and delivery map checks
+
+Run `node src/logistics/tests/fleet-assignments-browser.smoke.mjs` against the same preview/CDP instance. The six synthetic assignments cover first-mile handoff/return, active and empty-return linehaul, and accepted/out-for-delivery last-mile work, coincident stops and a missing destination pin. The script expands that dataset to verify pagination. API/auth responses are synthetic; map tiles use the configured browser Geoapify provider and may be unavailable.
+
+Checks cover map/list selection, grouped pins, keyboard activation, stage/search/deep links, independent truck filters, detail/Back navigation, pagination coverage, stale refresh/retry, empty/missing-pin states, obsolete reads, consent/session loss and late reads after logout at 320/390/768/1440px in both themes. Artifacts live under `src/logistics/node_modules/.cache/fleet-assignments-browser/`; they are local verification files, not production sample data.
+
+Focused API command: `php src/api/vendor/bin/phpunit --configuration src/api/phpunit.xml --bootstrap src/api/tests/bootstrap-isolated.php src/api/tests/Feature/Logistics/FleetAssignmentMonitoringTest.php src/api/tests/Feature/Logistics/FleetMonitoringTest.php`.
+
+On 2026-11-05 the broader CompanyTruckLinehaulTest/LinehaulTripActionTest run reached eight fixture-setup failures: their Seller pickup addresses lack the pin required by the current pickup policy (422 before monitoring is exercised). Do not describe that broader run as passing; keep its fixture repair separate from this monitoring change.

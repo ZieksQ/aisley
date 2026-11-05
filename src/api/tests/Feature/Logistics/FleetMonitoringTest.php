@@ -134,7 +134,7 @@ class FleetMonitoringTest extends TestCase
         ]);
         $policy->update(['current_version_id' => $version->id]);
         $this->actingAs($a[0]);
-        foreach ([self::URL, self::URL.'/'.$truck->id, self::URL.'/'.$truck->id.'/trips'] as $url) {
+        foreach ([self::URL, self::URL.'/assignments', self::URL.'/'.$truck->id, self::URL.'/'.$truck->id.'/trips'] as $url) {
             $this->getJson($url)->assertForbidden()->assertJsonPath('code', 'POLICY_CONSENT_REQUIRED');
         }
     }

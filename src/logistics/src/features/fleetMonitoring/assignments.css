@@ -1,0 +1,135 @@
+.portal-page {
+  --assignment-first-mile: #0f766e;
+  --assignment-linehaul: #2563eb;
+  --assignment-final-mile: #7c3aed; /* taste-skill-ignore: approved last-mile category in the design contract graph palette. */
+  --assignment-hub: #475569;
+}
+.dark .portal-page {
+  --assignment-first-mile: #5eead4;
+  --assignment-linehaul: #93c5fd;
+  --assignment-final-mile: #c4b5fd;
+  --assignment-hub: #cbd5e1;
+}
+.assignment-color-first_mile {
+  color: var(--assignment-first-mile);
+}
+.assignment-color-linehaul {
+  color: var(--assignment-linehaul);
+}
+.assignment-color-final_mile {
+  color: var(--assignment-final-mile);
+}
+[aria-pressed="true"].portal-button .assignment-color-first_mile,
+[aria-pressed="true"].portal-button .assignment-color-linehaul,
+[aria-pressed="true"].portal-button .assignment-color-final_mile {
+  color: inherit;
+}
+.assignment-row {
+  color: var(--portal-text);
+  border-bottom: 1px solid var(--portal-border);
+  border-left: 3px solid transparent;
+  padding-left: 13px;
+}
+.assignment-row:hover {
+  background: var(--portal-subtle);
+}
+.assignment-row[aria-pressed="true"] {
+  background: var(--brand-tint);
+  border-left-color: var(--brand-primary);
+}
+.assignment-row:focus-visible {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: -3px;
+}
+.assignment-map {
+  background: var(--portal-surface);
+  font-family: inherit;
+}
+.assignment-pin {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  margin: 2px;
+  border: 2px solid white;
+  border-radius: 50%;
+  color: white;
+}
+.assignment-pin-first_mile {
+  background: #0f766e;
+}
+.assignment-pin-linehaul {
+  background: #2563eb;
+}
+.assignment-pin-final_mile {
+  background: #7c3aed; /* taste-skill-ignore: matches the approved last-mile legend. */
+}
+.assignment-pin-hub {
+  background: #475569;
+  border-radius: 6px;
+}
+.assignment-pin-selected {
+  outline: 3px solid #0f172a;
+  outline-offset: 2px;
+}
+.assignment-pin-count {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 4px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #fff;
+  color: #0f172a;
+  border: 1px solid #475569;
+  font-size: 12px;
+  font-weight: 600;
+}
+.assignment-map-marker:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 5px;
+  border-radius: 6px;
+}
+.assignment-map-popup {
+  max-height: 220px;
+  overflow-y: auto;
+  font: 14px/1.5 Geist, sans-serif;
+}
+.assignment-map-popup p {
+  margin: 0 0 8px;
+  font-weight: 600;
+}
+.assignment-map-popup button {
+  display: block;
+  min-height: 44px;
+  width: 100%;
+  padding: 8px 4px;
+  text-align: left;
+  color: #1e40af;
+  border-top: 1px solid #cbd5e1;
+}
+.assignment-map-popup button:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: -2px;
+}
+.assignment-map .leaflet-control-attribution {
+  max-width: 100%;
+  font-size: 11px;
+}
+.assignment-map .leaflet-control-attribution a {
+  color: #1e40af;
+}
+.assignment-map .leaflet-control-zoom a {
+  font-family: inherit;
+}
+@media (prefers-reduced-motion: reduce) {
+  .assignment-map *,
+  .assignment-row {
+    transition: none !important;
+  }
+}

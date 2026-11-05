@@ -64,6 +64,10 @@ Final-mile dispatch route geometry uses the same server-only Geoapify key and a 
 
 `GET /api/v1/courier/linehaul-trips/{trip}/route` reauthorizes the assigned Courier before reading cached geometry or calling Geoapify Routing. It uses exactly the saved origin and destination hub pins in that order, including reversed return trips; no device GPS, Matrix reordering, or custody transition. Only coordinates reach the provider. Shared daily Routing waypoint credits, bounded geometry, short timeouts and coordinate-fingerprinted caches apply. Missing pins/provider/key/quota failures preserve known hub names/addresses with unavailable metrics; the mockup labels its dashed straight-line fallback. MapLibre raster tiles use the existing private Courier proxy through per-map authenticated fetches with browser credentials omitted. Explicit external directions links contain only the destination coordinates. See [the route contract](features/logistics/company-truck-linehaul-dispatch/spec.md#courier-hub-route--contract-v1). Flutter linehaul route adoption remains open.
 
+## Logistics fleet assignment map
+
+Fleet monitoring uses installed Leaflet and Geoapify raster tiles with the existing origin-restricted Logistics browser key. Its Logistics-only assignments endpoint returns saved pickup snapshots, authoritative delivery pins and hub coordinates for the current page of authorized active work. Pins represent assignment stops, never Courier GPS positions. Monitoring performs no geocoding, Matrix/Routing request, device-location collection or custody mutation. Missing pins remain unavailable; provider/key/tile failures preserve the assignment list and recorded events. Show Geoapify, OpenStreetMap and OpenMapTiles attribution on the map. See [Fleet monitoring](features/logistics/fleet-monitoring/spec.md).
+
 ## Coordinate and privacy rules
 
 - Latitude and longitude are optional unless a feature explicitly requires them, but they must be submitted as a complete pair and remain within `-90..90` and `-180..180`.
