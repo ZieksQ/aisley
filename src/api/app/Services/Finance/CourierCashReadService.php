@@ -9,7 +9,7 @@ class CourierCashReadService
 {
     public function outstanding(string $organizationId, array $filters): Builder
     {
-        return CourierCashObligation::query()->where('logistics_organization_id', $organizationId)->whereNull('received_at')
+        return FinanceDateRange::apply(CourierCashObligation::query(), 'delivered_at', $filters)->where('logistics_organization_id', $organizationId)->whereNull('received_at')
             ->when($filters['courier_id'] ?? null, fn ($q, $id) => $q->where('courier_id', $id))
             ->when($filters['currency'] ?? null, fn ($q, $currency) => $q->where('currency', $currency));
     }

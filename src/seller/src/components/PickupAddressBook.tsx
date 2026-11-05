@@ -1,3 +1,4 @@
+import { AddressPinFields, validPin } from '@aisley/ui/address-pin'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { FaLocationDot, FaPen, FaPlus, FaTrashCan, FaXmark } from 'react-icons/fa6'
@@ -71,6 +72,7 @@ export function PickupAddressBook() {
 }
 
 function PickupAddressForm({ address, onClose, onSaved }: { address?: PickupAddress; onClose: () => void; onSaved: () => Promise<void> }) {
+  const [pinConfirmed, setPinConfirmed] = useState(() => Boolean(address && validPin(address.latitude, address.longitude)))
   const [values, setValues] = useState(() => initial(address))
   const [errors, setErrors] = useState<Record<string, string[]>>({})
   const [submitting, setSubmitting] = useState(false)
@@ -93,11 +95,14 @@ function PickupAddressForm({ address, onClose, onSaved }: { address?: PickupAddr
   useEffect(() => { const close = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose() }; document.addEventListener('keydown', close); return () => document.removeEventListener('keydown', close) }, [onClose])
 
   function update(field: keyof FormValues, value: string | boolean) {
+    if (locationFields.has(field)) setPinConfirmed(false)
     setValues((current) => ({ ...current, [field]: value, ...(locationFields.has(field) ? { latitude: null, longitude: null } : {}), ...(field === 'region' ? { province: '', city_municipality: '', barangay: '' } : {}), ...(field === 'province' ? { city_municipality: '', barangay: '' } : {}), ...(field === 'city_municipality' ? { barangay: '' } : {}) }))
   }
 
   async function submit(event: FormEvent) {
-    event.preventDefault(); setSubmitting(true); setErrors({})
+    event.preventDefault(); setErrors({})
+    if (!pinConfirmed || !validPin(values.latitude, values.longitude)) { setErrors({ latitude: ['Pin and confirm the pickup location before saving.'] }); return }
+    setSubmitting(true)
     const payload: PickupAddressPayload = { ...values, label: values.label.trim() || null, address_line_2: values.address_line_2.trim() || null }
     try {
       if (address) await updatePickupAddress(address.id, payload)
@@ -125,7 +130,11 @@ function PickupAddressForm({ address, onClose, onSaved }: { address?: PickupAddr
       <AddressField error={errors.country?.[0]} label="Country" name="country" onChange={(value) => update('country', value)} required value={values.country} />
     </div>
     {optionsUnavailable ? <p className="mt-4 border-l-2 border-[#FF8800] pl-3 text-xs text-zinc-600 dark:text-zinc-300" role="status">Official address options are temporarily unavailable. You can still enter the administrative address manually.</p> : <p className="mt-4 text-xs text-zinc-500">Type to search official PSA PSGC options in sequence.</p>}
-    {import.meta.env.GEOAPIFY_API_KEY ? <div className="mt-5 border-t border-zinc-200 pt-5 dark:border-white/10"><GeoapifyLocationPicker address={{ addressLine1: values.address_line_1, barangay: values.barangay, cityMunicipality: values.city_municipality, province: values.province, region: values.region, postalCode: values.postal_code, country: values.country }} apiKey={import.meta.env.GEOAPIFY_API_KEY} latitude={values.latitude} longitude={values.longitude} onChange={({ latitude, longitude }) => setValues((current) => ({ ...current, latitude, longitude }))} /></div> : <div className="mt-5 flex gap-2 border-l-2 border-zinc-400 pl-3 text-xs leading-5 text-zinc-500"><FaLocationDot className="mt-0.5 shrink-0" />Geoapify location pinning is not configured. You can still save the textual address without coordinates.</div>}
+    {import.meta.env.GEOAPIFY_API_KEY ? <div className="mt-5 border-t border-zinc-200 pt-5 dark:border-white/10"><GeoapifyLocationPicker key={[...locationFields].map((field) => values[field]).join("\u0000")} address={{ addressLine1: values.address_line_1, barangay: values.barangay, cityMunicipality: values.city_municipality, province: values.province, region: values.region, postalCode: values.postal_code, country: values.country }} apiKey={import.meta.env.GEOAPIFY_API_KEY} latitude={values.latitude} longitude={values.longitude} onChange={({ latitude, longitude }) => { setPinConfirmed(false); setValues((current) => ({ ...current, latitude, longitude })) }} /></div> : <div className="mt-5 flex gap-2 border-l-2 border-zinc-400 pl-3 text-xs leading-5 text-zinc-500"><FaLocationDot className="mt-0.5 shrink-0" />Geoapify location pinning is not configured. Enter and confirm coordinates below to save this address.</div>}
+    <AddressPinFields latitude={values.latitude} longitude={values.longitude} confirmed={pinConfirmed}
+      onChange={({ latitude, longitude }) => setValues((current) => ({ ...current, latitude, longitude }))}
+      onConfirm={() => setPinConfirmed(true)} onInvalidate={() => setPinConfirmed(false)} />
+    {errors.latitude?.[0] || errors.longitude?.[0] ? <p role="alert" className="mt-2 text-sm text-red-700 dark:text-red-300">{errors.latitude?.[0] ?? errors.longitude?.[0]}</p> : null}
     <label className="mt-5 flex items-start gap-3 text-sm"><input checked={values.is_default} className="mt-0.5 size-4 accent-[#E6007A]" onChange={(event) => update('is_default', event.target.checked)} type="checkbox" /><span><span className="font-medium">Use as default pickup address</span><span className="mt-1 block text-xs text-zinc-500">New pickup requests start with this address. You can choose another saved address for a request.</span></span></label>
     <div className="mt-6 flex justify-end gap-3 border-t border-zinc-200 pt-5 dark:border-white/10"><button className="min-h-10 rounded-lg border border-zinc-300 px-4 text-sm font-semibold dark:border-white/15" onClick={onClose} type="button">Cancel</button><button className="min-h-10 rounded-lg bg-[#4C1268] px-4 text-sm font-semibold text-white disabled:opacity-50" disabled={submitting}>{submitting ? 'Saving…' : 'Save address'}</button></div>
   </form></div>

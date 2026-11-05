@@ -106,3 +106,11 @@ The [B06 funding delta](legacy-voucher-funding.md) rejects unaffordable legacy S
 ## Combined consent contract
 
 `policy-consent-batch-v1` adds `POST /api/v1/policy-consent/accept` with `acceptances:[{type,version,confirmation:true}]` and response `data:{acceptances:PolicyAcceptance[],status:Consent}`. One or two pending shared types, atomic commit, exact-current checks and immutable idempotent timestamps; private/no-store. See the shared policy specification for actor checks, errors, and reconciliation.
+
+## Delivery pin requirement — backend contract 2026-11-05
+
+Address Book CRUD continues to accept nullable paired coordinates. Shipping options, checkout quote/placement, and Order destination-change quote/confirmation require valid saved finite latitude/longitude within ±90/±180. Missing/invalid pins return `422 ADDRESS_PIN_REQUIRED` with `errors.address_id`; edit/pin the saved address and review fresh shipping/totals. Committed exact-key placement retries still replay before validating the mutable Address Book. The web client requires explicit map/manual pin confirmation; text location changes clear the pin. No GPS permission or provider result is mandatory. External Buyer Flutter adoption and device verification remain pending; prior completion evidence is unchanged.
+
+### Homepage main groups — 2026-11-05
+
+`GET /api/v1/customer/home` now returns active main `ShopCategory` groups in `categories`, rather than product-category roots. The DTO remains `{id,slug,name,imageUrl}` with `imageUrl: null`; IDs/slugs identify main groups. Consumers must tolerate null images. This backend contract update does not establish Flutter client adoption or change its implementation status. Homepage Save removal and category icons are web presentation changes.

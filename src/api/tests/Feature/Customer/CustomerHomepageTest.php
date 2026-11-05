@@ -17,6 +17,7 @@ use App\Models\HomepageCampaign;
 use App\Models\Product;
 use App\Models\RecentlyViewedProduct;
 use App\Models\Shop;
+use App\Models\ShopCategory;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
@@ -40,6 +41,8 @@ class CustomerHomepageTest extends TestCase
         Cache::purge('array');
         Cache::flush();
 
+        ShopCategory::create(['name' => 'Electronics', 'slug' => 'electronics', 'status' => CategoryStatus::Active]);
+        ShopCategory::create(['name' => 'Archived main group', 'slug' => 'archived-main', 'status' => CategoryStatus::Archived]);
         $category = $this->createCategory(['name' => 'Electronics', 'slug' => 'electronics']);
         $this->createCategory([
             'name' => 'Archived',
@@ -163,6 +166,30 @@ class CustomerHomepageTest extends TestCase
             ->assertJsonPath('campaigns.hero.0.id', $campaign->id)
             ->assertJsonPath('categories.0.slug', 'electronics')
             ->assertJsonPath('topProducts.0.id', $eligible->id);
+    }
+
+    public function test_main_category_selection_and_cache_follow_group_changes(): void
+    {
+        config()->set('homepage.categories_limit', 2);
+        $this->createCategory(['name' => 'Product subcategory']);
+        $groups = collect(['Zulu', 'Alpha', 'Bravo'])->map(fn ($name) => ShopCategory::create([
+            'name' => $name, 'slug' => strtolower($name), 'status' => CategoryStatus::Active,
+        ]));
+        $this->getJson('/api/v1/customer/home')->assertOk()
+            ->assertJsonCount(2, 'categories')
+            ->assertJsonPath('categories.0.id', $groups[1]->id)
+            ->assertJsonPath('categories.0.imageUrl', null)
+            ->assertJsonPath('categories.1.slug', 'bravo');
+        $groups[1]->update(['status' => CategoryStatus::Archived]);
+        $this->getJson('/api/v1/customer/home')->assertOk()
+            ->assertJsonPath('categories.0.slug', 'bravo')
+            ->assertJsonPath('categories.1.slug', 'zulu');
+        $groups[2]->update(['name' => 'Zzz']);
+        $this->getJson('/api/v1/customer/home')->assertOk()
+            ->assertJsonPath('categories.0.slug', 'zulu');
+        $groups[0]->delete();
+        $groups[2]->delete();
+        $this->getJson('/api/v1/customer/home')->assertOk()->assertJsonPath('categories', []);
     }
 
     public function test_active_customer_receives_delivery_recent_history_and_category_aware_discovery(): void

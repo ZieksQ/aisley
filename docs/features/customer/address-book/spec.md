@@ -67,7 +67,7 @@ Customer opens /account/addresses
 
 ### Checkout and future Order changes
 
-- Checkout accepts only a Customer-owned `address_id` with `shipping` or `both`, revalidates completeness/serviceability, and snapshots all required delivery fields plus optional coordinates into `order_addresses` in the same transaction as the Order.
+- Checkout accepts only a Customer-owned `address_id` with `shipping` or `both`, revalidates completeness/serviceability, and requires a saved pin and snapshots all required delivery fields plus coordinates into `order_addresses` in the same transaction as the Order.
 - The snapshot retains a nullable source-address reference for traceability but never reads the mutable source for delivery.
 - The Customer Order Modification feature, not Address Book, updates an already-placed Order snapshot during its approved pre-Seller-processing window. Its delivery-address endpoint accepts only an existing shipping-capable Address Book row with changed recipient/contact and identical trimmed location fields and coordinates; Address Book CRUD itself never edits an Order snapshot.
 - After Seller accepts an Order (`placed → seller_processing`), Address Book edits cannot reroute it; post-pickup changes and returns/refunds are deferred.
@@ -101,3 +101,9 @@ Customer opens /account/addresses
 - Checkout: resolve `address_id` through Customer scope → revalidate → copy required fields into `order_addresses` before commit.
 - API tests cover ownership, role/status gates, fields/coordinates, default races, CRUD, checkout selection, and snapshot independence. Storefront checks cover combobox keyboard behavior, map fallback, pin invalidation, retry, and accessible errors.
 - Follow `docs/workspace.md`, `docs/schema.md`, `docs/domains/Buyer.md`, and [`docs/references/user-registration-requirements.md`](../../../references/user-registration-requirements.md). Follow [docs/maps-location-api.md](../../../maps-location-api.md) for the authoritative provider, privacy, fallback, and cost boundaries for address and location behavior.
+
+### Required delivery pin — 2026-11-05
+
+- Address Book saves may remain unpinned. Shipping options, checkout quotes/placement, and Order destination-change preview/confirmation require a saved finite coordinate pair within latitude -90..90 and longitude -180..180.
+- Reject missing/invalid pins with `422 ADDRESS_PIN_REQUIRED`, field `address_id`, before purchase or modification effects. Successful exact-key placement replays remain available after Address Book changes.
+- Offer address editing and explicit map/manual coordinate confirmation; text edits invalidate the pin. Preserve entered fields on provider failure and never fabricate coordinates.

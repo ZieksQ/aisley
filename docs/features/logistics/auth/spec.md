@@ -53,13 +53,13 @@ multipart register
 
 - Validate first/last name, optional one-character middle name, contact number, sex, birth date, business name, email, and the project password/confirmation rules.
 - Calculate age from the persisted birth date through the shared age accessor. The Logistics UI may display a calculated age, but age is not client input or a persisted authority.
-- Require the **Operational hub/sorting-center address** fields: address line 1, optional line 2, barangay, city/municipality, province, region, and postal code. Country is server-set to `Philippines`; coordinates remain optional.
+- Require the **Operational hub/sorting-center address** fields: address line 1, optional line 2, barangay, city/municipality, province, region, and postal code. Country is server-set to `Philippines`; a confirmed hub coordinate pair is required.
 - Use bundled `@aisley/psgc-address-data` Region → Province → City/Municipality → Barangay controls in the SPA, with manual text fallback. PSGC codes/provider IDs are lookup-only and are not persisted.
 - Hub pin capture: after completing PSGC/manual address fields, choose **Pin hub location**, geocode intentionally with Geoapify, then click/drag the Leaflet pin and explicitly confirm the actual hub entrance/location. No Mapbox or geocoding while typing.
-- Extend multipart registration with optional `latitude` and `longitude`; require both finite numeric values together, latitude -90..90 and longitude -180..180. Persist the user-confirmed pair on the sole hub's linked Address, not a personal address or second hub.
+- Extend multipart registration with required `latitude` and `longitude`; require both finite numeric values together, latitude -90..90 and longitude -180..180. Persist the user-confirmed pair on the sole hub's linked Address, not a personal address or second hub.
 - Text changes invalidate the draft coordinate pair and require pin confirmation again. Geocoding suggestions and device GPS are aids, not proof of a hub's location; GPS requires permission and explicit confirmation.
-- If geocoding/map services fail, preserve entered fields and permit manual registration without a pin; show **Hub location not pinned** and offer completion in Account Settings. Do not substitute `0,0`, seed coordinates, or a barangay centroid as a confirmed exact pin.
-- The pin is an optional registration aid and never gates account approval or access. A text-only registration remains valid when the provider is unavailable; the committed coordinate pair is used only as an operator-confirmed routing input.
+- If geocoding/map services fail, preserve entered fields and require manual coordinate entry and confirmation before registration. Do not substitute `0,0`, seed coordinates, or a barangay centroid as a confirmed exact pin.
+- New registration requires the pin before OTP and final submission, including the OTP-disabled path. Existing Logistics accounts retain access and their Account Settings pin correction workflow. The pair is an operator-confirmed routing input, not GPS-certified evidence.
 - Persist User, LogisticsProfile, pending RegistrationApplication, one default hub Address, one LogisticsOrganization, and one LogisticsHub in a logical transaction. A failed database write removes any stored evidence objects.
 
 ### Evidence and Admin approval

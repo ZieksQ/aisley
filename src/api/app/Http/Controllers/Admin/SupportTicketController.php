@@ -33,8 +33,8 @@ class SupportTicketController extends Controller
         $items = User::query()
             ->where('role', UserRole::Admin->value)
             ->where('status', UserStatus::Active->value)
-            ->whereHas('permissions', fn ($query) => $query->where('slug', 'support-tickets.view'))
-            ->whereHas('permissions', fn ($query) => $query->where('slug', 'support-tickets.manage'))
+            ->withAdminPermission('support-tickets.view')
+            ->withAdminPermission('support-tickets.manage')
             ->with('adminProfile:user_id,first_name,last_name')
             ->get(['id'])
             ->map(fn (User $admin) => [

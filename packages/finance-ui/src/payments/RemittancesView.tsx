@@ -1,19 +1,22 @@
-import { useState } from 'react'
+import { DateRangePicker, useReportPeriod } from '@aisley/ui/date-range'
+import { useEffect, useState } from 'react'
 import { SelectField, TextField } from '@aisley/ui'
 import { Button, date, EmptyState, Feedback, label, money, Paging, PaymentShell, PaymentTable, StatusText } from './common'
 import { useFinanceRead, usePaymentAction } from './hooks'
 import type { Attempt, Batch, Invoice, Page, PaymentProps, SettingsResponse } from './types'
 export function RemittancesView(props: PaymentProps) {
+  const period = useReportPeriod(props.filters)
   const [status, setStatus] = useState('')
   const [search, setSearch] = useState('')
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(1)
   const [tab, setTab] = useState<'invoices' | 'history'>('invoices')
   const [selected, setSelected] = useState<string[]>([])
-  const invoices = useFinanceRead<Page<Invoice>>(props, `/invoices?page=${page}&status=${status}&search=${encodeURIComponent(query)}`)
-  const batches = useFinanceRead<Page<Batch>>(props, `/remittances?page=${page}`)
+  const invoices = useFinanceRead<Page<Invoice>>(props, `/invoices?page=${page}&status=${status}&search=${encodeURIComponent(query)}&${period.query}`)
+  const batches = useFinanceRead<Page<Batch>>(props, `/remittances?page=${page}&${period.query}`)
   const settings = useFinanceRead<SettingsResponse>(props, '/automation')
   const action = usePaymentAction()
+  useEffect(() => { if (!action.busy && !action.uncertain) setSelected([]) }, [period.query, action.busy, action.uncertain])
   const payable = invoices.data?.data.filter((invoice) => selected.includes(invoice.id) && invoice.status === 'outstanding') ?? []
   const total = payable.reduce((sum, invoice) => sum + invoice.remaining_cents, 0)
   function reset() { setPage(1); setSelected([]) }
@@ -31,14 +34,14 @@ export function RemittancesView(props: PaymentProps) {
   return <PaymentShell
     title="COD remittances"
     description="Review delivery invoices and track payments to Aisley."
-    actions={<Button variant="outline" onClick={refresh}>Refresh</Button>}>
+    actions={<Button variant="outline" disabled={action.busy || action.uncertain} onClick={refresh}>Refresh</Button>}>
     {invoices.data?.summary && <dl className="payment-summary">
       <div>
-        <dt>Outstanding COD</dt>
+        <dt>Current outstanding COD · all dates</dt>
         <dd>{money(invoices.data.summary.outstanding_cents, invoices.data.summary.currency)}</dd>
       </div>
       <div>
-        <dt>Overdue</dt>
+        <dt>Current overdue · all dates</dt>
         <dd>{money(invoices.data.summary.overdue_cents, invoices.data.summary.currency)}</dd>
       </div>
     </dl>}
@@ -50,15 +53,17 @@ export function RemittancesView(props: PaymentProps) {
     </p>}
     <div>
       <div className="payment-tabs" role="group" aria-label="Remittance view">
-        <button className="payment-tab" aria-pressed={tab === 'invoices'} onClick={() => { setTab('invoices'); reset() }}>Invoices</button>
-        <button className="payment-tab" aria-pressed={tab === 'history'} onClick={() => { setTab('history'); reset() }}>Payment history</button>
+        <button className="payment-tab" disabled={action.busy || action.uncertain} aria-pressed={tab === 'invoices'} onClick={() => { setTab('invoices'); reset() }}>Invoices</button>
+        <button className="payment-tab" disabled={action.busy || action.uncertain} aria-pressed={tab === 'history'} onClick={() => { setTab('history'); reset() }}>Payment history</button>
       </div>
+      <DateRangePicker label={tab === 'invoices' ? 'Invoice delivery date' : 'Remittance submission date'} value={period.period} disabled={action.busy || action.uncertain} onApply={(value) => { period.apply(value); reset() }} />
       {tab === 'invoices' && <form
         className="payment-filters"
         role="search"
         onSubmit={(event) => { event.preventDefault(); setQuery(search); reset() }}>
         <TextField
           id="invoice-search"
+          disabled={action.busy || action.uncertain}
           label="Search invoices"
           type="search"
           placeholder="Order, invoice, or organization"
@@ -66,13 +71,14 @@ export function RemittancesView(props: PaymentProps) {
           onChange={(event) => setSearch(event.target.value)} />
         <SelectField
           id="invoice-status"
+          disabled={action.busy || action.uncertain}
           label="Status"
           value={status}
           onChange={(event) => { setStatus(event.target.value); reset() }}>
           <option value="">All statuses</option>
           {['outstanding', 'processing', 'paid', 'overdue', ...(props.role === 'admin' ? ['review'] : [])].map((value) => <option key={value} value={value}>{label(value)}</option>)}
         </SelectField>
-        <Button variant="secondary" type="submit">Search</Button>
+        <Button variant="secondary" disabled={action.busy || action.uncertain} type="submit">Search</Button>
       </form>}
       <Feedback
         loading={displayed.loading}
@@ -98,7 +104,7 @@ export function RemittancesView(props: PaymentProps) {
                 type="checkbox"
                 aria-label={`Select ${invoice.order_reference}`}
                 checked={selected.includes(invoice.id)}
-                disabled={action.busy || invoice.status !== 'outstanding' || (payable.length > 0 && payable[0].currency !== invoice.currency)}
+                disabled={action.busy || action.uncertain || invoice.status !== 'outstanding' || (payable.length > 0 && payable[0].currency !== invoice.currency)}
                 onChange={(event) => setSelected(event.target.checked ? [...selected, invoice.id] : selected.filter((id) => id !== invoice.id))} />
             </td>}
             <td>
@@ -130,7 +136,7 @@ export function RemittancesView(props: PaymentProps) {
           </div>
           <Button disabled={payable.length === 0 || !policy?.gateway_enabled} isLoading={action.busy} onClick={pay}>Pay now</Button>
         </div>}
-        <Paging page={invoices.data} value={page} change={(value) => { setPage(value); setSelected([]) }} />
+        <Paging disabled={action.busy || action.uncertain} page={invoices.data} value={page} change={(value) => { setPage(value); setSelected([]) }} />
       </>}
       {tab === 'history' && batches.data && <>
         {batches.data.data.length > 0 ? <PaymentTable caption="Remittance history">
@@ -160,7 +166,7 @@ export function RemittancesView(props: PaymentProps) {
             </td>
           </tr>)}</tbody>
         </PaymentTable> : <EmptyState title="No remittance payments yet." description="Payments will appear here after invoices are submitted." />}
-        <Paging page={batches.data} value={page} change={setPage} />
+        <Paging disabled={action.busy || action.uncertain} page={batches.data} value={page} change={setPage} />
       </>}
     </div>
     <p className="payment-muted">All dates and schedules use Asia/Manila time. Sandbox payments use simulated money.</p>

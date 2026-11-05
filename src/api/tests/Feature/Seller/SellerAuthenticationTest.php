@@ -107,6 +107,8 @@ class SellerAuthenticationTest extends TestCase
             'barangay' => 'Poblacion',
             'city_municipality' => 'Makati City',
             'country' => 'Philippines',
+            'latitude' => 14.55,
+            'longitude' => 121.02,
         ]);
         $this->assertDatabaseCount('documents', 2);
         $this->assertEqualsCanonicalizing(
@@ -439,6 +441,14 @@ class SellerAuthenticationTest extends TestCase
     }
 
     /** @param array<string, mixed> $overrides */
+    public function test_registration_requires_a_pin_without_creating_a_partial_application(): void
+    {
+        $payload = $this->registrationPayload();
+        unset($payload['latitude'], $payload['longitude']);
+        $this->postRegistration($payload)->assertUnprocessable()->assertJsonValidationErrors(['latitude', 'longitude']);
+        $this->assertDatabaseMissing('users', ['email' => $payload['email']]);
+    }
+
     private function registrationPayload(array $overrides = []): array
     {
         $payload = array_merge([
@@ -451,6 +461,7 @@ class SellerAuthenticationTest extends TestCase
             'business_name' => 'Aisley Merchant Store',
             'shop_category_id' => $this->shopCategory()->id,
             'address' => $this->manualAddress(),
+            'latitude' => 14.55, 'longitude' => 121.02,
             'government_id' => $this->imageUpload('government-id.png'),
             'business_permit' => $this->imageUpload('business-permit.png'),
             'email' => 'seller@example.com',

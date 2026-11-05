@@ -2,8 +2,8 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Support\Admin\PasswordPolicy;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rules\Password;
 
 class UpdateOwnPasswordRequest extends FormRequest
 {
@@ -16,7 +16,7 @@ class UpdateOwnPasswordRequest extends FormRequest
     {
         return [
             'current_password' => ['required', 'string', 'current_password:web'],
-            'password' => ['required', 'string', 'confirmed', Password::min(8)->mixedCase()->numbers()],
+            'password' => ['required', 'string', 'confirmed', PasswordPolicy::rule()],
         ];
     }
 }

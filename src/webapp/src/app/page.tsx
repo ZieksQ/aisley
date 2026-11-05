@@ -111,6 +111,7 @@ export default async function Home() {
           <CategorySection categories={homepage.categories} />
           <FlashDealsSection />
           <ProductRail
+            showWishlist={false}
             id="top-products"
             title="Top products"
             actionHref="/products?sort=top"

@@ -67,7 +67,7 @@ function installFixtures() {
   }
   const json = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } })
   const mode = sessionStorage.getItem('camera-session-mode')
-  window.reviewFixture = { writes: [], session: mode === 'ready' || mode === 'uncertain' ? null : session, mode, confirmations: 0 }
+  window.reviewFixture = { writes: [], lanes: [lane], session: mode === 'ready' || mode === 'uncertain' ? null : session, mode, confirmations: 0 }
   if (mode === 'complete') {
     window.reviewFixture.session = { ...session, counts: { pending: 0, sorted: 3, exception: 0 }, items: [] }
   }
@@ -88,9 +88,14 @@ function installFixtures() {
     if (path.endsWith('/policy-consent/status')) return json({ data: { all_required_accepted: true, policies: [] } })
     if (path.endsWith('/chat-notifications')) return json({ data: [], meta: { unread_count: 0 } })
     if (path.endsWith('/notifications/unread-count')) return json({ data: { unread_count: 0 } })
+    if (path.endsWith('/dashboard/queue')) return json({ data: [], meta: { current_page: 1, last_page: 1, total: 0, per_page: 10 }, summary: {total: 0, pending_evidence: 0, pending_completion: 0, by_status:{}}, freshness:{state:'authoritative', generated_at:at} })
+    if (path.includes('/update-status/records/')) {
+      const reference = decodeURIComponent(path.split('/').at(-1))
+      return json({data:{shipment_id:reference, revision:1, status:'received_at_hub', last_activity_at:at, tasks:[], allowed_transitions:[], parcel:{id:reference, reference, tracking_id:reference, order_reference:'ORDER-'+reference, item_count:1}}})
+    }
     if (path.endsWith('/sorting/exceptions')) return json({ data: [], total: 0, current_page: 1, last_page: 1 })
     if (path.endsWith('/sorting')) return json({ data: {
-      context, session: window.reviewFixture.session, lanes: [lane], waiting_received: 3, session_limit: 100,
+      context, session: window.reviewFixture.session, lanes: window.reviewFixture.lanes, waiting_received: 3, session_limit: 100,
       automatic_sorting: { enabled: true, active_plan: plan, exception_lane: null },
     } })
     return json({ data: [], meta: { unread_count: 0 } })
@@ -107,7 +112,7 @@ function qrSvg(payload) {
 }
 const php = String.raw`require 'src/api/vendor/autoload.php'; echo (new Picqer\Barcode\BarcodeGeneratorSVG)->getBarcode($argv[1], Picqer\Barcode\BarcodeGeneratorSVG::TYPE_CODE_128, 2, 96);`
 const barSvg = execFileSync('php', ['-r', php, 'AWB-BAR123456'], { encoding: 'utf8' })
-const frames = { alias: qrSvg('AWB-QR123456'), blank: '<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480"><rect width="640" height="480" fill="#64748b"/></svg>', qr: qrSvg('AISLEY:WB:1:AWB-QR123456'), raw: qrSvg('AWB-RAW123456'), barcode: barSvg }
+const frames = { lane: qrSvg('AISLEY:SORT-LANE:1:123e4567-e89b-42d3-a456-426614174000'), alias: qrSvg('AWB-QR123456'), blank: '<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480"><rect width="640" height="480" fill="#64748b"/></svg>', qr: qrSvg('AISLEY:WB:1:AWB-QR123456'), raw: qrSvg('AWB-RAW123456'), barcode: barSvg }
 function installCamera(frames) {
   window.scanSounds = []
   const Audio = window.AudioContext
@@ -210,6 +215,43 @@ try {
   }
   // Remove only synthetic sorting captures before exercising online session controls.
   await evaluate(`new Promise((resolve, reject) => { const request = indexedDB.open('aisley-logistics-sorting'); request.onsuccess = () => { const db = request.result; const tx = db.transaction('captures', 'readwrite'); tx.objectStore('captures').clear(); tx.oncomplete = () => { db.close(); resolve(true) }; tx.onerror = reject }; request.onerror = reject })`)
+  // A real lane-label camera scan reveals its page, even when that lane was already selected.
+  await cdp('Page.navigate', {url:(process.env.HUB_ORIGIN ?? 'http://127.0.0.1:15176')+'/sorting'})
+  await until('window.reviewFixture && document.querySelector("#sorting-lanes-title")')
+  await evaluate(`(() => { const base = window.reviewFixture.lanes[0]; window.reviewFixture.lanes = Array.from({length:17}, (_,i) => ({...base, id: i === 16 ? '123e4567-e89b-42d3-a456-426614174000' : 'lane-'+i, code:'CAMERA-'+i, position:i+1})); document.querySelector('button[aria-label="Refresh sorting"]').click() })()`)
+  const lanePanel = 'document.querySelector("section[aria-labelledby=sorting-lanes-title]")'
+  await until(`${lanePanel}.innerText.includes('1–8 of 17 lanes')`)
+  await evaluate(`Object.defineProperty(navigator,'onLine',{value:false,configurable:true}); window.dispatchEvent(new Event('offline')); document.querySelector('button[aria-label="Full screen scanner"]').click()`)
+  await until('window.testScanStream?.active')
+  await evaluate(`window.showScanFrame('lane')`)
+  await until(`${lanePanel}.innerText.includes('17–17 of 17 lanes')`)
+  await evaluate(`document.querySelector('button[aria-label="Exit full screen scanner"]').click(); window.showScanFrame('blank')`)
+  await evaluate(`Array.from(document.querySelectorAll('.portal-scanner button')).find(b => b.textContent.trim() === 'Stop camera').click()`)
+  await until('!window.testScanStream.active')
+  await new Promise(resolve => setTimeout(resolve, 1200))
+  await evaluate(`${lanePanel}.querySelector('nav button').click()`)
+  await until(`${lanePanel}.innerText.includes('9–16 of 17 lanes')`)
+  await evaluate(`${lanePanel}.querySelector('nav button').click()`)
+  await until(`${lanePanel}.innerText.includes('1–8 of 17 lanes')`)
+  await evaluate(`Array.from(document.querySelectorAll('.portal-scanner button')).find(b => b.textContent.trim() === 'Start camera').click()`)
+  await until('window.testScanStream.active')
+  await evaluate(`window.showScanFrame('lane')`)
+  await until(`${lanePanel}.innerText.includes('17–17 of 17 lanes')`)
+  assert.equal(await evaluate('window.reviewFixture.writes.length'), 0, 'Lane scan never commits custody')
+  assert.equal(await evaluate('window.scanSounds.length'), 0, 'Lane scan does not play parcel capture sound')
+  console.log('Lane QR reveals its pagination page, including a deliberate repeat of the selected lane')
+  await cdp('Page.navigate', {url:(process.env.HUB_ORIGIN ?? 'http://127.0.0.1:15176')+'/operations'})
+  await until('document.querySelector("#parcel-reference")')
+  await evaluate(`document.querySelector('button[aria-label="Start barcode scanner"]').click()`)
+  await until('window.testScanStream?.active')
+  for (const [name, reference] of Object.entries({qr:'AWB-QR123456', barcode:'AWB-BAR123456', raw:'AWB-RAW123456'})) {
+    await evaluate(`window.showScanFrame(${JSON.stringify(name)})`)
+    await until(`document.querySelector('.parcel-record')?.innerText.includes(${JSON.stringify('Tracking ID '+reference)})`)
+    assert.equal(await evaluate('document.querySelector(".parcel-lookup video") !== null'), true, 'Parcel camera stays mounted during lookup')
+  }
+  await evaluate(`document.querySelector('button[aria-label="Stop barcode scanner"]').click()`)
+  await until('!window.testScanStream.active')
+  console.log('Parcel search camera: Code 128, Aisley waybill QR and tracking-only QR resolve authoritative records')
   const button = (text) => `Array.from(document.querySelectorAll('.portal-scanner-expanded button')).find(b => b.textContent.trim() === ${JSON.stringify(text)})`
   for (const mode of ['ready', 'complete', 'uncertain']) {
     await evaluate(`sessionStorage.setItem('camera-session-mode', ${JSON.stringify(mode)})`)

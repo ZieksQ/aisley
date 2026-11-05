@@ -3,8 +3,8 @@ feature: push-notification-bar
 title: Admin Outbound Notification Campaigns
 system: AISLEY
 type: Feature Specification
-version: 2.0
-status: First-release in-app Customer campaigns implemented; PostgreSQL/browser verification pending
+version: 2.1
+status: First-release in-app Customer campaigns implemented; PostgreSQL/live integration verification pending
 role: Admin
 scope: Admin React dashboard, Laravel API, Customer in-app inbox
 ---
@@ -74,6 +74,17 @@ scope: Admin React dashboard, Laravel API, Customer in-app inbox
 - Use labeled controls, keyboard-operable confirmation, visible focus, non-color-only status, and a responsive light/dark dashboard layout.
 - Customer notifications appear in the existing inbox/bell, persist across refresh, and use the existing owner-only read state. No browser permission prompt is needed for in-app delivery.
 - A Customer whose Product/Shop destination later becomes unavailable still sees the message, but opening it shows the destination feature's safe unavailable state.
+
+### Admin UI/UX refresh — 2026-11-05
+
+- `/notification-campaigns` prioritizes newest-first campaign history, server total, URL pagination, refresh/freshness, textual status and persisted/frozen-audience counts. Drafts show “Not sent”; preparing campaigns show recipient selection in progress. Retain previous rows during same-page refresh errors; suppress obsolete page/account responses.
+- Managers open `/notification-campaigns/new` for a focused composer with bounded title/plain-text body, character counts, the fixed opted-in Customer audience, optional visible Product/Shop ID, associated validation and a live message preview. Successful creation replaces the new route with the saved campaign detail. No drafts are stored in browser storage.
+- Existing draft details reuse the composer, show saved/unsaved state and audience review, and block calculation/send until edits are saved. Every edit invalidates the preview; saves and send-time eligibility remain server-authoritative. A failed recalculation removes the prior estimate.
+- Confirmation shows the saved revision, full message, optional destination, audience and advisory count. Cancel/Escape restore focus. Busy controls prevent duplicate submission; uncertain sends refetch status and preserve the exact send key/revision on retry. If reconciliation fails, editing and sending remain paused until a successful status check.
+- Stale revisions retain local text, retrieve the latest saved message for comparison, and require a new review. Draft editing/navigation warns before discarding unsaved input. Account/permission/route changes dispose private workspace state and ignore late completions.
+- Sent campaigns put delivery results before the saved message in reading order, including on phones. Keep frozen, persisted, skipped and failed counts distinct; poll active states every five seconds, stop at terminal states, and retain manual status refresh. View-only Admins see saved content without edit/review/send controls.
+- Reuse the shared Admin shell and portal primitives in both themes. Apply the design contract’s purple/Geist tokens, responsive lists/forms, visible focus, 44px controls and reduced motion. No search/status filtering, new delivery channels, backend payload/schema changes or external mobile contract changes are introduced.
+- Synthetic browser and visual verification is documented in [verification-2026-11-05.md](verification-2026-11-05.md); it does not close PostgreSQL or deployed delivery acceptance.
 
 ### Acceptance criteria
 

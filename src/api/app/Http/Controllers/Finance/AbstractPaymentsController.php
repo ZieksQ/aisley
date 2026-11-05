@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Finance;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Finance\AutomationSettingsRequest;
+use App\Http\Requests\Finance\FinanceReadRequest;
+use App\Http\Requests\Finance\InvoiceIndexRequest;
 use App\Http\Requests\Finance\PaymentSelectionRequest;
 use App\Http\Resources\Finance\CodInvoiceResource;
 use App\Models\CodRemittanceAllocation;
@@ -13,6 +15,7 @@ use App\Services\Finance\Automation\FinanceDocumentService;
 use App\Services\Finance\Automation\FinanceReadService;
 use App\Services\Finance\Automation\FinanceSettingsService;
 use App\Services\Finance\Automation\PayoutService;
+use App\Services\Finance\FinanceDateRange;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 
@@ -20,10 +23,10 @@ abstract class AbstractPaymentsController extends Controller
 {
     abstract protected function role(): string;
 
-    public function invoices(Request $request, FinanceReadService $reads)
+    public function invoices(InvoiceIndexRequest $request, FinanceReadService $reads)
     {
-        $filters = $request->validate(['status' => ['nullable', 'in:outstanding,processing,paid,review,overdue'], 'search' => ['nullable', 'string', 'max:120']]);
-        $query = $reads->invoices($request->user(), $this->role());
+        $filters = $request->validated();
+        $query = FinanceDateRange::apply($reads->invoices($request->user(), $this->role()), 'delivered_at', $filters);
         if (($filters['status'] ?? '') === 'overdue') {
             $query->whereNull('paid_at')->where('due_at', '<', now());
         } elseif ($filters['status'] ?? null) {
@@ -53,9 +56,9 @@ abstract class AbstractPaymentsController extends Controller
         return $this->pdf($documents->invoice($record), $record->reference.'.pdf');
     }
 
-    public function batches(Request $request, FinanceReadService $reads)
+    public function batches(FinanceReadRequest $request, FinanceReadService $reads)
     {
-        $page = $reads->batches($request->user(), $this->role())->latest('submitted_at')->orderBy('id')->paginate(25);
+        $page = FinanceDateRange::apply($reads->batches($request->user(), $this->role()), 'submitted_at', $request->validated())->latest('submitted_at')->orderBy('id')->paginate(25);
         $page->setCollection($page->getCollection()->map(fn ($batch) => $reads->batch($batch)));
 
         return $this->json($page->toArray());
@@ -92,7 +95,7 @@ abstract class AbstractPaymentsController extends Controller
 
         return $this->json(['data' => ['platform' => $platform, 'collection' => $collection, 'timezone' => 'Asia/Manila',
             'next_collection_at' => $platform->collection_enabled && config('finance.gateway_enabled') ? $next->toISOString() : null, 'gateway_enabled' => config('finance.gateway_enabled'),
-            'can_manage' => $this->role() === 'logistics' || ($this->role() === 'admin' && $request->user()->permissions()->where('slug', 'finance.manage')->exists())]]);
+            'can_manage' => $this->role() === 'logistics' || ($this->role() === 'admin' && $request->user()->hasAdminPermission('finance.manage'))]]);
     }
 
     public function updateSettings(AutomationSettingsRequest $request, FinanceSettingsService $settings, FinanceReadService $reads)
@@ -102,9 +105,9 @@ abstract class AbstractPaymentsController extends Controller
         return $this->json(['data' => $settings->update($request->user(), $scope, $request->validated())]);
     }
 
-    public function payouts(Request $request, FinanceReadService $reads)
+    public function payouts(FinanceReadRequest $request, FinanceReadService $reads)
     {
-        $page = $reads->payouts($request->user(), $this->role())->latest('submitted_at')->orderBy('id')->paginate(25);
+        $page = FinanceDateRange::apply($reads->payouts($request->user(), $this->role()), 'submitted_at', $request->validated())->latest('submitted_at')->orderBy('id')->paginate(25);
         $page->setCollection($page->getCollection()->map(fn ($p) => $reads->payout($p)));
 
         return $this->json($page->toArray());

@@ -7,6 +7,7 @@ import { MonitoringTrucks } from '../features/fleetMonitoring/MonitoringTables'
 import { availabilityLabels, pageNumber } from '../features/fleetMonitoring/types'
 import type { Availability } from '../features/fleetMonitoring/types'
 import { useFleetMonitoring } from '../features/fleetMonitoring/useFleetMonitoring'
+import { AssignmentsWorkspace } from '../features/fleetMonitoring/AssignmentsWorkspace'
 
 export function FleetMonitoringPage() {
   const [params, setParams] = useSearchParams()
@@ -29,10 +30,11 @@ export function FleetMonitoringPage() {
       <header className="portal-page-header">
         <div>
           <h2 className="portal-page-heading">Fleet monitoring</h2>
-          <p className="portal-page-description">Confirmed truck locations, assignments and departure schedules.</p>
+          <p className="portal-page-description">First-mile pickups, linehaul transfers and last-mile deliveries.</p>
         </div>
         <Link className="portal-button" to="/fleet">Manage company fleet</Link>
       </header>
+      <AssignmentsWorkspace />
       <MonitoringRefresh loading={loading} error={error} updatedAt={data?.meta.server_time} refresh={refresh} />
       {data ? (
         <section aria-label="Entire company fleet availability" className="portal-panel p-4">
@@ -55,7 +57,8 @@ export function FleetMonitoringPage() {
           onSubmit={(event) => {
             event.preventDefault()
             const values = new FormData(event.currentTarget)
-            const next = new URLSearchParams()
+            const next = new URLSearchParams(params)
+            for (const key of ['search', 'availability', 'overdue', 'page']) next.delete(key)
             const term = String(values.get('search') ?? '').trim()
             if (term) next.set('search', term)
             if (values.get('availability')) next.set('availability', String(values.get('availability')))
@@ -86,7 +89,11 @@ export function FleetMonitoringPage() {
           <div className="portal-inline-actions">
             <PortalButton type="submit">Apply filters</PortalButton>
             {search || availability || overdue ? (
-              <PortalButton type="button" variant="ghost" onClick={() => setParams({})}>Clear filters</PortalButton>
+              <PortalButton type="button" variant="ghost" onClick={() => {
+                const next = new URLSearchParams(params)
+                for (const key of ['search', 'availability', 'overdue', 'page']) next.delete(key)
+                setParams(next)
+              }}>Clear filters</PortalButton>
             ) : null}
           </div>
         </form>

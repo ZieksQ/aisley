@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Seller;
 
+use App\Support\AddressCoordinates;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StorePickupAddressRequest extends FormRequest
@@ -26,8 +27,8 @@ class StorePickupAddressRequest extends FormRequest
             'region' => ['required', 'string', 'max:255'],
             'postal_code' => ['required', 'string', 'max:10'],
             'country' => ['required', 'string', 'max:255'],
-            'latitude' => ['nullable', 'numeric', 'between:-90,90', 'required_with:longitude'],
-            'longitude' => ['nullable', 'numeric', 'between:-180,180', 'required_with:latitude'],
+            'latitude' => AddressCoordinates::rules('latitude'),
+            'longitude' => AddressCoordinates::rules('longitude'),
             'is_default' => ['sometimes', 'boolean'],
             'type' => ['prohibited'],
             'user_id' => ['prohibited'],

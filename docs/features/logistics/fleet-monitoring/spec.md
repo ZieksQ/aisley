@@ -9,10 +9,10 @@ canonical: true
 
 ## WHAT
 
-- Dedicated read-only `/fleet-monitoring` and `/fleet-monitoring/:truckId` workspaces for owned company trucks.
+- Dedicated read-only `/fleet-monitoring` workspace for first-mile pickups, owned-truck linehaul and last-mile deliveries; `/fleet-monitoring/:truckId` retains owned truck details/history.
 - Answer where trucks were last confirmed, what work they are assigned, their schedules, drivers, committed parcel capacity and recorded history.
 - Registration and capability management stay in Company fleet; dispatch and receiving stay in their existing workspaces.
-- Operational location only: no live GPS, map, ETA, maintenance workflow, notifications or Courier client contract changes.
+- Operational location only: the assignment map displays saved pickup, hub and delivery pins, never live Courier positions. No GPS collection, ETA, maintenance workflow, notifications or Courier client contract changes.
 
 ## MUST
 
@@ -33,6 +33,22 @@ canonical: true
 
 ## HOW
 
+### Active pickup and delivery assignments — 2026-11-05
+
+- `GET /api/v1/logistics/fleet/monitoring/assignments`: `stage` (`first_mile`, `linehaul`, `final_mile`), `search` (max 100 characters), `page`, `per_page` (default 20, max 100). Returns `{data: Assignment[], meta: {current_page, last_page, per_page, total, server_time}}`, private/no-store under the existing Logistics access/consent gates. UI calls `final_mile` **Last-mile**.
+- Each assignment represents one first-mile task, linehaul trip or final-mile task. The mirrored first-mile DeliveryTask is not counted again. Order by creation descending, stage then ID; paginate the union in SQL and eager-load the selected page.
+- First-mile includes assigned/accepted tasks and picked-up parcels whose Shipment still awaits hub receipt. A completed pickup schedule does not hide parcels returning to the hub: pickup schedule completion records Seller handoffs, not hub custody. Cancelled schedules/tasks and terminal Orders are excluded.
+- Final-mile includes currently assigned `delivery_assigned`, `delivery_accepted`, `picked_up_from_hub`, `in_transit` and `out_for_delivery` tasks under the current organization/hub custody, including work awaiting delivery validation. Rejected, unassigned, superseded, delivered and terminal Order records are excluded. Show current Courier, never historical offer recipients. Scheduled context comes only from matching tenant/hub/current-Courier membership; standalone re-offers may have no schedule.
+- Linehaul includes owned trips in `pending_acceptance`, `scheduled`, `in_transfer` and `receiving`, including empty returns scheduled from another hub. It does not grant visibility to another organization's trucks merely because a trip visits the local hub.
+- Assignment contains composite stage/ID, source ID, stage/status, reference, safe Courier ID/name, nullable schedule/reference/window, parcel count, nullable truck ID/plate and direction, recorded event timestamps and stop projections. Stops include kind, label, area summary and nullable coordinate pair. No contact fields, full street address, POD/documents or GPS history.
+- Use immutable waybill pickup pins, the authoritative Order delivery address and saved hub pins. Invalid/missing coordinate pairs remain null; monitoring never geocodes, computes routes or writes operational state. Timestamp absence remains **Not recorded**.
+- Map and list describe the same current assignment page; total results and **Map shows N on page P** explicitly distinguish page coverage. Stage/search/page live in `stage`, `assignment_search`, `assignment_page` URL parameters, independently of truck filters. Preserve both sets through truck details/Back.
+- Use installed Leaflet with Geoapify raster tiles and browser-only origin-restricted credentials. Keep attribution visible. First-mile pickup/open-package icons are teal, linehaul/truck icons blue, last-mile delivery icons violet; hub icons are slate. Pair color with icons, stage labels and a legend. Truck icons at origin stops mean assigned origins, not current truck positions.
+- Group coincident coordinates into one marker with a count and selectable assignment menu. Marker/row selection highlights the assignment stops and opens schedule, stop and recorded-event details with links to existing workspaces. Provide keyboard selection, zoom and **Fit shown stops**. Polling updates markers without resetting the operator's viewport.
+- Retain the list/details when tiles, credentials or pins are unavailable. Show loading, tile failure/slow response and retry explicitly. An unconfigured map provider makes the map unavailable rather than fabricating a basemap. Keep visible-tab/manual refresh, same-resource stale notices and private-state disposal from existing monitoring.
+
+### Company truck monitoring
+
 - `GET /api/v1/logistics/fleet/monitoring`: query `search` (max 100 characters), `availability` (existing enum), `overdue` (0/1), `page`, `per_page`. Returns `{data: Truck[], meta: {current_page, last_page, per_page, total, server_time, summary}}`.
 - `GET /api/v1/logistics/fleet/monitoring/{truck}`: `{data: Truck, meta: {server_time}}`.
 - `GET /api/v1/logistics/fleet/monitoring/{truck}/trips`: `page`, `per_page`, newest created time then ID; `{data: Trip[], meta: {current_page, last_page, per_page, total, server_time}}`.
@@ -43,6 +59,11 @@ canonical: true
 - API acceptance covers isolation/access gates, validation, stable pagination, filters, time boundaries, old active assignments, return trips and truthful timestamps.
 - Browser acceptance covers filters/Back, details/history, refresh failures/retry, obsolete responses, logout, keyboard use, light/dark themes and 320/768/1440px overflow.
 - Run focused API regressions, Logistics TypeScript/lint/build checks and record actual browser checks separately from live deployment acceptance.
+
+## Verification — 2026-11-05
+
+- Pickup/delivery extension: 13 focused isolated API tests (206 assertions), Logistics TypeScript/build/lint, scoped Pint and whitespace checks passed. Chromium passed 68 assignment checks, 74 existing monitoring checks and 2 unconfigured-provider checks. Both theme inspections passed at 1440/768/390px with documented functional-map/shell allowances.
+- Eight broader linehaul tests fail during existing unpinned Seller fixture setup, before monitoring is exercised. Actual PostgreSQL/deployed/real-account acceptance remains open. See [verification and design review](verification-2026-11-05.md).
 
 ## Verification — 2026-11-04
 

@@ -154,3 +154,11 @@
 - [Billing](../../logistics/billing/spec.md) displays safe masked simulated account metadata. Every Logistics organization has one account; new accounts start at zero and historical balances are preserved.
 - No historical delivery cash is assumed unremitted. New confirmed COD deliveries create obligations through the shared finalizer only.
 - `finance:automate` recovers pending cash credits when simulation is enabled and the matching account is active; receipt history exposes credited/pending status.
+
+### Finance history date filters and presentation (2026-11-05)
+
+- Follow the [shared period-reporting contract](../commission-settlement/spec.md#finance-period-reporting-and-portal-refresh-2026-11-05) and `docs/design.md` for the Stitch-guided Finance refresh.
+- Role-scoped `GET /invoices` filters `delivered_at`; `GET /remittances` and `GET /payout-history` filter `submitted_at` using paired inclusive Manila `date_from`/`date_to`, or `all_time=1`. Apply predicates before pagination; preserve existing status/search and ownership checks. Invoice summary totals remain explicitly current across all dates.
+- `GET /sandbox` filters transaction/event `created_at` before their existing pagination/25-event limit. Accounts and organization choices remain current; only Payments and Webhook deliveries tabs show a picker.
+- Current unpaid payout obligations and settings/detail screens have no period filter. Payout history has its own labeled Submission date control. Date changes clear ordinary selections; busy/uncertain money actions disable filters and retain their retry selection/key.
+- No date filter changes invoice issuance, eligibility, overdue status, automatic runs, payment reservation, reconciliation or receipt/PDF contracts. Read-only Seller settings and the installed Logistics collection-time control remain intact.

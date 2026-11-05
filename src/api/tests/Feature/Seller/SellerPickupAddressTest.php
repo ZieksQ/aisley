@@ -46,6 +46,20 @@ class SellerPickupAddressTest extends TestCase
             ->assertUnprocessable()->assertJsonValidationErrors(['user_id', 'type']);
     }
 
+    public function test_new_and_edited_pickup_addresses_require_a_valid_pin(): void
+    {
+        $seller = User::factory()->create(['role' => UserRole::Seller, 'status' => UserStatus::Active]);
+        $this->actingAs($seller);
+        $id = $this->postJson('/api/v1/seller/pickup-addresses', $this->payload())->assertCreated()->json('data.id');
+        foreach ([[null, null], [14.5, null], [null, 121], ['bad', 121], [91, 121], [14.5, 181]] as [$lat, $lon]) {
+            $payload = $this->payload(['latitude' => $lat, 'longitude' => $lon]);
+            $this->postJson('/api/v1/seller/pickup-addresses', $payload)->assertUnprocessable();
+            $this->patchJson('/api/v1/seller/pickup-addresses/'.$id, $payload)->assertUnprocessable();
+        }
+        $this->assertDatabaseCount('addresses', 1);
+        $this->assertDatabaseHas('addresses', ['id' => $id, 'latitude' => 14.55, 'longitude' => 121.02]);
+    }
+
     /** @param array<string, mixed> $overrides @return array<string, mixed> */
     private function payload(array $overrides = []): array
     {
@@ -53,7 +67,7 @@ class SellerPickupAddressTest extends TestCase
             'label' => 'Pickup', 'recipient_name' => 'Seller Owner', 'contact_number' => '09171111111',
             'address_line_1' => '1 Seller Road', 'address_line_2' => null, 'barangay' => 'Poblacion',
             'city_municipality' => 'Makati City', 'province' => 'Metro Manila', 'region' => 'National Capital Region',
-            'postal_code' => '1200', 'country' => 'Philippines', 'latitude' => null, 'longitude' => null,
+            'postal_code' => '1200', 'country' => 'Philippines', 'latitude' => 14.55, 'longitude' => 121.02,
             'is_default' => false,
         ], $overrides);
     }

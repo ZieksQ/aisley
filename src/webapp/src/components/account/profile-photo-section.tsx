@@ -1,4 +1,5 @@
 "use client";
+import { AccountRemovalConfirmation } from "@aisley/ui/account-settings";
 
 import { Button } from "@aisley/ui";
 import {
@@ -170,7 +171,7 @@ export function ProfilePhotoSection({
 
         <form className="min-w-0 flex-1" onSubmit={upload}>
           <div className="flex flex-wrap items-center gap-3">
-            <label className="inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-md border border-[#CFC6D2] bg-white px-3 text-sm font-semibold text-[#4C1268] hover:bg-[#F8F5F8] focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[#E6007A]">
+            <label className="inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-md border border-[#CFC6D2] bg-white px-3 text-sm font-semibold text-[#4C1268] hover:bg-[#F8F5F8] focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[#4C1268]">
               <FiCamera aria-hidden="true" /> Choose photo
               <input
                 ref={inputRef}
@@ -183,7 +184,7 @@ export function ProfilePhotoSection({
               />
             </label>
             {selected ? <span className="max-w-64 truncate text-sm text-[#675B6B]">{selected.file.name}</span> : null}
-            <Button
+            <Button variant="secondary"
               type="submit"
               className="min-h-10 rounded-md px-4"
               disabled={!selected || busy !== null}
@@ -197,7 +198,7 @@ export function ProfilePhotoSection({
                 type="button"
                 onClick={() => setConfirmingRemove(true)}
                 disabled={busy !== null}
-                className="inline-flex min-h-10 items-center gap-2 rounded-md px-3 text-sm font-semibold text-[#9D174D] hover:bg-[#FFF1F5] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A] disabled:opacity-60"
+                className="inline-flex min-h-10 items-center gap-2 rounded-md px-3 text-sm font-semibold text-[#B42318] hover:bg-[#FFF4F2] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4C1268] disabled:opacity-60"
               >
                 <FiTrash2 aria-hidden="true" /> Remove
               </button>
@@ -207,7 +208,7 @@ export function ProfilePhotoSection({
           {busy === "upload" ? (
             <div className="mt-3" role="status" aria-live="polite">
               <div className="flex justify-between text-xs text-[#675B6B]"><span>Uploading and saving</span><span>{progress}%</span></div>
-              <progress className="mt-1 h-2 w-full accent-[#E6007A]" max={100} value={progress}>{progress}%</progress>
+              <progress className="mt-1 h-2 w-full accent-[#4C1268]" max={100} value={progress}>{progress}%</progress>
             </div>
           ) : null}
 
@@ -222,17 +223,7 @@ export function ProfilePhotoSection({
         </form>
       </div>
 
-      {confirmingRemove ? (
-        <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[#E9E4EB] pt-4">
-          <p className="text-sm text-[#514656]">Remove your current profile photo?</p>
-          <div className="flex gap-2">
-            <Button type="button" variant="outline" className="min-h-9 rounded-md px-3" onClick={() => setConfirmingRemove(false)} disabled={busy !== null}>Cancel</Button>
-            <button type="button" onClick={() => void remove()} disabled={busy !== null} className="min-h-9 rounded-md bg-[#B42318] px-3 text-sm font-semibold text-white disabled:opacity-60">
-              {busy === "remove" ? "Removing…" : "Remove photo"}
-            </button>
-          </div>
-        </div>
-      ) : null}
+      {confirmingRemove ? <AccountRemovalConfirmation title="Remove profile photo?" confirmLabel="Remove photo" destructive busy={busy !== null} onClose={() => setConfirmingRemove(false)} onConfirm={() => void remove()}>Your saved profile photo will be removed. You can upload another image later.</AccountRemovalConfirmation> : null}
     </section>
   );
 }

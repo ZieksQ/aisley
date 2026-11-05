@@ -4,6 +4,7 @@ namespace App\Http\Requests\Logistics;
 
 use App\Enums\UserSex;
 use App\Services\Auth\RegistrationEmailVerification;
+use App\Support\AddressCoordinates;
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\UploadedFile;
@@ -30,8 +31,8 @@ class RegisterRequest extends FormRequest
             'address.barangay' => ['required', 'string', 'max:255'], 'address.city_municipality' => ['required', 'string', 'max:255'],
             'address.province' => ['required', 'string', 'max:255'], 'address.region' => ['required', 'string', 'max:255'],
             'address.postal_code' => ['required', 'string', 'max:10'], 'address.latitude' => ['prohibited'], 'address.longitude' => ['prohibited'],
-            'latitude' => ['nullable', 'numeric', 'between:-90,90', 'required_with:longitude', $this->finiteCoordinate('latitude')],
-            'longitude' => ['nullable', 'numeric', 'between:-180,180', 'required_with:latitude', $this->finiteCoordinate('longitude')],
+            'latitude' => AddressCoordinates::rules('latitude'),
+            'longitude' => AddressCoordinates::rules('longitude'),
             'government_id' => $this->evidenceRules(), 'business_permit' => $this->evidenceRules(),
             'email_verification_token' => app(RegistrationEmailVerification::class)->isRequired()
                 ? ['required', 'string', 'size:64'] : ['exclude'],
@@ -52,18 +53,6 @@ class RegisterRequest extends FormRequest
                 }
             },
         ];
-    }
-
-    private function finiteCoordinate(string $field): Closure
-    {
-        return static function (string $attribute, mixed $value, Closure $fail) use ($field): void {
-            if ($value === null || $value === '') {
-                return;
-            }
-            if (! is_numeric($value) || ! is_finite((float) $value)) {
-                $fail("The {$field} must be a finite number.");
-            }
-        };
     }
 
     protected function prepareForValidation(): void

@@ -129,3 +129,9 @@ Customer opens an owned `placed` Order
 **References:** `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, `docs/domains/Buyer.md`, Customer Checkout, Customer Order Status, Address Book, Seller Order Approval, Seller Prepare Orders, and Seller Inventory.
 
 Runtime checks: [2026-11-04 verification](verification-2026-11-04.md).
+
+### Required delivery pin — 2026-11-05
+
+- Address Book saves may remain unpinned. Shipping options, checkout quotes/placement, and Order destination-change preview/confirmation require a saved finite coordinate pair within latitude -90..90 and longitude -180..180.
+- Reject missing/invalid pins with `422 ADDRESS_PIN_REQUIRED`, field `address_id`, before purchase or modification effects. Successful exact-key placement replays remain available after Address Book changes.
+- Offer address editing and explicit map/manual coordinate confirmation; text edits invalidate the pin. Preserve entered fields on provider failure and never fabricate coordinates.

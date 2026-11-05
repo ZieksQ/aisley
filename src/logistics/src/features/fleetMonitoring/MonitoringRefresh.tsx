@@ -2,11 +2,12 @@ import { PortalButton, PortalState } from '@aisley/ui/portal'
 import { LuRefreshCw } from 'react-icons/lu'
 import { manilaTime } from './types'
 
-export function MonitoringRefresh({ loading, error, updatedAt, refresh }: {
+export function MonitoringRefresh({ loading, error, updatedAt, refresh, label = 'Refresh' }: {
   loading: boolean
   error: string
   updatedAt?: string
   refresh: () => void
+  label?: string
 }) {
   return (
     <div className="space-y-3">
@@ -16,7 +17,7 @@ export function MonitoringRefresh({ loading, error, updatedAt, refresh }: {
           {' · '}Refreshes every 30 seconds while visible
         </p>
         <PortalButton isLoading={loading} onClick={refresh}>
-          <LuRefreshCw aria-hidden="true" />Refresh
+          <LuRefreshCw aria-hidden="true" />{label}
         </PortalButton>
       </div>
       {error ? (

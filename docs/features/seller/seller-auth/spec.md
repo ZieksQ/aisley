@@ -99,7 +99,7 @@ register → pending User/Application/Shop/evidence
 
 - Use an idempotent registration uniqueness boundary on normalized Seller email and clean temporary evidence if any later insert fails.
 - Keep Admin approval and registration evidence decisions in the existing registration/application records; do not add a Seller-specific reviewer field.
-- Persist only the manual/PSGC address values needed by the existing Address model. Coordinates, Geoapify identifiers, and lookup payloads are not Seller-auth fields.
+- Persist only the manual/PSGC address values needed by the existing Address model. Top-level `latitude` and `longitude` are required finite registration fields, persisted on the business Address. Nested `address.latitude`/`address.longitude` remain prohibited. Geoapify identifiers and lookup payloads are not Seller-auth fields.
 - Keep notification and cleanup jobs outside the registration transaction with an after-commit boundary and retry-safe application reference.
 - Review the one-Shop invariant whenever a future setup screen is added: it may edit or complete the pending/active record but never call a second-shop create path.
 
@@ -138,3 +138,8 @@ register → pending User/Application/Shop/evidence
 ## Registration OTP switch — 2026-10-30
 
 The Admin `registration_email_verification_required` control is enabled by default for all four public registration roles. Its disabled state explicitly overrides mandatory registration OTP statements above: registration skips proof, leaves `email_verified_at` null, and retains account/evidence approval and validation. See the [canonical registration contract](../../../references/registration-email-verification.md#admin-registration-otp-control--2026-10-30) for public configuration discovery, late setting changes, audit/permission rules, and mobile compatibility. Password and authenticated account email verification remain required.
+
+### Required business pin — 2026-11-05
+
+- Require and explicitly confirm a business-address pin before OTP or OTP-disabled submission. Preserve it with the captured form across verification/retry. Changing location text clears the pair and confirmation.
+- Use intentional Geoapify/Leaflet assistance or accessible manual coordinate entry; provider failure never permits an unpinned registration. Existing applications retain their approval rules.

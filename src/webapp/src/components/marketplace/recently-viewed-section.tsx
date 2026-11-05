@@ -76,6 +76,7 @@ export function RecentlyViewedSection() {
       ) : null}
       <p className="sr-only" aria-live="polite">{notice}</p>
       <ProductRail
+        showWishlist={false}
         id="recently-viewed"
         title="Recently viewed"
         actionHref="/account/recently-viewed"

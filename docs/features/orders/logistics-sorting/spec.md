@@ -218,3 +218,9 @@ The API extension in `docs/features/logistics/hub-to-hub-routing/specs.md` adds 
 - New accepted local parcel captures show plain green text at the bottom left and play one short chime. Keep “Pending verification” explicit. Messages expire after five seconds; rejected captures use error text and never play success sounds. Entering again and general session/sync messages do not replay parcel sounds. Audio failure cannot interrupt capture or synchronization.
 
 - Continuous readings of the same held parcel (including equivalent waybill QR/barcode values) do not replace accepted capture feedback with duplicate errors or replay sounds. A different code, confirmed label removal or restarting the camera allows a deliberate retry. Manual entry and server duplicate/replay rules remain unchanged.
+
+### Sorting lane pagination — 2026-11-05
+
+- The Sorting page's Lanes panel displays eight physical lanes per local page, preserving API order. Previous/Next, current/last page, and visible range appear only above eight lanes; empty lists retain the Create lanes guidance.
+- Paging does not change the selected lane, routing mode, session, camera or capture outbox. A lane-label scan reveals that lane's page, including a deliberate scan of the already-selected lane after paging away. Refresh clamps a page when the lane list shrinks. Printing and disabled inactive lanes retain their existing behavior.
+- This applies to Sorting's Lanes panel. Sort plan mappings, physical-lane configuration and the plan editor retain their existing pagination and publication contracts. No API or schema changes.

@@ -3,6 +3,7 @@
 namespace App\Enums\Admin;
 
 use App\Models\AccountLifecycleEvent;
+use App\Models\AdminRole;
 use App\Models\Announcement;
 use App\Models\PlatformPolicyVersion;
 use App\Models\ProductComplianceRestriction;
@@ -14,6 +15,7 @@ use App\Models\User;
 enum AuditTargetType: string
 {
     case RegistrationApplication = 'registration_application';
+    case AdminRole = 'admin_role';
     case AdminAccount = 'admin_account';
     case Announcement = 'announcement';
     case PlatformPolicyVersion = 'platform_policy_version';
@@ -26,6 +28,7 @@ enum AuditTargetType: string
     {
         return match ($this) {
             self::RegistrationApplication => 'Registration',
+            self::AdminRole => 'Admin role',
             self::AdminAccount => 'Admin account',
             self::Announcement => 'Announcement',
             self::PlatformPolicyVersion => 'Policy version',
@@ -40,6 +43,7 @@ enum AuditTargetType: string
     {
         return match ($this) {
             self::RegistrationApplication => RegistrationApplication::class,
+            self::AdminRole => AdminRole::class,
             self::AdminAccount => User::class,
             self::Announcement => Announcement::class,
             self::PlatformPolicyVersion => PlatformPolicyVersion::class,
@@ -54,6 +58,7 @@ enum AuditTargetType: string
     {
         return match ($modelClass) {
             RegistrationApplication::class => self::RegistrationApplication,
+            AdminRole::class => self::AdminRole,
             User::class => self::AdminAccount,
             Announcement::class => self::Announcement,
             PlatformPolicyVersion::class => self::PlatformPolicyVersion,

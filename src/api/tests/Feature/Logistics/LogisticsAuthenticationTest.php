@@ -70,6 +70,14 @@ class LogisticsAuthenticationTest extends TestCase
         $this->actingAs($customer)->getJson('/api/v1/logistics/dashboard')->assertForbidden()->assertJsonPath('code', 'FORBIDDEN_ROLE');
     }
 
+    public function test_registration_requires_a_hub_pin_without_creating_a_partial_account(): void
+    {
+        $payload = $this->payload();
+        unset($payload['latitude'], $payload['longitude']);
+        $this->post('/api/v1/logistics/auth/register', $payload)->assertUnprocessable()->assertJsonValidationErrors(['latitude', 'longitude']);
+        $this->assertDatabaseMissing('users', ['email' => 'logistics@example.com']);
+    }
+
     private function logistics(UserStatus $status): User
     {
         $user = User::factory()->create(['email' => fake()->unique()->safeEmail(), 'role' => UserRole::Logistics, 'status' => $status, 'password' => 'password']);
@@ -85,7 +93,7 @@ class LogisticsAuthenticationTest extends TestCase
     {
         $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL2qAAAAABJRU5ErkJggg==', true);
 
-        return ['email_verification_token' => $this->registrationEmailToken(UserRole::Logistics, 'logistics@example.com'), 'first_name' => 'Logan', 'last_name' => 'Operator', 'middle_name' => 'A', 'contact_number' => '09171234567', 'sex' => 'male', 'birth_date' => '1990-01-01', 'business_name' => 'Aisley Delivery Services', 'email' => 'Logistics@Example.com', 'password' => 'Password123', 'password_confirmation' => 'Password123', 'address' => ['address_line_1' => '1 Hub Road', 'barangay' => 'Poblacion', 'city_municipality' => 'Makati City', 'province' => 'Metro Manila', 'region' => 'National Capital Region', 'postal_code' => '1200'], 'government_id' => UploadedFile::fake()->createWithContent('id.png', $png), 'business_permit' => UploadedFile::fake()->createWithContent('permit.png', $png)];
+        return ['latitude' => 14.55, 'longitude' => 121.02, 'email_verification_token' => $this->registrationEmailToken(UserRole::Logistics, 'logistics@example.com'), 'first_name' => 'Logan', 'last_name' => 'Operator', 'middle_name' => 'A', 'contact_number' => '09171234567', 'sex' => 'male', 'birth_date' => '1990-01-01', 'business_name' => 'Aisley Delivery Services', 'email' => 'Logistics@Example.com', 'password' => 'Password123', 'password_confirmation' => 'Password123', 'address' => ['address_line_1' => '1 Hub Road', 'barangay' => 'Poblacion', 'city_municipality' => 'Makati City', 'province' => 'Metro Manila', 'region' => 'National Capital Region', 'postal_code' => '1200'], 'government_id' => UploadedFile::fake()->createWithContent('id.png', $png), 'business_permit' => UploadedFile::fake()->createWithContent('permit.png', $png)];
     }
 
     private function fromLogisticsApp(): self

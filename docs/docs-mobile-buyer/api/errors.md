@@ -10,6 +10,7 @@ Inspected checkout 57e9eb2. The envelope varies by Laravel handler; parse option
 |403 POLICY_CONSENT_REQUIRED | retain valid identity, suspend protected work, read/accept current policy; never replay blocked write automatically |
 |404, sometimes message only | scoped unknown/foreign/invisible resource; clear that record without leaking existence |
 |422 INVALID_CREDENTIALS / EMAIL_ALREADY_REGISTERED / INVALID_RESET_TOKEN | auth field feedback; no usable new token |
+|422 ADDRESS_PIN_REQUIRED | pin the saved address and review fresh shipping/totals; this explicit checkout placement rejection has no purchase effects and releases that pending request; committed successful retries still replay |
 |422 validation without code | show exact field errors; preserve safe draft; do not require code |
 |409 QUOTE_EXPIRED / QUOTE_INPUT_CHANGED / QUOTE_STALE | refresh quote and require reviewed Place |
 |409 QUOTE_ALREADY_PLACED / IDEMPOTENCY_KEY_REUSED | reconcile committed intent; never generate a fresh key blindly |

@@ -21,6 +21,8 @@ class AdminAccountService
     public function updateProfile(User $admin, array $attributes, array $context): User
     {
         return DB::transaction(function () use ($admin, $attributes, $context): User {
+            DB::table('users')->where('id', $admin->id)->lockForUpdate()->firstOrFail();
+            $admin->refresh();
             $profile = $admin->adminProfile()->firstOrNew();
             $changedFields = [];
             foreach ($attributes as $field => $value) {
@@ -31,6 +33,7 @@ class AdminAccountService
             $profile->fill($attributes)->save();
 
             if ($changedFields !== []) {
+                $admin->forceFill(['admin_revision' => $admin->admin_revision + 1])->save();
                 $this->audit($admin, AdminAuditAction::AdminProfileUpdated, $context, [
                     'changed_fields' => $changedFields,
                 ]);
@@ -43,8 +46,11 @@ class AdminAccountService
     public function updateEmail(User $admin, string $email, array $context): User
     {
         return DB::transaction(function () use ($admin, $email, $context): User {
+            DB::table('users')->where('id', $admin->id)->lockForUpdate()->firstOrFail();
+            $admin->refresh();
             if ($admin->email !== $email) {
-                $admin->update(['email' => $email]);
+                $admin->forceFill(['email' => $email, 'email_verified_at' => null,
+                    'admin_email_verification_required' => true, 'admin_revision' => $admin->admin_revision + 1])->save();
                 $this->audit($admin, AdminAuditAction::AdminEmailUpdated, $context, [
                     'changed_fields' => ['email'],
                 ]);
@@ -57,7 +63,9 @@ class AdminAccountService
     public function updatePassword(User $admin, string $password, array $context): void
     {
         DB::transaction(function () use ($admin, $password, $context): void {
-            $admin->update(['password' => $password]);
+            DB::table('users')->where('id', $admin->id)->lockForUpdate()->firstOrFail();
+            $admin->refresh();
+            $admin->forceFill(['password' => $password, 'admin_revision' => $admin->admin_revision + 1])->save();
             $this->audit($admin, AdminAuditAction::AdminPasswordUpdated, $context, [
                 'changed_fields' => ['password'],
             ]);

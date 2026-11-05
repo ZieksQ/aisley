@@ -1,3 +1,7 @@
+import { AdminAccountsPage } from './pages/AdminAccountsPage'
+import { AdminAccountEditorPage } from './pages/AdminAccountEditorPage'
+import { AdminRolesPage } from './pages/AdminRolesPage'
+import { AdminSetupPage } from './pages/AdminSetupPage'
 import { VouchersPage } from './pages/VouchersPage'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { ProtectedRoute, SessionRoute } from './components/ProtectedRoute'
@@ -32,8 +36,13 @@ function App() {
       <Route element={<Navigate replace to="/dashboard" />} path="/" />
       <Route element={<LoginPage />} path="/login" />
       <Route element={<SessionRoute />}>
+        <Route element={<AdminSetupPage />} path="/setup" />
         <Route element={<AdminLayout />}>
           <Route element={<ProtectedRoute />}>
+            <Route element={<AdminAccountsPage />} path="/admin-accounts" />
+            <Route element={<AdminAccountEditorPage />} path="/admin-accounts/new" />
+            <Route element={<AdminAccountEditorPage />} path="/admin-accounts/:adminId" />
+            <Route element={<AdminRolesPage />} path="/admin-roles" />
             <Route element={<DashboardPage />} path="/dashboard" />
             <Route element={<VouchersPage />} path="/vouchers" />
             <Route element={<VouchersPage />} path="/vouchers/new" />
@@ -60,6 +69,7 @@ function App() {
             <Route element={<AuditLogDetailPage />} path="/audit-logs/:auditLogId" />
             <Route element={<NotificationsPage />} path="/notifications" />
             <Route element={<NotificationCampaignsPage />} path="/notification-campaigns" />
+            <Route element={<NotificationCampaignDetailPage />} path="/notification-campaigns/new" />
             <Route element={<NotificationCampaignDetailPage />} path="/notification-campaigns/:campaignId" />
             <Route element={<SupportTicketsPage />} path="/support-tickets" />
             <Route element={<SupportTicketsPage />} path="/support-tickets/:ticketId" />

@@ -38,6 +38,7 @@ use App\Services\Finance\OrderPricingService;
 use App\Services\Finance\ShippingQuotationService;
 use App\Services\Logistics\Sorting\SortingLocks;
 use App\Services\Seller\LowStockAlertService;
+use App\Support\AddressCoordinates;
 use App\Support\ProductImageUrl;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Arr;
@@ -792,6 +793,10 @@ class CheckoutService
 
     private function assertCompleteAddress(Address $address): void
     {
+        if (! AddressCoordinates::valid($address->latitude, $address->longitude)) {
+            throw CheckoutException::invalid('ADDRESS_PIN_REQUIRED', 'Pin this address in your Address Book before checkout.', 'address_id');
+        }
+
         foreach (['recipient_name', 'contact_number', 'address_line_1', 'barangay', 'city_municipality', 'province', 'region', 'postal_code', 'country'] as $field) {
             if (trim((string) $address->{$field}) === '') {
                 throw CheckoutException::invalid('ADDRESS_INCOMPLETE', 'The selected address is incomplete.', 'address_id');

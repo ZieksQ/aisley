@@ -74,6 +74,8 @@ const modules = {
   "react-dom/client": productionModule("react-dom", "react-dom-client.production.js"),
   scheduler: productionModule("scheduler", "scheduler.production.js"),
   "@aisley/ui": buttonStub,
+  "@aisley/ui/account-settings": `exports.AccountRemovalConfirmation = require("./confirmation-dialog").ConfirmationDialog;`,
+  "./confirmation-dialog": compile("../../packages/ui/src/portal/ConfirmationDialog.tsx"),
   "@/lib/api": apiStub,
   "@/lib/account/client": clientStub,
   "react-icons/fi": iconStub,
@@ -287,8 +289,8 @@ try {
   });
 
   await clickText("Remove");
-  assert.match(await js("return document.body.innerText"), /Remove your saved ID image\?/);
-  await clickText("Keep image");
+  assert.match(await js("return document.body.innerText"), /Remove ID image\?/);
+  await clickText("Cancel");
   assert.equal(await js('return Boolean(document.querySelector("img[alt=\'Your saved ID image\']"))'), true);
   await clickText("Remove");
   await clickText("Remove image");

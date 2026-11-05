@@ -3,6 +3,9 @@
 use App\Http\Controllers\Account\PasswordChangeCodeController;
 use App\Http\Controllers\AddressOptionController;
 use App\Http\Controllers\Admin\AccountController;
+use App\Http\Controllers\Admin\AdminProvisioningController;
+use App\Http\Controllers\Admin\AdminRoleController;
+use App\Http\Controllers\Admin\AdminSetupController;
 use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\DashboardController;
@@ -138,12 +141,31 @@ Route::prefix('v1/admin/auth')->name('admin.auth.')->group(function () {
     Route::post('/login', [AuthController::class, 'store'])->name('login');
 
     Route::middleware(['auth:sanctum', 'admin.active'])->group(function () {
+        Route::get('/setup', [AdminSetupController::class, 'show'])->name('setup.show');
+        Route::post('/setup/code', [AdminSetupController::class, 'code'])->middleware('throttle:password-change-code')->name('setup.code');
+        Route::post('/setup/complete', [AdminSetupController::class, 'complete'])->middleware('throttle:password-change-update')->name('setup.complete');
         Route::get('/me', [AuthController::class, 'show'])->name('me');
         Route::post('/logout', [AuthController::class, 'destroy'])->name('logout');
     });
 });
 
 Route::prefix('v1/admin')->name('admin.')->middleware(['auth:sanctum', 'admin.active', 'policy.consent'])->group(function () {
+    Route::middleware('admin.permission:admin-accounts.view')->group(function () {
+        Route::get('/permissions', [AdminProvisioningController::class, 'permissions']);
+        Route::get('/admin-roles', [AdminRoleController::class, 'index']);
+        Route::post('/admin-roles', [AdminRoleController::class, 'store'])->middleware(['admin.permission:admin-accounts.create', 'throttle:admin-provisioning-write']);
+        Route::patch('/admin-roles/{adminRole}', [AdminRoleController::class, 'update'])->whereUuid('adminRole')->middleware(['admin.permission:admin-accounts.update', 'throttle:admin-provisioning-write']);
+        Route::delete('/admin-roles/{adminRole}', [AdminRoleController::class, 'destroy'])->whereUuid('adminRole')->middleware(['admin.permission:admin-accounts.archive', 'throttle:admin-provisioning-write']);
+        Route::get('/admin-accounts', [AdminProvisioningController::class, 'index']);
+        Route::post('/admin-accounts', [AdminProvisioningController::class, 'store'])->middleware(['admin.permission:admin-accounts.create', 'throttle:admin-provisioning-write']);
+        Route::get('/admin-accounts/{adminAccount}', [AdminProvisioningController::class, 'show'])->whereUuid('adminAccount');
+        Route::patch('/admin-accounts/{adminAccount}', [AdminProvisioningController::class, 'update'])->whereUuid('adminAccount')->middleware(['admin.permission:admin-accounts.update', 'throttle:admin-provisioning-write']);
+        foreach (['suspend', 'restore', 'archive'] as $operation) {
+            Route::post('/admin-accounts/{adminAccount}/'.$operation, [AdminProvisioningController::class, 'action'])->whereUuid('adminAccount')
+                ->defaults('operation', $operation)->middleware(['admin.permission:admin-accounts.'.$operation, 'throttle:admin-provisioning-write']);
+        }
+    });
+
     Route::prefix('vouchers')->name('vouchers.')->middleware('admin.permission:vouchers.view')->group(function () {
         Route::get('/', [VoucherController::class, 'index']);
         Route::post('/', [VoucherController::class, 'store'])->middleware('admin.permission:vouchers.manage');
@@ -583,6 +605,7 @@ Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', '
     Route::post('/rate-cards', [RateCardController::class, 'store'])->name('rate-cards.store');
     Route::post('/rate-cards/{card}/publish', [RateCardController::class, 'publish'])->whereUuid('card')->name('rate-cards.publish');
     Route::get('/fleet/monitoring', [FleetMonitoringController::class, 'index']);
+    Route::get('/fleet/monitoring/assignments', [\App\Http\Controllers\Logistics\FleetAssignmentController::class, 'index']);
     Route::get('/fleet/monitoring/{truck}', [FleetMonitoringController::class, 'show'])->whereUuid('truck');
     Route::get('/fleet/monitoring/{truck}/trips', [FleetMonitoringController::class, 'trips'])->whereUuid('truck');
     Route::get('/fleet', [CompanyFleetController::class, 'index'])->name('fleet.index');

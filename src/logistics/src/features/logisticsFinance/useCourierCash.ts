@@ -1,8 +1,12 @@
+import { useSearchParams } from 'react-router-dom'
+import { useReportPeriod } from '@aisley/ui/date-range'
 import { useEffect, useState } from 'react'
 import { ApiError } from '../../lib/api'
 import { cashBalances, cashReceipts, receiveCash, type CashAttempt, type CashPage, type ReceiptPage } from './api'
 
 export function useCourierCash() {
+  const [params, setParams] = useSearchParams()
+  const period = useReportPeriod({ params, setParams })
   const [view, setView] = useState<'outstanding' | 'history'>('outstanding')
   const [courier, setCourier] = useState('')
   const [currency, setCurrency] = useState('')
@@ -15,19 +19,23 @@ export function useCourierCash() {
   const [attempt, setAttempt] = useState<CashAttempt | null>(null)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
+  const [loadedKey, setLoadedKey] = useState('')
+  const readKey = `${view}:${page}:${courier}:${currency}:${period.query}`
   const [version, setVersion] = useState(0)
   useEffect(() => {
     const controller = new AbortController()
+    setData(null)
+    setHistory(null)
     setLoading(true)
     setError('')
     const load = async () => {
       try {
         if (view === 'outstanding') {
-          const result = await cashBalances(page, courier, currency, controller.signal)
-          if (!controller.signal.aborted) setData(result)
+          const result = await cashBalances(page, courier, currency, controller.signal, period.query)
+          if (!controller.signal.aborted) { setData(result); setLoadedKey(readKey) }
         } else {
-          const result = await cashReceipts(page, controller.signal)
-          if (!controller.signal.aborted) setHistory(result)
+          const result = await cashReceipts(page, controller.signal, period.query)
+          if (!controller.signal.aborted) { setHistory(result); setLoadedKey(readKey) }
         }
       } catch (caught) {
         if (controller.signal.aborted) return
@@ -44,7 +52,9 @@ export function useCourierCash() {
     }
     void load()
     return () => controller.abort()
-  }, [view, page, courier, currency, version])
+  }, [view, page, courier, currency, version, period.query, readKey])
+
+  useEffect(() => { if (!busy && !attempt) setSelected([]) }, [period.query, busy, attempt])
 
   async function receive() {
     if (busy || (!attempt && selected.length === 0)) return
@@ -81,6 +91,13 @@ export function useCourierCash() {
   }
 
   return {
+    period,
+    applyPeriod: (next: Parameters<typeof period.apply>[0]) => {
+      if (busy || attempt) return
+      setSelected([])
+      setPage(1)
+      period.apply(next)
+    },
     view,
     changeView: (next: typeof view) => {
       setSelected([]);
@@ -100,8 +117,8 @@ export function useCourierCash() {
       setSelected([]);
       setPage(value)
     },
-    data,
-    history,
+    data: loadedKey === readKey ? data : null,
+    history: loadedKey === readKey ? history : null,
     selected,
     setSelected,
     loading,

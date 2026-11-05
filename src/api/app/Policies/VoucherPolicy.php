@@ -13,7 +13,7 @@ class VoucherPolicy
     public function viewAny(User $user): bool
     {
         return $user->status === UserStatus::Active && match ($user->role) {
-            UserRole::Admin => $user->permissions()->where('slug', 'vouchers.view')->exists(),
+            UserRole::Admin => $user->hasAdminPermission('vouchers.view'),
             UserRole::Seller => $user->shop()->exists(),
             default => false,
         };
@@ -21,7 +21,7 @@ class VoucherPolicy
 
     public function create(User $user): bool
     {
-        return $this->viewAny($user) && ($user->role === UserRole::Seller || $user->permissions()->where('slug', 'vouchers.manage')->exists());
+        return $this->viewAny($user) && ($user->role === UserRole::Seller || $user->hasAdminPermission('vouchers.manage'));
     }
 
     public function view(User $user, Voucher $voucher): bool

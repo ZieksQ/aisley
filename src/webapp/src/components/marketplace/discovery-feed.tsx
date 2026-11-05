@@ -56,6 +56,7 @@ function DiscoveryResults() {
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
           {items.map((product, index) => (
             <ProductCard
+              showWishlist={false}
               key={product.id}
               product={product}
               position={index + 1}

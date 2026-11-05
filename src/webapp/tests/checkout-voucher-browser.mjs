@@ -46,6 +46,8 @@ const modules = {
     "react-dom-client.production.js",
   ),
   scheduler: productionModule("scheduler", "scheduler.production.js"),
+  "@aisley/ui/address-pin": compile("../../packages/ui/src/address-pin/index.tsx"),
+  "./address-return": compile("src/lib/checkout/address-return.ts"),
   "@aisley/ui": compile("../../packages/ui/src/button.tsx"),
   "@/lib/api": compile("src/lib/api.ts"),
   "@/lib/auth/session-events": compile("src/lib/auth/session-events.ts"),
@@ -65,7 +67,7 @@ const modules = {
   "next/image":
     'exports.default=({fill,priority,...props})=>require("react").createElement("img",props);',
   "next/link":
-    'exports.default=({href,children,...props})=>require("react").createElement("a",{...props,href,onClick:e=>{e.preventDefault();window.router.push(href)}},children);',
+    'exports.default=({href,children,...props})=>require("react").createElement("a",{...props,href,onClick:e=>{props.onClick?.(e);if(e.defaultPrevented)return;e.preventDefault();window.router.push(href)}},children);',
   "next/navigation":
     'exports.useRouter=()=>window.router;exports.usePathname=()=>require("react").useSyncExternalStore(window.subscribeRoute,()=>window.route,()=>window.route).split("?")[0];',
   "react-icons/fi": readFileSync(resolve(icons, "index.js"), "utf8"),
@@ -83,7 +85,7 @@ const modules = {
     "src/components/auth/auth-route-boundary.tsx",
   ),
 };
-for (const name of ["intent", "placement", "client", "voucher-selection"])
+for (const name of ["intent", "placement", "client", "voucher-selection", "address-return"])
   modules[`@/lib/checkout/${name}`] = compile(`src/lib/checkout/${name}.ts`);
 for (const name of [
   "checkout-provider",
@@ -111,7 +113,7 @@ window.subscribeRoute=fn=>{window.routeListeners.add(fn);return ()=>window.route
 window.router={push:path=>{window.navigation.push(path);window.route=path;window.routeListeners.forEach(fn=>fn())},replace:path=>window.router.push(path)};
 window.setAuth=id=>{require("@/lib/auth/session-events").advanceSessionRevision();require("@/lib/checkout/placement").checkoutPlacement.clear();window.auth=id?{status:"authenticated",customer:{id}}:{status:"guest"};window.authListeners.forEach(fn=>fn())};
 require("@/lib/checkout/intent").saveCheckoutIntent({mode:"buy_now",productId:"product",variantId:null,quantity:1});
-const address={id:"address",type:"shipping",isDefault:true,label:"Home",recipientName:"Test Customer",contactNumber:"09000000000",addressLine1:"Test street",barangay:"Barangay",cityMunicipality:"Manila",province:"Metro Manila",region:"NCR",postalCode:"1000",country:"PH"};
+const address={latitude:"14.55",longitude:"121.02",id:"address",type:"shipping",isDefault:true,label:"Home",recipientName:"Test Customer",contactNumber:"09000000000",addressLine1:"Test street",barangay:"Barangay",cityMunicipality:"Manila",province:"Metro Manila",region:"NCR",postalCode:"1000",country:"PH"};
 const voucher={id:"platform-discount",name:"15% off your order",code:"SAVE15",issuerType:"app",benefitType:"discount",valueType:"percent",value:"15.00",maximumDiscount:"500.00",minimumSpend:"1000.00",validUntil:"2026-12-31T16:00:00Z",eligible:true,reason:null,saving:"150.00"};
 window.offers=(shop)=>window.mode==="empty"?[]:[voucher,{...voucher,id:"platform-shipping",name:"Shipping discount",benefitType:"shipping",valueType:"fixed",value:"50.00",saving:"50.00",minimumSpend:"300.00",maximumDiscount:null},{...voucher,id:shop+"-discount",name:"Shop discount",issuerType:"shop",value:"10.00",maximumDiscount:"300.00",saving:"100.00"},{...voucher,id:shop+"-claim",name:"Collect for your next order",issuerType:"shop",eligible:false,reason:"VOUCHER_NOT_CLAIMED",collectionUrl:"/shops/issuer#vouchers"},{...voucher,id:shop+"-minimum",name:"Extra savings",eligible:false,reason:"VOUCHER_MINIMUM_SPEND",minimumSpend:"5000.00"},{...voucher,id:shop+"-funding",name:"Shipping savings",issuerType:"shop",benefitType:"shipping",eligible:false,reason:"VOUCHER_FUNDING_INSUFFICIENT"}];
 window.longName=false;

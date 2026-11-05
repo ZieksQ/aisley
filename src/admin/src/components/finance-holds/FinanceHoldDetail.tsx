@@ -21,7 +21,7 @@ export function FinanceHoldDetail({ canManage, holdId }: { canManage: boolean; h
     setLoading(true)
     setError('')
     fetchFinanceHold(holdId, controller.signal)
-      .then((response) => { setHold(response.data); setOrganizations(response.organizations) })
+      .then((response) => { if (!controller.signal.aborted) { setHold(response.data); setOrganizations(response.organizations) } })
       .catch((caught) => { if (!controller.signal.aborted) setError(caught instanceof Error ? caught.message : 'Unable to load this Finance hold.') })
       .finally(() => { if (!controller.signal.aborted) setLoading(false) })
     return () => controller.abort()
@@ -36,7 +36,7 @@ export function FinanceHoldDetail({ canManage, holdId }: { canManage: boolean; h
 
   return (
     <>
-      <div className="mt-6"><Link className="inline-flex items-center gap-2 text-sm font-semibold text-[#4C1268] hover:underline dark:text-pink-300" to={backTo}><FaArrowLeft aria-hidden="true" />Back to Finance holds</Link></div>
+      <div className="mt-6"><Link className="inline-flex items-center gap-2 text-sm font-semibold text-[#4C1268] hover:underline dark:text-purple-300" to={backTo}><FaArrowLeft aria-hidden="true" />Back to Finance holds</Link></div>
       {message ? <p className="mt-5 border-l-2 border-emerald-600 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:bg-emerald-400/10 dark:text-emerald-200" role="status">{message}</p> : null}
 
       <section className={`${panelClass} mt-5 overflow-hidden`} aria-labelledby="finance-hold-detail-heading">

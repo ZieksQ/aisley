@@ -73,9 +73,16 @@ export type ComplianceCaseListResponse = {
   meta: { current_page: number; from: number | null; last_page: number; per_page: number; to: number | null; total: number }
 }
 
+export type ComplianceSellerOption = ComplianceSeller & {
+  contact_number: string | null
+  shop_status: string | null
+  joined_at: string | null
+}
+
 export type ComplianceOptionsResponse = {
   data: {
-    sellers: ComplianceSeller[]
+    sellers: ComplianceSellerOption[]
+    sellers_meta: { current_page: number; last_page: number; total: number }
     products: ComplianceProduct[]
     policies: CompliancePolicy[]
   }

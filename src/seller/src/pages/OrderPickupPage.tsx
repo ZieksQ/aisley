@@ -1,3 +1,4 @@
+import { validPin } from '@aisley/ui/address-pin'
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
@@ -85,7 +86,7 @@ export function OrderPickupPage() {
   }
 
   async function submitPickupRequest() {
-    if (!seller || selected.length === 0 || !selectedProvider || !pickupAddressId || submitting) return
+    if (!seller || selected.length === 0 || !selectedProvider || !pickupAddressId || !validPin(selectedAddress?.latitude, selectedAddress?.longitude) || submitting) return
     setSubmitting(true)
     setError('')
     setNotice('')
@@ -169,7 +170,7 @@ export function OrderPickupPage() {
           </div>
           <OrderButton
             variant="secondary"
-            disabled={!selected.length || !selectedProvider || !pickupAddressId}
+            disabled={!selected.length || !selectedProvider || !pickupAddressId || !validPin(selectedAddress?.latitude, selectedAddress?.longitude)}
             isLoading={submitting}
             loadingLabel="Requesting pickup"
             onClick={() => void submitPickupRequest()}

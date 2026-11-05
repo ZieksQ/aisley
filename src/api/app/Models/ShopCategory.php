@@ -7,10 +7,13 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Cache;
 
 class ShopCategory extends Model
 {
     use HasFactory, HasUuids;
+
+    public const HOMEPAGE_CACHE_KEY = 'customer:homepage:main-categories:v1';
 
     protected $fillable = [
         'name',
@@ -29,6 +32,12 @@ class ShopCategory extends Model
             'status' => CategoryStatus::class,
             'position' => 'integer',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::saved(fn () => Cache::forget(self::HOMEPAGE_CACHE_KEY));
+        static::deleted(fn () => Cache::forget(self::HOMEPAGE_CACHE_KEY));
     }
 
     public function shops(): HasMany

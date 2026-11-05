@@ -14,6 +14,13 @@ implementation_reviewed_on: 2026-10-12
 
 ## WHAT
 
+### Admin provisioning extension — 2026-11-05
+
+The [Admin provisioning contract](../admin-provisioning/spec.md) adds protected super-admin bootstrap, live custom roles plus individual grants, and mandatory first-login password replacement/email OTP for newly provisioned admins. The configured initial admin and existing admins retain their existing setup status. Login and session restoration return effective `permissions`, `roles`, `is_super_admin`, `is_initial_admin`, `setup_required`, `password_change_required`, and `email_verification_required`.
+
+After login, pending accounts go to `/setup` outside the operational shell. Laravel permits only identity, logout and setup APIs until setup completes; policy consent follows setup. Setup completion rotates the current session and advances an account session version, invalidating other temporary-credential sessions. Suspension/archive/restoration also advance that version. Later email changes require OTP again without forcing a password change. This is onboarding verification, not recurring login MFA. Admin bearer tokens are not supported.
+
+
 ### Current implementation — 2026-10-12
 
 Current `/api/v1/admin/auth/login`, `/me` and `/logout` routes use Admin AuthController and Sanctum stateful sessions; React AuthContext/login/guards consume them. Recovery/session extensions require their own implemented contracts. Source inspection establishes availability; unchecked criteria and live/release gates remain open. No application tests/builds were rerun for this documentation update.

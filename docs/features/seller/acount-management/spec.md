@@ -42,7 +42,7 @@ scope: Seller Web Application and Laravel API
 ### Pickup addresses
 
 - An active Seller may list, create, edit, and delete only addresses owned by that Seller. Seller pickup addresses are operational `both` addresses; clients cannot submit `user_id` or override the stored address type.
-- Use the shared PSGC Region → Province → City/Municipality → Barangay flow with searchable options and manual fallback. Coordinates remain optional, must be a complete valid pair, and are cleared when textual location fields change without a newly confirmed pin. When Geoapify is configured, the Seller may geocode the completed address and click or drag the Leaflet pin to the exact courier entrance, matching the Customer address-book interaction.
+- Use the shared PSGC Region → Province → City/Municipality → Barangay flow with searchable options and manual fallback. Coordinates are required on address create/edit, must be a complete finite valid pair, and are cleared when textual location fields change without a newly confirmed pin. When Geoapify is configured, the Seller may geocode the completed address and click or drag the Leaflet pin to the exact courier entrance, matching the Customer address-book interaction.
 - The first saved address becomes default automatically. Setting another default clears the previous default; deleting the default promotes one remaining address so a non-empty address book always has one default.
 - Address-book edits affect future selections only. Each committed pickup Order keeps the immutable pickup snapshot stored on its waybill.
 
@@ -141,3 +141,10 @@ scope: Seller Web Application and Laravel API
 - Keep API responses consistent with Seller Auth's safe DTO so session bootstrap and Account settings cannot disagree about role/status.
 
 **References:** `docs/requirements.md`, `docs/workspace.md`, `docs/schema.md`, `docs/domains/Seller.md`, Seller Auth, Admin Account Management, and the shared file-upload policy.
+
+
+### Account settings experience — 2026-11-05
+
+- `/account` uses the shared `@aisley/ui/account-settings` presentation with a compact identity summary and Profile, Storefront, Pickup addresses, and Security sections. The `section` query parameter preserves reload and browser history; missing or unsupported values display Profile. Existing routes and outer role navigation remain intact.
+- Ordinary sections mount on first visit and retain unsaved drafts and running uploads when switching sections. Security forms dispose their passwords/codes/challenges when left, while existing authenticated-session password cooldown, pending-operation and reconciliation state survives. Private editor state resets on identity change; obsolete mutation responses cannot refresh a different account.
+- Forms keep their existing API contracts, role/tenant boundaries and field allowlists. Each form has local feedback, readable labels, accessible errors, visible saving states and confirmed image removal. The layout follows `docs/design.md`, including role colors, supported themes, 320px responsiveness and reduced motion. No new backend capability or mobile implementation is implied.

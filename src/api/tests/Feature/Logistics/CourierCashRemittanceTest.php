@@ -22,6 +22,27 @@ class CourierCashRemittanceTest extends TestCase
 {
     use DeliveryReviewFixtures, RefreshDatabase;
 
+    public function test_date_filters_scope_obligations_and_receipts_without_relabeling_current_balances(): void
+    {
+        [$logistics, $courier, $task, $proof] = $this->readyDelivery();
+        $this->submitIntent($courier, $task, $proof);
+        $this->approveDelivery($logistics, $task, $proof, (string) Str::uuid());
+        $today = now('Asia/Manila')->toDateString();
+        $yesterday = now('Asia/Manila')->subDay()->toDateString();
+        $range = '?date_from='.$today.'&date_to='.$today;
+        $emptyRange = '?date_from='.$yesterday.'&date_to='.$yesterday;
+        $this->getJson('/api/v1/logistics/finance/courier-cash'.$range)->assertOk()->assertJsonPath('meta.total', 1);
+        $this->getJson('/api/v1/logistics/finance/courier-cash'.$emptyRange)->assertOk()->assertJsonPath('meta.total', 0)
+            ->assertJsonPath('balances.0.outstanding_cents', 10000);
+        $this->getJson('/api/v1/logistics/finance/courier-cash?date_from='.$today)->assertUnprocessable();
+        $obligation = CourierCashObligation::sole();
+        $this->postJson('/api/v1/logistics/finance/courier-cash/receipts', [
+            'obligation_ids' => [$obligation->id], 'confirmed' => true, 'idempotency_key' => (string) Str::uuid(),
+        ])->assertOk();
+        $this->getJson('/api/v1/logistics/finance/courier-cash/receipts'.$range)->assertOk()->assertJsonPath('meta.total', 1);
+        $this->getJson('/api/v1/logistics/finance/courier-cash/receipts'.$emptyRange)->assertOk()->assertJsonPath('meta.total', 0);
+    }
+
     public function test_cod_approval_creates_obligation_and_receipt_credits_once_without_clearing_invoice(): void
     {
         config(['finance.gateway_enabled' => true]);

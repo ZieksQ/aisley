@@ -13,9 +13,11 @@ export function ProductRail({
   id,
   products,
   title,
+  showWishlist = true,
   onClear,
   onRemoveProduct,
 }: {
+  showWishlist?: boolean;
   actionHref?: string;
   actionLabel?: string;
   id?: string;
@@ -63,6 +65,7 @@ export function ProductRail({
         {products.map((product, index) => (
           <div key={product.id} className="snap-start">
             <ProductCard
+              showWishlist={showWishlist}
               product={product}
               position={index + 1}
               section={id ?? title}

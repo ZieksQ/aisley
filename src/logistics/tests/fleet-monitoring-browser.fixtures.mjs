@@ -21,7 +21,28 @@ export function installMonitoringFixtures() {
     remaining_capacity: [1, 2, 3].includes(index % 6) && index !== 7 ? 130 : 250,
     active_trip: [1, 2, 3].includes(index % 6) ? { ...trips[0], id: `active-${index}`, direction: index === 7 ? 'return' : 'outbound', parcel_count: index === 7 ? 0 : 120, from_hub: index === 7 ? destination : hub, to_hub: index === 7 ? hub : destination, status: index % 6 === 3 ? 'receiving' : index % 6 === 2 ? 'in_transfer' : 'pending_acceptance', overdue: index % 6 === 1, departed_at: index % 6 === 2 ? at : null, courier_arrived_at: index % 6 === 2 ? at : null } : null,
   }))
-  const state = window.monitoringFixture = { mode: 'normal', reads: [], pending: [], interval: null }
+  const assignmentHub = { kind: 'hub', label: 'San Pedro hub', area: 'San Pedro, Laguna', latitude: 14.358, longitude: 121.058 }
+  const assignments = Array.from({ length: 6 }, (_, index) => {
+    const stage = ['first_mile', 'linehaul', 'final_mile'][index % 3]
+    const pickup = { kind: 'pickup', label: 'Seller pickup', area: 'Biñan, Laguna', latitude: 14.338, longitude: 121.082 }
+    const delivery = { kind: 'delivery', label: 'Delivery destination', area: 'Muntinlupa, Metro Manila', latitude: index === 5 ? null : 14.408, longitude: index === 5 ? null : 121.043 }
+    return {
+      id: `${stage}:work-${index}`, source_id: `work-${index}`, stage,
+      status: ['accepted', 'in_transfer', 'delivery_accepted', 'picked_up_from_seller', 'scheduled', 'out_for_delivery'][index],
+      reference: stage === 'linehaul' ? `NDR ${4827 + index}` : `ASL-260105-${19283 + index}`,
+      courier: { id: `courier-${index}`, name: ['Mira Santos', 'Rafael Mendoza', 'Elena Reyes', 'Paolo Garcia', 'Nico Ramos', 'Ana Lopez'][index] },
+      scheduled_for: at, schedule_ends_at: stage === 'first_mile' ? '2026-11-04T06:00:00Z' : null,
+      schedule_reference: stage === 'linehaul' ? null : `SCH-${index + 1}`,
+      updated_at: at, parcel_count: stage === 'linehaul' ? index === 4 ? 0 : 120 : 1,
+      truck: stage === 'linehaul' ? { id: 'truck-1', plate_number: 'NDR 4828' } : null,
+      direction: stage === 'linehaul' ? index === 4 ? 'return' : 'outbound' : null,
+      events: stage === 'linehaul' ? { departed_at: index === 1 ? at : null, courier_arrived_at: null, arrived_at: null } : { accepted_at: at, picked_up_at: index === 3 ? at : null },
+      stops: stage === 'first_mile' ? [pickup, assignmentHub] : stage === 'final_mile' ? [assignmentHub, delivery] : [
+        { ...assignmentHub, kind: 'origin' }, { kind: 'destination', label: 'Calamba hub', area: 'Calamba, Laguna', latitude: 14.211, longitude: 121.166 },
+      ],
+    }
+  })
+  const state = window.monitoringFixture = { mode: 'normal', reads: [], pending: [], interval: null, assignments, assignmentMode: 'normal' }
   const interval = window.setInterval.bind(window)
   window.setInterval = (callback, delay, ...args) => {
     if (delay === 30000) state.interval = callback
@@ -37,6 +58,19 @@ export function installMonitoringFixtures() {
     const path = url.pathname
     if (!path.includes('/fleet/monitoring')) return original(input, options)
     state.reads.push(path + url.search)
+    if (path.endsWith('/assignments')) {
+      const mode = state.assignmentMode
+      if (mode === 'delay') await new Promise((resolve) => state.pending.push(resolve))
+      if (mode === 'error') return json({ message: 'Assignment connection interrupted.' }, 503)
+      if (mode === 'forbidden') return json({ code: 'POLICY_CONSENT_REQUIRED', message: 'Consent required.' }, 403)
+      if (mode === 'unauthorized') return json({ message: 'Unauthenticated.' }, 401)
+      let rows = mode === 'empty' ? [] : state.assignments
+      const stage = url.searchParams.get('stage')
+      const search = url.searchParams.get('search')?.toLowerCase()
+      if (stage) rows = rows.filter((row) => row.stage === stage)
+      if (search) rows = rows.filter((row) => `${row.courier.name} ${row.reference}`.toLowerCase().includes(search))
+      return json(page(rows, url))
+    }
     const mode = state.mode
     if (mode === 'delay') await new Promise((resolve) => state.pending.push(resolve))
     if (mode === 'error') return json({ message: 'Monitoring connection interrupted.' }, 503)

@@ -1,5 +1,6 @@
 "use client";
 
+import { validPin } from "@aisley/ui/address-pin";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FiEdit2, FiMapPin, FiPlus, FiTrash2 } from "react-icons/fi";
@@ -102,6 +103,12 @@ export function AddressBookContent({
 
   async function selectForCheckout(address: CustomerAddress) {
     if (!returnTo || address.type === "billing") return;
+    if (!validPin(address.latitude, address.longitude)) {
+      setEditing(address);
+      setMessage("Pin and confirm this address before checkout.");
+      setMessageTone("error");
+      return;
+    }
     setBusyId(address.id);
     setMessage(null);
     setMessageTone(null);

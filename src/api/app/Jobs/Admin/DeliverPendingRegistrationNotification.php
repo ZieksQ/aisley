@@ -38,8 +38,8 @@ class DeliverPendingRegistrationNotification implements ShouldBeUnique, ShouldQu
             ->whereKey($this->adminId)
             ->where('role', UserRole::Admin)
             ->where('status', UserStatus::Active)
-            ->whereHas('permissions', fn ($query) => $query->where('slug', 'notifications.view'))
-            ->whereHas('permissions', fn ($query) => $query->where('slug', 'registrations.view'))
+            ->withAdminPermission('notifications.view')
+            ->withAdminPermission('registrations.view')
             ->first();
 
         if (! $admin) {

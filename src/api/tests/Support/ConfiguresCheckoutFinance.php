@@ -112,7 +112,7 @@ trait ConfiguresCheckoutFinance
             'type' => AddressType::Both, 'recipient_name' => $name, 'contact_number' => '09171234567',
             'address_line_1' => '1 Test Road', 'barangay' => 'San Antonio', 'city_municipality' => 'Makati City',
             'province' => 'Metro Manila', 'region' => 'NCR', 'postal_code' => '1203', 'country' => 'Philippines',
-            'is_default' => true,
+            'is_default' => true, 'latitude' => 14.55, 'longitude' => 121.02,
         ]);
     }
 }

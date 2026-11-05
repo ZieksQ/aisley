@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\UserRole;
 use App\Enums\UserStatus;
+use App\Models\Concerns\HasAdminAuthority;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -22,7 +23,7 @@ use Laravel\Sanctum\HasApiTokens;
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasApiTokens, HasFactory, HasUuids, Notifiable;
+    use HasAdminAuthority, HasApiTokens, HasFactory, HasUuids, Notifiable;
 
     public function customerProfile(): HasOne
     {
@@ -176,6 +177,13 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'is_super_admin' => 'boolean',
+            'is_initial_admin' => 'boolean',
+            'admin_setup_required' => 'boolean',
+            'admin_email_verification_required' => 'boolean',
+            'admin_session_version' => 'integer',
+            'admin_revision' => 'integer',
+            'admin_archived_at' => 'datetime',
             'password' => 'hashed',
             'role' => UserRole::class,
             'status' => UserStatus::class,

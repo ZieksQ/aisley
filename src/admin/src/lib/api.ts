@@ -70,6 +70,9 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
   const payload = (await response.json().catch(() => ({}))) as ErrorPayload & T
 
   if (!response.ok) {
+    if ((response.status === 401 || response.status === 403) && !['/auth/me', '/auth/login', '/auth/logout'].some((suffix) => path.endsWith(suffix))) {
+      window.dispatchEvent(new Event('admin:authorization-changed'))
+    }
     throw new ApiError(response.status, payload)
   }
 

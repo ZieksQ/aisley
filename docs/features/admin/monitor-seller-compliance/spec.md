@@ -3,7 +3,7 @@ feature: monitor-seller-compliance
 title: Admin Monitor Seller Compliance
 system: AISLEY
 type: Feature Specification
-version: 1.2
+version: 1.3
 status: Implemented MVP
 role: Admin
 scope: Admin Web Application
@@ -83,6 +83,11 @@ Admin opens or creates a case → OPEN
 - Admin routes are `/seller-compliance`, `/seller-compliance/cases/{case}`, and linked Seller/Product detail views.
 - Queue/detail/action screens provide loading, empty, forbidden, validation, conflict, retry, and success states; high-impact actions name the Seller/Product and consequence.
 - Forms and dialogs require labels, keyboard operation, focus management, visible focus, and text—not color alone—for status.
+- The queue and case-creation form use the shared portal controls, purple actions, Geist typography, light/dark surfaces, responsive results, and restrained motion defined in `docs/design.md`. Case detail and action confirmations retain their existing composition.
+- The required Seller field opens a separate searchable selection dialog showing shop name, Seller name, initials avatar, email, phone, account status, shop status, and joined date. Missing values are labeled; no private evidence or real profile photos are fetched.
+- Search accepts shop name, Seller first/last name, or email and exposes all matches through pagination. Selecting a Seller fills the parent form; cancellation preserves the existing selection, policy, and review reason. Changing Seller clears Product selection and loads only that Seller's Product options; reselecting the same Seller preserves Product selection.
+- The parent form remains mounted while the picker is open. Only the top dialog is interactive; Escape dismisses that dialog and restores focus to its trigger. Creating a case disables editing/dismissal and guards duplicate submissions. Validation failures retain the draft.
+- Picker searches and case Product/policy loads are independent. Abort superseded reads and ignore late responses after query/selection changes or dismissal; session loss clears protected UI through the existing authentication flow.
 - [x] An unauthorized user cannot list, view, create, or act on compliance cases.
 - [x] A case cannot link a Product owned by another Seller.
 - [x] Dismissal, warning, restriction, revocation, and suspension referral preserve immutable actor/time/reason history.
@@ -97,6 +102,7 @@ Admin opens or creates a case → OPEN
 - Add Admin Form Requests, Policies/Gates, API Resources, a `SellerComplianceService`, and explicit endpoints:
 
 ```http
+GET  /api/v1/admin/seller-compliance/options
 GET  /api/v1/admin/seller-compliance/cases
 POST /api/v1/admin/seller-compliance/cases
 GET  /api/v1/admin/seller-compliance/cases/{case}
@@ -108,6 +114,8 @@ POST /api/v1/admin/seller-compliance/cases/{case}/suspend-seller
 POST /api/v1/admin/seller-compliance/cases/{case}/close
 ```
 
+- The options endpoint keeps its existing `data.sellers`, `data.products`, and `data.policies` arrays. Seller options additionally expose nullable `contact_number`, `shop_status`, and ISO `joined_at`. `data.sellers_meta` contains `current_page`, `last_page`, and `total`.
+- Options accept the existing `seller_search` (maximum 120 characters) and optional UUID `seller_id`, plus positive integer `seller_page` (default 1, 20 Sellers per page). Order Sellers by creation time and ID descending for deterministic pagination. Product options remain scoped to `seller_id`, with the existing 100-Product limit. These Admin-only additions require `seller_compliance.manage`, with no separate Account Management permission, schema migration, or mobile contract change.
 - Reuse the Account Management lifecycle service for suspension. Add one reusable Buyer-visible Product query/availability policy that includes Product publication, active Seller status, vacation eligibility, and active compliance restriction; apply it to discovery, detail, Cart, and Checkout.
 - Build the Admin queue, case detail, policy/action history, and separate confirmation forms with the existing credentialed API client and Admin layout. Do not expose a generic status `PATCH` endpoint.
 - Ship with manual Admin-created cases only. Add complaint/report-created cases only after their source feature provides an authorized immutable reference.
@@ -119,3 +127,10 @@ POST /api/v1/admin/seller-compliance/cases/{case}/close
 - Test authorization/permission boundaries, safe serialization, queue filters, cross-Seller Product mismatch, every case/action transition, idempotency/concurrency, Buyer visibility, Cart/Checkout revalidation, Account Management referral, audit records, and after-commit communication failure.
 - Run API tests on SQLite and PostgreSQL, plus Admin lint, strict TypeScript, production build, and focused accessibility checks.
 - **Open questions:** applicable seller/product policy type/version, who may create reports, warning severity/strike policy, suspension duration and Seller obligations while suspended, Seller notification channel, restriction appeal/reinstatement, and retention of resolved cases.
+
+## Verification — 2026-11-05
+
+- Admin TypeScript, Vite production build, scoped Oxlint/Pint, and diff whitespace checks pass; the existing large-bundle warning remains.
+- Isolated SQLite compliance/options suites pass (12 tests, 133 assertions), including safe profile projection, compliance-only permission, pagination, absent profiles/shops, Product ownership, and existing case actions. Updated the checkout restriction fixture with the address pin required by the current checkout contract.
+- Synthetic real-route Chromium checks cover 24 viewport/theme combinations, short dialogs, profiles, nested keyboard/focus, cancellation/draft retention, search/pagination, superseded reads, Product changes, validation, guarded submission, creation, recovery, reduced motion, and session loss. Shared `PortalModal` blocks Escape for the active busy dialog even when disabling a form field moves focus outside it.
+- See `src/admin/tests/README-seller-compliance.md` for execution and capture locations. Captures reviewed; live API/deployed, PostgreSQL, and assistive-technology acceptance remain open. Existing unrelated authentication/shell work is preserved.

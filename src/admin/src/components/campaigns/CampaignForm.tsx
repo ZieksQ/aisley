@@ -1,58 +1,64 @@
-import { useState } from 'react'
-import type { FormEvent } from 'react'
+import { useId } from 'react'
+import { PortalField } from '@aisley/ui/portal'
 import type { CampaignInput } from '../../lib/notificationCampaigns'
 
-const inputClass = 'mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-950 focus:border-[#4C1268] focus:outline-none focus:ring-2 focus:ring-[#4C1268]/20 dark:border-white/15 dark:bg-[#221b29] dark:text-white'
-
-export function CampaignForm({ initial, busy, onSave, buttonLabel }: {
-  initial: CampaignInput
+export function CampaignForm({ input, busy, dirty, errors, onChange, onSave, isNew }: {
+  input: CampaignInput
   busy: boolean
-  onSave: (input: CampaignInput) => Promise<void>
-  buttonLabel: string
+  dirty: boolean
+  errors: Record<string, string[]>
+  onChange: (input: CampaignInput) => void
+  onSave: () => void
+  isNew: boolean
 }) {
-  const [input, setInput] = useState<CampaignInput>(initial)
-
-  function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    void onSave(input)
-  }
-
-  return (
-    <form className="space-y-4" onSubmit={submit}>
-      <label className="block text-sm font-medium">
-        Title
-        <input className={inputClass} maxLength={120} minLength={3} onChange={(event) => setInput({ ...input, title: event.target.value })} required value={input.title} />
-      </label>
-      <label className="block text-sm font-medium">
-        Message (plain text)
-        <textarea className={`${inputClass} min-h-28`} maxLength={2000} minLength={3} onChange={(event) => setInput({ ...input, body: event.target.value })} required value={input.body} />
-      </label>
-      <label className="block text-sm font-medium">
-        Audience
-        <select className={inputClass} disabled value="opted_in_customers">
-          <option value="opted_in_customers">Customers opted in to in-app promotions</option>
-        </select>
-      </label>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="block text-sm font-medium">
-          Optional destination
-          <select className={inputClass} onChange={(event) => setInput({ ...input, destination_type: event.target.value as CampaignInput['destination_type'] || null, destination_id: null })} value={input.destination_type ?? ''}>
-            <option value="">No destination</option>
-            <option value="product">Visible Product</option>
-            <option value="shop">Visible Shop</option>
-          </select>
+  const id = useId()
+  return <form className="portal-panel campaign-form" aria-label="Campaign draft" onSubmit={(event) => { event.preventDefault(); onSave() }}>
+    <div className="campaign-section-heading">
+      <h3>Message</h3>
+      <span className="portal-secondary">{dirty ? 'Unsaved changes' : isNew ? 'New draft' : 'Saved draft'}</span>
+    </div>
+    <fieldset disabled={busy}>
+      <PortalField label="Title" required minLength={3} maxLength={120} value={input.title}
+        hint={`${input.title.length} / 120 characters`} error={errors.title?.[0]}
+        onChange={(event) => onChange({ ...input, title: event.target.value })} />
+      <div className="portal-field">
+        <label htmlFor={`${id}-body`}>Message <span className="portal-required" aria-hidden="true">*</span>
         </label>
-        {input.destination_type && (
-          <label className="block text-sm font-medium">
-            {input.destination_type === 'product' ? 'Product' : 'Shop'} ID
-            <input className={inputClass} onChange={(event) => setInput({ ...input, destination_id: event.target.value })} required value={input.destination_id ?? ''} />
-          </label>
-        )}
+        <textarea id={`${id}-body`} required minLength={3} maxLength={2000} rows={6} value={input.body}
+          aria-invalid={Boolean(errors.body)} aria-describedby={`${id}-body-help`}
+          onChange={(event) => onChange({ ...input, body: event.target.value })} />
+        <p id={`${id}-body-help`} className={errors.body ? 'portal-field-error' : 'portal-field-hint'}>
+          {errors.body?.[0] ?? `${input.body.length} / 2,000 characters · Plain text only`}
+        </p>
       </div>
-      <p className="text-xs text-slate-500 dark:text-slate-400">Only active, opted-in Customers can receive this in-app message. No browser push or SMS is sent.</p>
-      <button className="rounded-md bg-[#4C1268] px-4 py-2 text-sm font-semibold text-white hover:bg-[#39104e] disabled:opacity-50" disabled={busy} type="submit">
-        {busy ? 'Saving…' : buttonLabel}
-      </button>
-    </form>
-  )
+      <div className="campaign-audience">
+        <h4>Audience</h4>
+        <p>Customers opted in to in-app promotions</p>
+        <p className="portal-secondary">Only active, opted-in Customers are eligible. Browser push and SMS are not sent.</p>
+        {errors.audience_key && <p className="portal-field-error" role="alert">{errors.audience_key[0]}</p>}
+      </div>
+      <div className="campaign-destination-fields">
+        <div className="portal-field">
+          <label htmlFor={`${id}-destination`}>Optional destination</label>
+          <select id={`${id}-destination`} value={input.destination_type ?? ''}
+            aria-invalid={Boolean(errors.destination_type)} aria-describedby={errors.destination_type ? `${id}-destination-error` : undefined}
+            onChange={(event) => onChange({ ...input, destination_type: event.target.value as CampaignInput['destination_type'] || null, destination_id: null })}>
+            <option value="">No destination</option>
+            <option value="product">Product</option>
+            <option value="shop">Shop</option>
+          </select>
+          {errors.destination_type && <p className="portal-field-error" id={`${id}-destination-error`}>{errors.destination_type[0]}</p>}
+        </div>
+        {input.destination_type && <PortalField label={`${input.destination_type === 'product' ? 'Product' : 'Shop'} ID`}
+          required value={input.destination_id ?? ''} error={errors.destination_id?.[0]} hint="Must identify a visible resource."
+          onChange={(event) => onChange({ ...input, destination_id: event.target.value })} />}
+      </div>
+      <div className="campaign-form-footer">
+        <p className="portal-secondary">Save, review your audience, then confirm the send.</p>
+        <button className="portal-button portal-button-primary" type="submit" disabled={busy || (!isNew && !dirty)} aria-busy={busy}>
+          {busy ? 'Please wait…' : isNew ? 'Create draft' : 'Save draft'}
+        </button>
+      </div>
+    </fieldset>
+  </form>
 }

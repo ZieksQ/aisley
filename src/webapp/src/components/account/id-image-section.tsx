@@ -1,4 +1,5 @@
 "use client";
+import { AccountRemovalConfirmation } from "@aisley/ui/account-settings";
 
 import { Button } from "@aisley/ui";
 import {
@@ -209,7 +210,7 @@ export function IdImageSection({
                   {selected.file.name}
                 </span>
               ) : null}
-              <Button
+              <Button variant="secondary"
                 type="submit"
                 className="min-h-11 rounded-md px-4"
                 disabled={!selected || busy !== null}
@@ -223,7 +224,7 @@ export function IdImageSection({
                   type="button"
                   onClick={() => setConfirmingRemove(true)}
                   disabled={busy !== null}
-                  className="inline-flex min-h-11 items-center gap-2 rounded-md px-3 text-sm font-semibold text-[#9D174D] hover:bg-[#FFF1F5] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4C1268] disabled:opacity-60"
+                  className="inline-flex min-h-11 items-center gap-2 rounded-md px-3 text-sm font-semibold text-[#B42318] hover:bg-[#FFF4F2] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4C1268] disabled:opacity-60"
                 >
                   <FiTrash2 aria-hidden="true" /> Remove
                 </button>
@@ -279,30 +280,7 @@ export function IdImageSection({
         ) : null}
       </div>
 
-      {confirmingRemove ? (
-        <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[#E9E4EB] pt-4">
-          <p className="text-sm text-[#514656]">Remove your saved ID image?</p>
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              className="min-h-11 rounded-md px-3"
-              onClick={() => setConfirmingRemove(false)}
-              disabled={busy !== null}
-            >
-              Keep image
-            </Button>
-            <button
-              type="button"
-              onClick={() => void remove()}
-              disabled={busy !== null}
-              className="min-h-11 rounded-md bg-[#B42318] px-3 text-sm font-semibold text-white disabled:opacity-60"
-            >
-              {busy === "remove" ? "Removing…" : "Remove image"}
-            </button>
-          </div>
-        </div>
-      ) : null}
+      {confirmingRemove ? <AccountRemovalConfirmation title="Remove ID image?" confirmLabel="Remove image" destructive busy={busy !== null} onClose={() => setConfirmingRemove(false)} onConfirm={() => void remove()}>Your saved ID image will be removed. You can upload another image later.</AccountRemovalConfirmation> : null}
     </section>
   );
 }

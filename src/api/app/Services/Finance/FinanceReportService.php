@@ -27,23 +27,24 @@ class FinanceReportService
     }
 
     /** @param array<string, mixed> $scope @return array<string, mixed> */
-    public function workspace(array $scope): array
+    public function workspace(array $scope, array $filters = []): array
     {
-        $revenue = (int) $this->lines($scope)->where('account_code', $scope['revenue_account'])->sum('credit_cents');
-        $costAccounts = $scope['owner_type'] === 'platform' ? ['voucher_expense', 'shipping_subsidy_expense', 'operating_expense', 'recorded_loss', 'processing_fee'] : ['operating_expense', 'product_cost', 'delivery_cost'];
-        $costs = (int) $this->lines($scope)->whereIn('account_code', $costAccounts)->sum(fn ($line) => $line->debit_cents - $line->credit_cents);
+        $periodLines = $this->periodLines($scope, $filters);
+        $revenue = (int) $periodLines->where('account_code', $scope['revenue_account'])->sum('credit_cents');
+        $costAccounts = $this->costAccounts($scope);
+        $costs = (int) $periodLines->whereIn('account_code', $costAccounts)->sum(fn ($line) => $line->debit_cents - $line->credit_cents);
         $liability = $scope['owner_type'] === 'platform'
-            ? max(0, $revenue - $costs)
+            ? $this->platformBalance($scope, $costAccounts)
             : (int) $this->lines($scope)->where('account_code', $scope['revenue_account'])->sum(fn ($line) => $line->credit_cents - $line->debit_cents);
-        $month = now('Asia/Manila')->startOfMonth()->toDateString();
-        $closed = FinancePeriodClosure::query()->where($this->ownerConditions($scope))->where('period_month', $month)->where('costs_complete', true)->exists();
-        $breakdown = $this->lines($scope)->where(fn ($line) => $line->credit_cents > 0)->groupBy('account_code')
+        $closed = $this->periodClosed($scope, $filters);
+        $breakdown = $periodLines->where(fn ($line) => $line->credit_cents > 0)->groupBy('account_code')
             ->map(fn (Collection $lines, string $account) => ['label' => str($account)->replace('_', ' ')->title()->toString(), 'amountCents' => $lines->sum('credit_cents')])->values();
 
         return [
             'currency' => 'PHP', 'timezone' => 'Asia/Manila', 'generatedAt' => now()->toISOString(),
             'summary' => ['revenueCents' => $revenue, 'costsCents' => $costs, 'profitCents' => $revenue - $costs, 'availableBalanceCents' => $liability, 'profitState' => $closed ? 'actual' : 'provisional'],
-            'series' => $this->series($scope), 'waterfall' => [
+            'period' => ['dateFrom' => $filters['date_from'] ?? null, 'dateTo' => $filters['date_to'] ?? null, 'allTime' => (bool) ($filters['all_time'] ?? false)],
+            'series' => $this->series($scope, $filters), 'waterfall' => [
                 ['label' => 'Revenue', 'amountCents' => $revenue], ['label' => 'Costs', 'amountCents' => -$costs], ['label' => 'Operating profit', 'amountCents' => $revenue - $costs],
             ],
             'revenueBreakdown' => $breakdown, 'remittanceAging' => $this->remittanceAging($scope),
@@ -55,12 +56,12 @@ class FinanceReportService
     /** @param array<string, mixed> $scope */
     public function ledger(array $scope, array $filters = []): mixed
     {
-        return $this->journalQuery($scope)
+        return FinanceDateRange::apply($this->journalQuery($scope), 'effective_at', $filters)
             ->when($filters['search'] ?? null, function (Builder $query, string $search): void {
                 $query->where(fn (Builder $nested) => $nested->where('event_type', 'like', '%'.$search.'%')->orWhere('memo', 'like', '%'.$search.'%')->orWhereHas('order', fn ($order) => $order->where('reference', 'like', '%'.$search.'%')));
             })
             ->with(['lines' => fn ($query) => $query->where($this->ownerConditions($scope)), 'order:id,reference'])
-            ->latest('effective_at')->paginate(min(100, max(1, (int) ($filters['per_page'] ?? 25))));
+            ->latest('effective_at')->orderByDesc('id')->paginate(min(100, max(1, (int) ($filters['per_page'] ?? 25))));
     }
 
     /** @param array<string, mixed> $scope */
@@ -78,19 +79,67 @@ class FinanceReportService
     }
 
     /** @param array<string, mixed> $scope @return list<array<string, mixed>> */
-    public function series(array $scope): array
+    public function series(array $scope, array $filters = []): array
     {
-        $start = now()->subDays(89)->startOfDay();
-        $lines = $this->lines($scope, $start)->groupBy(fn ($line) => $line->journal->effective_at->timezone('Asia/Manila')->toDateString());
-
-        return collect(range(0, 89))->map(function (int $offset) use ($start, $lines, $scope): array {
-            $date = $start->copy()->addDays($offset)->timezone('Asia/Manila')->toDateString();
-            $day = $lines->get($date, collect());
+        $today = CarbonImmutable::now('Asia/Manila')->startOfDay();
+        $start = FinanceDateRange::start($filters)?->timezone('Asia/Manila') ?? $today->subDays(89);
+        if ($filters['all_time'] ?? false) {
+            $first = $this->journalQuery($scope)->min('effective_at');
+            $start = $first ? CarbonImmutable::parse($first, 'UTC')->timezone('Asia/Manila')->startOfDay() : $today;
+        }
+        $end = isset($filters['date_to']) ? CarbonImmutable::parse($filters['date_to'], 'Asia/Manila') : $today;
+        $format = 'Y-m-d';
+        $lines = $this->periodLines($scope, ['date_from' => $start->toDateString(), 'date_to' => $end->toDateString()])
+            ->groupBy(fn ($line) => $line->journal->effective_at->timezone('Asia/Manila')->format($format));
+        $rows = [];
+        for ($date = $start; $date->lte($end); $date = $date->addDay()) {
+            $day = $lines->get($date->format($format), collect());
             $revenue = $day->where('account_code', $scope['revenue_account'])->sum('credit_cents');
-            $costs = $day->whereIn('account_code', ['voucher_expense', 'shipping_subsidy_expense', 'operating_expense', 'product_cost', 'delivery_cost', 'processing_fee', 'recorded_loss'])->sum(fn ($line) => $line->debit_cents - $line->credit_cents);
+            $costs = $day->whereIn('account_code', $this->costAccounts($scope))->sum(fn ($line) => $line->debit_cents - $line->credit_cents);
+            $rows[] = ['date' => $date->toDateString(), 'actualRevenueCents' => $revenue, 'actualProfitCents' => $revenue - $costs];
+        }
 
-            return ['date' => $date, 'actualRevenueCents' => $revenue, 'actualProfitCents' => $revenue - $costs];
-        })->all();
+        return $rows;
+    }
+
+    private function periodClosed(array $scope, array $filters): bool
+    {
+        if (empty($filters['date_from']) || empty($filters['date_to'])) {
+            return false;
+        }
+        $first = CarbonImmutable::parse($filters['date_from'], 'Asia/Manila')->startOfMonth();
+        $last = CarbonImmutable::parse($filters['date_to'], 'Asia/Manila')->startOfMonth();
+        if ($last->gte(CarbonImmutable::now('Asia/Manila')->startOfMonth())) {
+            return false;
+        }
+        $required = (int) $first->diffInMonths($last) + 1;
+        $closed = FinancePeriodClosure::query()->where($this->ownerConditions($scope))->where('costs_complete', true)
+            ->whereBetween('period_month', [$first->toDateString(), $last->endOfMonth()->toDateString()])->distinct()->count('period_month');
+
+        return $closed === $required;
+    }
+
+    private function periodLines(array $scope, array $filters): Collection
+    {
+        return FinanceLedgerLine::query()->where($this->ownerConditions($scope))
+            ->whereHas('journal', fn ($query) => FinanceDateRange::apply($query, 'effective_at', $filters))
+            ->with('journal')->get();
+    }
+
+    private function costAccounts(array $scope): array
+    {
+        return $scope['owner_type'] === 'platform'
+            ? ['voucher_expense', 'shipping_subsidy_expense', 'operating_expense', 'recorded_loss', 'processing_fee']
+            : ['operating_expense', 'product_cost', 'delivery_cost'];
+    }
+
+    private function platformBalance(array $scope, array $costAccounts): int
+    {
+        $lines = $this->lines($scope);
+        $revenue = (int) $lines->where('account_code', $scope['revenue_account'])->sum('credit_cents');
+        $costs = (int) $lines->whereIn('account_code', $costAccounts)->sum(fn ($line) => $line->debit_cents - $line->credit_cents);
+
+        return max(0, $revenue - $costs);
     }
 
     /** @param array<string, mixed> $scope @return array<string, mixed> */

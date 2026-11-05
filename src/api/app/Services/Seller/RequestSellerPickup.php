@@ -22,7 +22,9 @@ use App\Services\Logistics\Sorting\SortingLocks;
 use App\Services\Logistics\SortingPlanService;
 use App\Services\OrderTransitionService;
 use App\Services\Waybills\CreateWaybill;
+use App\Support\AddressCoordinates;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class RequestSellerPickup
 {
@@ -96,6 +98,9 @@ class RequestSellerPickup
             $pickupAddress = $seller->addresses()->whereKey($pickupAddressId)->lockForUpdate()->first();
             if (! $pickupAddress) {
                 throw SellerOrderException::conflict('PICKUP_ADDRESS_INVALID', 'The selected pickup address is unavailable.');
+            }
+            if (! AddressCoordinates::valid($pickupAddress->latitude, $pickupAddress->longitude)) {
+                throw ValidationException::withMessages(['pickup_address_id' => 'Pin this pickup address in Account settings before requesting pickup.']);
             }
             if ($orders->contains(fn (Order $order) => $order->status !== OrderStatus::SellerProcessing)) {
                 throw SellerOrderException::conflict('PICKUP_ORDERS_INVALID', 'Only processing Orders can be submitted for pickup.');

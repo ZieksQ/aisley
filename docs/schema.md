@@ -1641,3 +1641,12 @@ Before adding these tables:
 - `order_pricing_snapshots` now has positive integer `version` (default 1) and `address_version` (default 1), with uniqueness on `(order_id, version)` replacing uniqueness on `order_id`. The Order's current pricing relation selects the greatest version; older snapshots are immutable history. `address_version` associates confirmed repricing with its address snapshot; legacy contact-only revisions may retain an earlier pricing address version because location/pricing did not change.
 - `order_modification_quotes` stores UUID ID, Customer/Order/saved-address foreign keys, expected address revision, SHA-256 state fingerprint, expiry and timestamps. It stores no raw address/quote payload. Saved-address deletion removes the short-lived quote; persisted mutation-key replay still resolves before source/quote lookup.
 - Existing migrations remain unchanged. Rollback after committed pricing revisions is intentionally refused to preserve history; release recovery uses a forward migration.
+
+
+### Admin provisioning — 2026-11-05
+
+`2026_11_05_120000_add_admin_provisioning.php` adds `users.is_super_admin`, `is_initial_admin`, `admin_setup_required`, `admin_email_verification_required`, `admin_session_version`, `admin_revision` and nullable `admin_archived_at`. Defaults preserve existing accounts and grants. Admin archive retains the User and related audit identities.
+
+`admin_roles` stores unique names and revisions; `admin_role_permissions` and `admin_role_memberships` store unique role/permission and role/User pairs. Existing `admin_permissions` remains the individual-grant owner with grantor metadata. Effective authority unions both sources, with full-catalog super-admin access. The singleton `admin_authority_locks` row serializes privilege mutations and bootstrap reconciliation.
+
+`admin_setup_challenges` stores User ownership, identity/replacement fingerprints, hashed six-digit codes, attempts, expiry, invalidation and consumption timestamps. Email outbox payloads remain encrypted under the additive `admin_setup_code` kind. No plaintext replacement or temporary password is persisted outside the ordinary User password hash. See [provisioning contract](features/admin/admin-provisioning/spec.md).

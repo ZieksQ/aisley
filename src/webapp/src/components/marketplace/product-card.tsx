@@ -31,7 +31,9 @@ export function ProductCard({
   product,
   section,
   onWishlistChange,
+  showWishlist = true,
 }: {
+  showWishlist?: boolean;
   position: number;
   priority?: boolean;
   product: ProductSummary;
@@ -45,9 +47,11 @@ export function ProductCard({
 
   return (
     <article className="group relative flex min-w-0 flex-col overflow-hidden rounded-lg border border-[#E4DEE6] bg-white transition-[border-color,box-shadow] duration-150 hover:border-[#BDAFC2] hover:shadow-[0_2px_8px_rgba(49,18,63,0.08)]">
-      <div className="absolute right-2 top-2 z-10">
-        <WishlistToggle compact onChange={onWishlistChange} productId={product.id} />
-      </div>
+      {showWishlist ? (
+        <div className="absolute right-2 top-2 z-10">
+          <WishlistToggle compact onChange={onWishlistChange} productId={product.id} />
+        </div>
+      ) : null}
       <Link
         href={`/products/${product.id}`}
         aria-label={`${product.title}, ${moneyFormatter.format(product.price)}`}

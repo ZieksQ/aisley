@@ -1,0 +1,424 @@
+.account-settings {
+  --settings-surface: var(--portal-surface, #fff);
+  --settings-subtle: var(--portal-subtle, #f3f4f6);
+  --settings-text: var(--portal-text, #231429);
+  --settings-muted: var(--portal-muted, #4b5563);
+  --settings-border: var(--portal-border, #e5e7eb);
+  --settings-accent: var(--portal-accent, #4c1268);
+  --settings-primary: var(--brand-primary, #4c1268);
+  --settings-hover: var(--brand-hover, #3d0e54);
+  --settings-focus: var(--brand-focus, #6d28d9); /* taste-skill-ignore: docs/design.md requires this brand focus. */
+  width: 100%;
+  max-width: 1152px;
+  margin: 0 auto;
+  padding: 28px 24px 48px;
+  color: var(--settings-text);
+  font-family: Geist, ui-sans-serif, system-ui, sans-serif;
+  container-type: inline-size;
+}
+.account-settings-customer {
+  --settings-surface: #fff;
+  --settings-subtle: #f3f4f6;
+  --settings-text: #231429;
+  --settings-muted: #4b5563;
+  --settings-border: #e5e7eb;
+  --settings-accent: #4c1268;
+  --settings-primary: #4c1268;
+  --settings-hover: #3d0e54;
+  --settings-focus: #6d28d9; /* taste-skill-ignore: docs/design.md requires this brand focus. */
+  padding: 0;
+}
+.account-settings-heading > :is(h1, h2),
+.account-settings-state > :is(h1, h2) {
+  margin: 0;
+  font-size: 28px;
+  line-height: 1.25;
+  font-weight: 650;
+  letter-spacing: -.035em;
+}
+.account-settings-heading > p {
+  margin-top: 8px;
+  max-width: 65ch;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--settings-muted);
+}
+.account-settings-identity {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  margin: 24px 0 8px;
+  border: 1px solid var(--settings-border);
+  border-radius: 12px;
+  background: var(--settings-surface);
+}
+.account-settings-person {
+  min-width: 0;
+  flex: 1;
+}
+.account-settings-name {
+  font-size: 18px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.account-settings-email {
+  margin-top: 4px;
+  color: var(--settings-muted);
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.account-settings-status {
+  display: flex;
+  gap: 24px;
+  font-size: 13px;
+}
+.account-settings-status dt {
+  color: var(--settings-muted);
+  margin-bottom: 4px;
+}
+.account-settings-status dd {
+  font-weight: 500;
+  text-transform: capitalize;
+}
+.account-settings-nav {
+  display: flex;
+  gap: 24px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--settings-border);
+  padding: 0 2px;
+  scrollbar-width: thin;
+}
+.account-settings-nav button {
+  min-height: 52px;
+  flex-shrink: 0;
+  padding: 12px 0;
+  color: var(--settings-muted);
+  border-bottom: 2px solid transparent;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 150ms ease, border-color 150ms ease;
+}
+.account-settings-nav button:hover {
+  color: var(--settings-text);
+}
+.account-settings-nav button[aria-current] {
+  color: var(--settings-accent);
+  border-bottom-color: currentColor;
+}
+/* Label lane + 24px gutter + flexible working panel fill the same outer edges. */
+.account-settings-workspace {
+  display: grid;
+  grid-template-columns: minmax(150px, .65fr) minmax(0, 2fr);
+  gap: 24px;
+  align-items: start;
+  padding-top: 28px;
+}
+.account-settings-context :is(h2, h3) {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.account-settings-context p {
+  font-size: 14px;
+  line-height: 1.65;
+  margin-top: 8px;
+  color: var(--settings-muted);
+}
+.account-settings-context .account-settings-privacy {
+  font-size: 12px;
+  margin-top: 24px;
+}
+.account-settings-content {
+  min-width: 0;
+}
+.account-settings-content [hidden] {
+  display: none !important;
+}
+.account-settings-content :is(section, form.account-settings-form) {
+  background: var(--settings-surface);
+  border: 1px solid var(--settings-border);
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 16px;
+  box-shadow: none;
+}
+.account-settings-content > div > :is(section, form):first-child {
+  margin-top: 0;
+}
+.account-settings-content section section, .account-settings-content section form {
+  border-radius: 8px;
+}
+.account-settings-content :is(h2, h3, h4) {
+  color: var(--settings-text);
+}
+.account-settings-content :is(input:not([type=checkbox]):not([type=file]), select, textarea) {
+  color: var(--settings-text);
+  background: var(--settings-surface);
+  border: 1px solid var(--settings-muted);
+  border-radius: 8px;
+  min-height: 44px;
+  max-width: 100%;
+  box-shadow: none;
+}
+.account-settings-content input[disabled] {
+  background: var(--settings-subtle);
+  opacity: 1;
+  color: var(--settings-muted);
+}
+.account-settings :is(button, a, input, select, textarea):focus-visible {
+  outline: 2px solid var(--settings-focus);
+  outline-offset: 3px;
+  box-shadow: none;
+}
+.account-settings-content label:has(input[type=file]):focus-within {
+  outline: 2px solid var(--settings-focus);
+  outline-offset: 3px;
+}
+.account-settings-content :is(button, label:has(input[type=file])) {
+  min-height: 44px;
+}
+.account-settings-content button {
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+.account-settings .account-settings-content button:disabled {
+  cursor: not-allowed;
+  opacity: 1;
+  color: var(--settings-muted);
+  background: var(--settings-subtle);
+  border: 1px solid var(--settings-border);
+}
+.account-settings-content .account-settings-primary {
+  background: var(--settings-primary);
+  color: #fff;
+}
+.account-settings-content .account-settings-primary:hover {
+  background: var(--settings-hover);
+}
+.account-settings-content :is(p, label, dt, dd, span) {
+  overflow-wrap: anywhere;
+}
+.account-settings-feedback {
+  margin: 12px 0;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: var(--settings-subtle);
+  color: var(--settings-text);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.account-settings-feedback-error {
+  color: #b42318;
+  background: #fff4f2;
+}
+.dark .account-settings:not(.account-settings-customer) .account-settings-feedback-error {
+  color: #fecaca;
+  background: #3b2028;
+}
+.account-settings-state-panel {
+  margin-top: 24px;
+  padding: 24px;
+  border: 1px solid var(--settings-border);
+  border-radius: 12px;
+  background: var(--settings-surface);
+}
+.account-settings-state-panel h2 {
+  font-size: 16px;
+  font-weight: 600;
+}
+.account-settings-state-panel p {
+  margin: 12px 0;
+  font-size: 14px;
+  color: var(--settings-muted);
+}
+.account-settings-state-panel button {
+  padding: 10px 16px;
+  min-height: 44px;
+  color: #fff;
+  background: var(--settings-primary);
+  border-radius: 8px;
+}
+.account-settings-skeleton {
+  height: 96px;
+  margin-top: 16px;
+  border-radius: 8px;
+  background: var(--settings-subtle);
+}
+@container (max-width: 760px) {
+  .account-settings-workspace {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+  .account-settings-context .account-settings-privacy {
+    display: none;
+  }
+}
+@media (max-width: 640px) {
+  .account-settings {
+    padding: 24px 16px 32px;
+  }
+  .account-settings-customer {
+    padding: 0;
+  }
+  .account-settings-heading > :is(h1, h2),
+.account-settings-state > :is(h1, h2) {
+    font-size: 24px;
+  }
+  .account-settings-identity {
+    flex-wrap: wrap;
+    padding: 16px;
+    gap: 12px;
+    margin-top: 20px;
+  }
+  .account-settings-status {
+    width: 100%;
+    padding-top: 12px;
+    border-top: 1px solid var(--settings-border);
+  }
+  .account-settings-nav {
+    gap: 20px;
+  }
+  .account-settings-content :is(section, form.account-settings-form) {
+    padding: 16px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .account-settings *, .account-settings *::before, .account-settings *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+.account-settings .portal-confirmation {
+  width: min(440px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+  margin: auto;
+  padding: 24px;
+  border: 1px solid var(--settings-border);
+  border-radius: 12px;
+  color: var(--settings-text);
+  background: var(--settings-surface);
+  box-shadow: 0 12px 40px #0002;
+}
+.account-settings .portal-confirmation::backdrop {
+  background: #0008;
+}
+.account-settings .portal-confirmation h2 {
+  font-size: 18px;
+  font-weight: 600;
+}
+.account-settings .portal-confirmation-description {
+  margin-top: 12px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--settings-muted);
+}
+.account-settings .portal-confirmation-actions {
+  margin-top: 24px;
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.account-settings .portal-confirmation .portal-button {
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 1px solid var(--settings-border);
+  border-radius: 8px;
+  background: var(--settings-surface);
+  color: var(--settings-text);
+}
+.account-settings .portal-confirmation .portal-button-danger {
+  color: #fff;
+  background: #b42318;
+  border-color: #b42318;
+}
+.account-settings-content > div > .space-y-6 > form {
+  margin-top: 0;
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid var(--settings-border);
+  background: var(--settings-surface);
+}
+.account-settings-content .account-settings-security-card {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--settings-border);
+}
+.account-settings-content p {
+  color: var(--settings-muted);
+}
+.account-settings-content p[role=alert] {
+  color: #b42318;
+}
+.dark .account-settings:not(.account-settings-customer) .account-settings-content p[role=alert] {
+  color: #fecaca;
+}
+.account-settings-image-preview {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-top: 16px;
+}
+.account-settings-image-preview img {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.account-settings-image-preview figcaption {
+  max-width: 40ch;
+  color: var(--settings-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.account-settings-identity > [aria-hidden=true], .account-settings-content [aria-hidden=true].rounded-full {
+  background: var(--brand-tint, #f1eaf4);
+  color: var(--settings-accent);
+}
+/* A cover's minimum height must not expand its intrinsic aspect-ratio width. */
+.account-settings-content [class*="aspect-"] {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+.account-settings-content button {
+  box-shadow: none;
+}
+.account-settings-content :is(input:not([type=checkbox]), select, textarea):focus {
+  border-color: var(--settings-focus);
+  outline: 2px solid var(--settings-focus);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+.account-settings-content label {
+  color: var(--settings-text);
+}
+@media (max-width: 640px) {
+  .account-settings-status {
+    padding-top: 8px;
+    gap: 24px;
+  }
+  .account-settings-status dt,
+  .account-settings-status dd {
+    display: inline;
+  }
+  .account-settings-status dt {
+    margin-right: 6px;
+  }
+  .account-settings-content .flex-col:has(> .rounded-full) {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .account-settings-content .flex-col > .rounded-full {
+    width: 56px;
+    height: 56px;
+  }
+}
+.account-settings-content :is(.text-zinc-500, .text-slate-500) {
+  color: var(--settings-muted);
+}

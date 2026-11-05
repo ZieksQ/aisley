@@ -1,3 +1,5 @@
+import { DashboardMetricCard } from '@aisley/ui/portal'
+import { FinanceMetricIcon } from '@aisley/ui/portal'
 import type { FinanceWorkspaceData, FinanceWorkspaceProps } from '../types'
 import { amount } from '../formatters'
 
@@ -14,25 +16,20 @@ const revenueLabels: Record<FinanceWorkspaceProps['roleLabel'], string> = {
 
 export function FinanceSummaryCards({ roleLabel, summary }: SummaryProps) {
   const cards = [
-    { label: revenueLabels[roleLabel], value: summary.revenueCents, note: 'Recognized to date' },
-    { label: 'Recorded costs', value: summary.costsCents, note: 'Expenses and allocations' },
+    { label: revenueLabels[roleLabel], value: summary.revenueCents, note: 'Recognized in selected period', icon: <FinanceMetricIcon kind="revenue" /> },
+    { label: 'Recorded costs', value: summary.costsCents, note: 'Selected period · recorded expenses', icon: <FinanceMetricIcon kind="costs" /> },
     {
-      label: 'Operating profit',
+      label: summary.profitState === 'actual' ? 'Operating profit' : 'Provisional operating profit',
       value: summary.profitCents,
-      note: summary.profitState === 'actual' ? 'Closed accounting period' : 'Open period · costs may change',
+      icon: <FinanceMetricIcon kind="profit" />,
+      note: summary.profitState === 'actual' ? 'Closed accounting period' : 'Selected period · costs may be incomplete',
     },
-    { label: 'Available balance', value: summary.availableBalanceCents, note: 'Eligible ledger balance' },
+    { label: 'Current ledger balance', value: summary.availableBalanceCents, note: 'Current · subject to settlement eligibility', icon: <FinanceMetricIcon kind="balance" /> },
   ]
 
   return (
     <section aria-label="Finance summary" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-      {cards.map((card) => (
-        <article className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-white/10 dark:bg-[#18181b]" key={card.label}>
-          <p className="text-sm font-medium text-zinc-600 dark:text-zinc-300">{card.label}</p>
-          <p className="mt-3 text-2xl font-semibold tracking-tight tabular-nums">{amount(card.value)}</p>
-          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{card.note}</p>
-        </article>
-      ))}
+      {cards.map((card) => <DashboardMetricCard key={card.label} label={card.label} value={amount(card.value)} icon={card.icon} detail={card.note} />)}
     </section>
   )
 }

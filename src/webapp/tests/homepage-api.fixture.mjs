@@ -15,8 +15,19 @@ function homepage(owner) {
   return {
     viewer: { isAuthenticated: owner !== null, displayName: owner, email: owner ? `${owner}@example.test` : null, deliveryLocation: null, cartItemCount: 0 },
     campaigns: { hero: [], side: [] }, advertisementLayer: null, quickActions: [],
-    categories: [{ id: 'category', slug: 'clothing', name: 'Clothing', imageUrl: null }],
-    flashDeals: null, topProducts: [], recentlyViewed: owner ? [product(`${name} history`, 0)] : [],
+    categories: [
+      ['pet-supplies', 'Pet Supplies'], ['electronics-and-gadgets', 'Electronics and Gadgets'],
+      ['womens-apparel', "Women's Apparel"], ['mens-apparel', "Men's Apparel"],
+      ['kids-and-baby', 'Kids and Baby'], ['health-and-beauty', 'Health and Beauty'],
+      ['books-and-media', 'Books and Media'], ['food-and-gourmet', 'Food and Gourmet'],
+      ['automotive-motorcycle-group-9', 'Automotive & Motorcycle - Group 9'],
+      ['furniture-and-office-equipment', 'Furniture and Office Equipment'],
+      ['jewelry-and-watches', 'Jewelry and Watches'], ['home-and-garden', 'Home and Garden'],
+      ['sports-and-outdoors', 'Sports and Outdoors'],
+      ['office-and-school-supplies-group-12', 'Office and School Supplies - Group 12'],
+      ['unknown-group', 'New main group'],
+    ].map(([slug, name]) => ({ id: slug, slug, name, imageUrl: null })),
+    flashDeals: { id: 'deal', name: 'Fixture deal', endsAt: new Date(Date.now() + 3600000).toISOString(), products: [product('Deal', 0)] }, topProducts: [product('Top', 0)], recentlyViewed: owner ? [product(`${name} history`, 0)] : [],
     // Same initial IDs/cursor expose the old boolean-only restoration bug.
     recommendations: { items: [{ ...product(name, 0), id: 'shared-base' }], nextCursor: 'next-page', pageSize: 20 },
   };
@@ -72,8 +83,9 @@ createServer(async (request, response) => {
     await delay(state.pageDelay);
     return fail ? json({ message: 'Fixture page unavailable' }, 503) : json({ recommendations: { items: [product(owner ?? 'Guest', 1)], nextCursor: null, pageSize: 20 } });
   }
+  if (url.pathname === '/api/v1/customer/products/search') return json({ items: [product('Search', 0)], pagination: { currentPage: 1, lastPage: 1, perPage: 20, total: 1 } });
   if (url.pathname === '/api/v1/customer/cart') return json({ data: { id: 'cart', itemCount: 0, distinctItemCount: 0, subtotal: 0, availableSubtotal: 0, items: [] } });
   if (url.pathname === '/api/v1/customer/wishlist/status') return json({ data: Object.fromEntries(url.searchParams.getAll('product_ids[]').map((id) => [id, false])) });
   if (url.pathname.includes('/notifications')) return json({ data: [], unread_count: 0, meta: { unread_count: 0 } });
-  return json({ data: {}, counts: {} });
+  return json({ data: [], counts: {}, meta: { next_cursor: null, unread_count: 0, total: 0 } });
 }).listen(18081, '127.0.0.1', () => console.log('Homepage fixture ready on 18081'));

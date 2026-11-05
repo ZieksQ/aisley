@@ -25,7 +25,7 @@ class FinanceNoticeService
             if ($recipient) {
                 $this->notify($recipient, 'overdue:'.$invoice->id, 'cod_invoice_overdue', 'COD invoice overdue', $invoice->reference.' remains unpaid. Check the payment status or pay now.', '/finance/remittances/invoices/'.$invoice->id);
             }
-            foreach (User::query()->where('role', 'admin')->where('status', 'active')->whereHas('permissions', fn ($q) => $q->where('slug', 'finance.view'))->get() as $admin) {
+            foreach (User::query()->where('role', 'admin')->where('status', 'active')->withAdminPermission('finance.view')->get() as $admin) {
                 $this->notify($admin, 'overdue:'.$invoice->id, 'cod_invoice_overdue', 'COD invoice overdue', $invoice->reference.' requires attention.', '/finance/remittances/invoices/'.$invoice->id);
             }
             $invoice->update(['overdue_notified_at' => now()]);

@@ -37,6 +37,7 @@ async function until(check, label, timeout = 20000) {
     if (await check()) return;
     await new Promise((done) => setTimeout(done, 100));
   }
+  console.error(await command('POST', `${path}/log`, { type: 'browser' }));
   throw new Error(`Timed out: ${label}. Page: ${await js('return document.body.innerText.slice(0,1200)')}`);
 }
 const contains = (text) => () => js(`return document.body.innerText.includes(${JSON.stringify(text)})`);
@@ -78,6 +79,12 @@ try {
   for (const width of [390, 768, 1280]) {
     await cdp('Emulation.setDeviceMetricsOverride', { width, height: 850, deviceScaleFactor: 1, mobile: width < 1024 });
     assert.equal(await js('return document.documentElement.scrollWidth <= innerWidth + 2'), true, `Homepage overflow at ${width}px`);
+    assert.equal(await js('return document.querySelectorAll("#categories a").length'), 15);
+    assert.equal(await js('return document.querySelectorAll("#categories svg[aria-hidden=true]").length'), 15);
+    assert.equal(await js('return document.querySelectorAll("#categories img").length'), 0);
+    assert.equal(await js('return document.querySelectorAll("main button[aria-label*=Wishlist]").length'), 0);
+    await js('document.querySelector("#categories").scrollIntoView();');
+    await writeFile(`${artifacts}/categories-${width}.png`, Buffer.from(await command('GET', `${path}/screenshot`), 'base64'));
   }
   await cdp('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'dark' }] });
   assert.equal(await js('return getComputedStyle(document.querySelector("#categories a")).backgroundColor'), 'rgb(255, 255, 255)');
@@ -130,12 +137,18 @@ try {
   await until(contains('Guest product 1'), 'cross-tab logout reloads public discovery');
   assert.equal(await hasPrivate('B'), false);
   assert.equal(await js('return Object.keys(sessionStorage).some(key => key.includes("customer%3A"))'), false);
-  await js('Object.defineProperty(Storage.prototype, "getItem", { configurable: true, value() { throw new Error("blocked storage"); } }); Object.defineProperty(Storage.prototype, "setItem", { configurable: true, value() { throw new Error("blocked storage"); } });');
+  await js('window.homepageOriginalStorage = { getItem: Storage.prototype.getItem, setItem: Storage.prototype.setItem }; Object.defineProperty(Storage.prototype, "getItem", { configurable: true, value() { throw new Error("blocked storage"); } }); Object.defineProperty(Storage.prototype, "setItem", { configurable: true, value() { throw new Error("blocked storage"); } });');
   await configure({ viewer: 'A' });
   await signal();
   await until(contains('A product 1'), 'blocked storage leaves fresh discovery usable');
   const errors = (await command('POST', `${path}/log`, { type: 'browser' })).filter((entry) => entry.level === 'SEVERE' && (entry.message.includes('Uncaught') || entry.message.includes('hydration')));
   assert.deepEqual(errors, [], 'Uncaught client/hydration error');
+  assert.equal(await js('return document.querySelectorAll("main button[aria-label*=Wishlist]").length'), 0, 'Loaded/restored homepage cards hide Save');
+  await js('Object.defineProperty(Storage.prototype, "getItem", { configurable: true, value: window.homepageOriginalStorage.getItem }); Object.defineProperty(Storage.prototype, "setItem", { configurable: true, value: window.homepageOriginalStorage.setItem }); delete window.homepageOriginalStorage; document.querySelector("#categories a").focus();');
+  assert.equal(await js('return document.activeElement.getAttribute("href")'), '/search?type=products&q=Pet+Supplies');
+  await command('POST', `${await element('#categories a')}/value`, { text: '\uE007' });
+  await until(contains('Search product 0'), 'keyboard category navigation to Products results');
+  await until(() => js('return Boolean(document.querySelector("main button[aria-label*=Wishlist]"))'), 'Search keeps Save');
   console.log('Homepage browser passed: public SSR, 390/768/1280px/light/focus, keyboard logout, second-tab A/B/A and logout, late refresh/page rejection, same-signature scoped restoration, exhausted paging, loading/error/retry, and blocked storage.');
 } finally {
   await configure({ viewer: null, homeDelay: 0, pageDelay: 0, authDelay: 0, homeFailure: false, pageFailure: false });

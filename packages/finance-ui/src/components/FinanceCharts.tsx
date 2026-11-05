@@ -14,18 +14,19 @@ const tick = { fill: 'var(--finance-muted)', fontSize: 11 }
 const tooltipStyle = { backgroundColor: 'var(--finance-surface)', border: '1px solid var(--finance-border)', borderRadius: 8, color: 'var(--finance-text)' }
 const tooltipTextStyle = { color: 'var(--finance-text)' }
 
-export function RevenueTrendChart({ rows, forecast }: { rows: RevenueTrendPoint[]; forecast: FinanceWorkspaceData['forecast'] }) {
+export function RevenueTrendChart({ rows, forecast, showProjection = true }: { rows: RevenueTrendPoint[]; forecast: FinanceWorkspaceData['forecast']; showProjection?: boolean }) {
+  const hasProjection = showProjection && forecast.state === 'available'
   return (
-    <section className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-white/10 dark:bg-[#18181b]" aria-labelledby="revenue-trend-heading">
+    <section className="finance-panel" aria-labelledby="revenue-trend-heading">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 className="font-semibold" id="revenue-trend-heading">Revenue trend</h3>
-          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Daily recognized revenue with a 30-day outlook based on eight complete weeks.</p>
+          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">Daily recognized revenue in the selected period{showProjection ? ', with the next 30 days projected from eight complete weeks.' : '.'}</p>
         </div>
         <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-zinc-600 dark:text-zinc-300" aria-hidden="true">
-          <span className="flex items-center gap-2"><span className="h-0.5 w-5 bg-[#4C1268] dark:bg-[#c084fc]" />Recorded</span>
-          <span className="flex items-center gap-2"><span className="w-5 border-t-2 border-dashed border-[#E6007A]" />30-day projection</span>
-          <span className="flex items-center gap-2"><span className="h-2.5 w-5 bg-[#E6007A]/15" />Low–high range</span>
+          <span className="flex items-center gap-2"><span className="h-0.5 w-5 bg-[var(--finance-accent)]" />Recorded</span>
+          <span hidden={!hasProjection} className="flex items-center gap-2"><span className="finance-projection-line" />30-day projection</span>
+          <span hidden={!hasProjection} className="flex items-center gap-2"><span className="finance-projection-band" />Low–high range</span>
         </div>
       </div>
 
@@ -36,14 +37,14 @@ export function RevenueTrendChart({ rows, forecast }: { rows: RevenueTrendPoint[
             <XAxis dataKey="date" minTickGap={36} tick={tick} tickFormatter={chartDate} tickLine={false} />
             <YAxis axisLine={false} tick={tick} tickFormatter={compactAmount} tickLine={false} width={58} />
             <Tooltip contentStyle={tooltipStyle} itemStyle={tooltipTextStyle} labelStyle={tooltipTextStyle} formatter={(value) => formatTooltipValue(value)} labelFormatter={(label) => chartDate(String(label))} />
-            <Area dataKey="projectionRangeCents" fill="#E6007A" fillOpacity={0.1} name="Low–high range" stroke="none" type="monotone" />
-            <Line dataKey="recordedRevenueCents" dot={false} name="Recorded revenue" stroke="var(--finance-accent)" strokeWidth={2.25} type="monotone" />
-            <Line dataKey="projectionCents" dot={false} name="30-day projection" stroke="#E6007A" strokeDasharray="5 4" strokeWidth={2.25} type="monotone" />
+            <Area dataKey="projectionRangeCents" fill="var(--finance-projection)" fillOpacity={0.1} name="Low–high range" stroke="none" type="monotone" isAnimationActive={false} />
+            <Line dataKey="recordedRevenueCents" dot={false} name="Recorded revenue" stroke="var(--finance-accent)" strokeWidth={2.25} type="monotone" isAnimationActive={false} />
+            <Line dataKey="projectionCents" dot={false} name="30-day projection" stroke="var(--finance-projection)" strokeDasharray="5 4" strokeWidth={2.25} type="monotone" isAnimationActive={false} />
           </ComposedChart>
         </ResponsiveContainer>
       </div>
 
-      {forecast.state === 'insufficient_history' ? (
+      {!showProjection ? <p className="finance-historical-note">Historical period · the current 30-day outlook appears when the range includes today.</p> : forecast.state === 'insufficient_history' ? (
         <p className="mt-2 border-t border-zinc-100 pt-3 text-xs text-zinc-500 dark:text-zinc-400 dark:border-white/5">
           The projection will appear after {forecast.requiredWeeks} complete weeks. {forecast.usableWeeks} usable {forecast.usableWeeks === 1 ? 'week is' : 'weeks are'} available.
         </p>
@@ -58,7 +59,7 @@ export function RevenueTrendChart({ rows, forecast }: { rows: RevenueTrendPoint[
 
 export function FinancialBridgeChart({ rows }: { rows: FinanceWorkspaceData['waterfall'] }) {
   return (
-    <section className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-white/10 dark:bg-[#18181b]" aria-labelledby="financial-bridge-heading">
+    <section className="finance-panel" aria-labelledby="financial-bridge-heading">
       <h3 className="font-semibold" id="financial-bridge-heading">Revenue and costs</h3>
       <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">How recorded costs affect operating profit.</p>
       <div className="mt-5 h-56" aria-hidden="true">
@@ -68,7 +69,7 @@ export function FinancialBridgeChart({ rows }: { rows: FinanceWorkspaceData['wat
             <XAxis dataKey="label" tick={tick} tickLine={false} />
             <YAxis axisLine={false} tick={tick} tickFormatter={compactAmount} tickLine={false} width={58} />
             <Tooltip contentStyle={tooltipStyle} cursor={{ fill: 'var(--finance-hover)' }} itemStyle={tooltipTextStyle} labelStyle={tooltipTextStyle} formatter={(value) => amount(Number(value))} />
-            <Bar dataKey="amountCents" fill="var(--finance-accent)" name="Amount" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="amountCents" fill="var(--finance-accent)" name="Amount" isAnimationActive={false} radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>

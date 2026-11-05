@@ -93,7 +93,7 @@ export function GeoapifyLocationPicker({
       if (!response.ok) throw new Error("Geoapify request failed");
 
       const payload = await response.json() as GeoapifyGeocodingResponse;
-      if (queryRef.current !== query) return;
+      if (controller.signal.aborted || requestRef.current !== controller || queryRef.current !== query) return;
       const result = payload.results?.[0];
       if (!result || !Number.isFinite(result.lat) || !Number.isFinite(result.lon)) {
         setError("We could not find this address. Review the address fields and try again.");
@@ -104,7 +104,7 @@ export function GeoapifyLocationPicker({
       setPinnedQuery(query);
     } catch (caught) {
       if (caught instanceof DOMException && caught.name === "AbortError") return;
-      if (queryRef.current !== query) return;
+      if (controller.signal.aborted || requestRef.current !== controller || queryRef.current !== query) return;
       setError("The location service is unavailable right now. Your address fields are still saved locally in this form.");
     } finally {
       if (requestRef.current === controller) {

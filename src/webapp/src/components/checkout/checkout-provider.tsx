@@ -1,5 +1,7 @@
 "use client";
 
+import { validPin } from "@aisley/ui/address-pin";
+
 import { usePathname, useRouter } from "next/navigation";
 import {
   createContext,
@@ -14,6 +16,7 @@ import {
 import { useAuth } from "@/components/auth/auth-provider";
 import { useCart } from "@/components/cart/cart-provider";
 import { ApiError } from "@/lib/api";
+import { saveAddressReturn, takeAddressReturn } from "@/lib/checkout/address-return";
 import { checkoutPlacement } from "@/lib/checkout/placement";
 import {
   fetchAddresses,
@@ -277,7 +280,13 @@ function useCheckoutSession() {
           return;
         }
         setSelectedAddressId(selected.id);
-        await loadShippingOptions(nextIntent, selected.id, []);
+        if (!validPin(selected.latitude, selected.longitude)) {
+          setStatus("ready");
+          setMessage("Pin this address in your Address Book before checkout.");
+          return;
+        }
+        const retained = takeAddressReturn(auth.customer.id, nextIntent);
+        await loadShippingOptions(nextIntent, selected.id, retained?.vouchers ?? [], retained?.logistics ?? {});
       })
       .catch((caught: unknown) => {
         if (caught instanceof DOMException && caught.name === "AbortError")
@@ -402,7 +411,20 @@ function useCheckoutSession() {
     }
   }
 
+  function rememberAddressReturn(): boolean {
+    if (!customerId || !intent) return false;
+    try {
+      if (checkoutPlacement.read(customerId)) return false;
+      saveAddressReturn({ customerId, intent, vouchers: selectedVouchers, logistics: selectedLogistics });
+      return true;
+    } catch {
+      setMessage("Checkout selections could not be retained. Enable session storage before editing the address.");
+      return false;
+    }
+  }
+
   return {
+    rememberAddressReturn,
     customerId,
     intent,
     addresses,

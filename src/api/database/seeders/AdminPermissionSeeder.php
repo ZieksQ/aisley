@@ -9,6 +9,12 @@ class AdminPermissionSeeder extends Seeder
 {
     /** @var array<int, array{name: string, slug: string, description: string}> */
     private const PERMISSIONS = [
+        ['name' => 'View Admin accounts', 'slug' => 'admin-accounts.view', 'description' => 'View Admin accounts, roles and available permissions.'],
+        ['name' => 'Create Admin accounts', 'slug' => 'admin-accounts.create', 'description' => 'Create Admin accounts and custom roles within your authority.'],
+        ['name' => 'Edit Admin accounts', 'slug' => 'admin-accounts.update', 'description' => 'Edit eligible Admin profiles, roles and permissions.'],
+        ['name' => 'Suspend Admin accounts', 'slug' => 'admin-accounts.suspend', 'description' => 'Suspend eligible Admin accounts.'],
+        ['name' => 'Restore Admin accounts', 'slug' => 'admin-accounts.restore', 'description' => 'Restore eligible suspended or archived Admin accounts.'],
+        ['name' => 'Archive Admin accounts', 'slug' => 'admin-accounts.archive', 'description' => 'Archive eligible Admin accounts and delete unassigned roles.'],
         ['name' => 'View vouchers', 'slug' => 'vouchers.view', 'description' => 'View platform vouchers and redemption history.'],
         ['name' => 'Manage vouchers', 'slug' => 'vouchers.manage', 'description' => 'Create, revise, publish and control platform vouchers.'],
         [

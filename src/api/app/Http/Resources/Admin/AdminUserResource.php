@@ -24,10 +24,13 @@ class AdminUserResource extends JsonResource
                     ? '/api/v1/admin/account/profile-photo?v='.$this->adminProfile->updated_at?->getTimestamp()
                     : null,
             ]),
-            'permissions' => $this->whenLoaded(
-                'permissions',
-                fn () => $this->permissions->pluck('slug')->values(),
-            ),
+            'permissions' => $this->effectiveAdminPermissions(),
+            'roles' => $this->adminRoles()->get(['admin_roles.id', 'name'])->map(fn ($role) => ['id' => $role->id, 'name' => $role->name]),
+            'is_super_admin' => $this->is_super_admin,
+            'is_initial_admin' => $this->is_initial_admin,
+            'setup_required' => $this->requiresAdminSetup(),
+            'password_change_required' => $this->admin_setup_required,
+            'email_verification_required' => $this->admin_email_verification_required,
         ];
     }
 }

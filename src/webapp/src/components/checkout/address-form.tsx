@@ -1,6 +1,7 @@
 "use client";
 
 import { type FormEvent, useCallback, useState } from "react";
+import { AddressPinFields, validPin } from "@aisley/ui/address-pin";
 import { FiMapPin, FiX } from "react-icons/fi";
 
 import { ApiError, firstFieldError } from "@/lib/api";
@@ -99,6 +100,7 @@ export function AddressForm({
   onCancel?: () => void;
   onSaved: (address: CustomerAddress) => void;
 }) {
+  const [pinConfirmed, setPinConfirmed] = useState(() => Boolean(address && validPin(address.latitude, address.longitude)));
   const [values, setValues] = useState(() => initialValues(address));
   const [error, setError] = useState<ApiError | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -113,7 +115,7 @@ export function AddressForm({
       [field]: value,
       ...(locationFields.has(field) ? { latitude: null, longitude: null } : {}),
     }));
-    if (locationFields.has(field)) setLocationMessage(null);
+    if (locationFields.has(field)) { setLocationMessage(null); setPinConfirmed(false); }
   }
 
   const updateAdministrativeField = useCallback((
@@ -130,6 +132,7 @@ export function AddressForm({
       longitude: null,
     }));
     setLocationMessage(null);
+    setPinConfirmed(false);
   }, []);
 
   const canonicalizeAdministrativeField = useCallback((
@@ -142,6 +145,10 @@ export function AddressForm({
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+    if ((values.latitude !== null || values.longitude !== null) && !pinConfirmed) {
+      setLocationMessage("Confirm the location before saving the pin.");
+      return;
+    }
     setSubmitting(true);
 
     const payload: AddressPayload = {
@@ -233,6 +240,7 @@ export function AddressForm({
       {geoapifyApiKey ? (
         <div className="mt-5">
           <GeoapifyLocationPicker
+            key={[...locationFields].map((field) => values[field]).join("\u0000")}
             apiKey={geoapifyApiKey}
             address={{
               addressLine1: values.address_line_1,
@@ -246,6 +254,7 @@ export function AddressForm({
             latitude={values.latitude}
             longitude={values.longitude}
             onChange={({ latitude, longitude }) => {
+              setPinConfirmed(false);
               setValues((current) => ({ ...current, latitude, longitude }));
               setLocationMessage("Location pinned. Review the map position before saving.");
             }}
@@ -257,6 +266,10 @@ export function AddressForm({
           Geoapify location pinning is not configured. You can still save the textual address without coordinates.
         </div>
       )}
+
+      <AddressPinFields latitude={values.latitude} longitude={values.longitude} confirmed={pinConfirmed}
+        onChange={({ latitude, longitude }) => setValues((current) => ({ ...current, latitude, longitude }))}
+        onConfirm={() => { setPinConfirmed(true); setLocationMessage("Location confirmed."); }} onInvalidate={() => setPinConfirmed(false)} />
 
       <label className="mt-5 flex items-start gap-3 text-sm text-[#514656]">
         <input type="checkbox" checked={values.is_default} onChange={(event) => update("is_default", event.target.checked)} className="mt-0.5 size-4 rounded border-[#BFB5C3] accent-[#E6007A]" />

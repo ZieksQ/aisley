@@ -5,6 +5,7 @@ namespace App\Http\Middleware\Policy;
 use App\Enums\CourierAffiliationStatus;
 use App\Enums\UserRole;
 use App\Enums\UserStatus;
+use App\Http\Middleware\Admin\EnsureActiveAdmin;
 use Closure;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -28,6 +29,10 @@ class EnsureActivePolicyActor
 
         if ($user->status !== UserStatus::Active) {
             return new JsonResponse($this->inactiveResponse($user->status), 403);
+        }
+
+        if ($user->role === UserRole::Admin) {
+            return app(EnsureActiveAdmin::class)->handle($request, $next);
         }
 
         if ($user->role === UserRole::Courier) {

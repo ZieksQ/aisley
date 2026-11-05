@@ -47,7 +47,7 @@ export function GeoapifyLocationPicker({ address, apiKey, latitude, longitude, o
       const response = await fetch(`https://api.geoapify.com/v1/geocode/search?${parameters}`, { signal: controller.signal })
       if (!response.ok) throw new Error('Geoapify request failed')
       const result = ((await response.json()) as GeoapifyGeocodingResponse).results?.[0]
-      if (queryRef.current !== query) return
+      if (controller.signal.aborted || requestRef.current !== controller || queryRef.current !== query) return
       if (!result || !Number.isFinite(result.lat) || !Number.isFinite(result.lon)) {
         setError('We could not find this address. Review the address fields and try again.')
         return

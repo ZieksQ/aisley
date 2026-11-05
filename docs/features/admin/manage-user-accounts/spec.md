@@ -14,6 +14,9 @@ implementation_reviewed_on: 2026-10-12
 
 ## WHAT
 
+Admin creation, custom roles and Admin lifecycle operations are implemented separately by [Admin provisioning](../admin-provisioning/spec.md). The `/users` APIs in this feature continue to exclude Admin accounts.
+
+
 ### Current implementation — 2026-10-12
 
 UserAccountController and Users/UserDetail pages implement scoped account reads/history and the protected suspend/restore/deactivate routes under `/api/v1/admin/users`. Existing role/permission restrictions remain authoritative; this does not grant arbitrary account or finance mutations. Source inspection establishes availability; unchecked criteria and live/release gates remain open. No application tests/builds were rerun for this documentation update.

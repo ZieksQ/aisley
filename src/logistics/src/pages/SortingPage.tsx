@@ -4,9 +4,9 @@ import { ParcelLaneMove } from '../components/ParcelLaneMove'
 import { useWaybillCamera } from '../lib/useWaybillCamera'
 import Dexie from 'dexie'
 import { ExceptionQueue } from '../components/sorting/ExceptionQueue'
+import { SortingLanes } from '../components/sorting/SortingLanes'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { FaArrowsRotate, FaBarcode, FaCamera, FaCloudArrowUp, FaPlus, FaPrint, FaRoute, FaStop, FaTrashCan, FaXmark } from 'react-icons/fa6'
-import { Link } from 'react-router-dom'
+import { FaArrowsRotate, FaBarcode, FaCamera, FaCloudArrowUp, FaPlus, FaStop, FaTrashCan, FaXmark } from 'react-icons/fa6'
 import { ConnectionStatus } from '../components/ConnectionStatus'
 import { ErrorNotice, manilaDate } from '../components/PickupUi'
 import { ApiError, blob as requestBlob, csrf, requestWithTimeout } from '../lib/api'
@@ -37,6 +37,7 @@ export function SortingPage() {
   const [overview, setOverview] = useState<SortingOverview | null>(null)
   const [captures, setCaptures] = useState<PendingSortCapture[]>([])
   const [selectedLaneId, setSelectedLaneId] = useState('')
+  const [laneSelectionVersion, setLaneSelectionVersion] = useState(0)
   const [autoRoute, setAutoRoute] = useState(true)
   const [manualReference, setManualReference] = useState('')
   const [exceptionCode, setExceptionCode] = useState<PendingSortCapture['exceptionCode']>('damaged')
@@ -124,6 +125,7 @@ export function SortingPage() {
       const lane = overview?.lanes.find((candidate) => candidate.id.toLowerCase() === laneMatch[1].toLowerCase())
       if (!lane || !lane.is_active) { setError('This sorting lane is unavailable or inactive.'); return }
       setSelectedLaneId(lane.id)
+      setLaneSelectionVersion((value) => value + 1)
       setAutoRoute(false)
       setError('')
       setNotice(`${lane.code} selected.`)
@@ -318,10 +320,9 @@ export function SortingPage() {
           <div className="p-3">{session ? <><div className="flex items-start justify-between gap-3"><div><p className="font-mono text-sm font-medium">{session.reference}</p><p className="mt-1 text-xs text-slate-600 dark:text-slate-400">Opened {manilaDate(session.opened_at)} · {session.expected_count} expected</p></div><span className="text-xs font-medium text-emerald-700 dark:text-emerald-300">Open</span></div><PortalButton variant="primary" className="mt-3 w-full" isLoading={busy} disabled={sessionUncertain || captures.length > 0 || session.counts.pending > 0} onClick={() => void closeSession()}>Close session</PortalButton></> : <><p className="text-sm text-slate-600 dark:text-slate-400">{overview?.waiting_received ?? 0} received parcel{overview?.waiting_received === 1 ? '' : 's'} ready. Sessions include up to {overview?.session_limit ?? 100} oldest parcels.</p><PortalButton variant="primary" className="mt-3 w-full" isLoading={busy} disabled={sessionUncertain || !overview?.lanes.some((lane) => lane.is_active && lane.type === 'standard') || !overview?.waiting_received} onClick={() => void startSession()}>Start session</PortalButton></>}</div>
         </section>
 
-        <section className="portal-section">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-4 py-4 dark:border-slate-700"><h3 className="font-semibold">Lanes</h3><Link aria-label="Manage sort plan" title="Sort plan" className={iconButton} to="/sort-plan"><FaRoute aria-hidden="true" /></Link></div>
-          {overview?.lanes.length ? <ul className="divide-y divide-slate-200 dark:divide-white/10">{overview.lanes.map((lane) => <li className={(lane.id === selectedLaneId ? 'bg-blue-50/70 dark:bg-blue-400/10 ' : '') + 'flex items-center gap-1'} key={lane.id}><button className="min-w-0 flex-1 px-4 py-4 text-left disabled:opacity-45" disabled={!lane.is_active} onClick={() => { setSelectedLaneId(lane.id); setAutoRoute(false) }} type="button"><span className="flex items-center gap-2"><strong className="font-mono text-sm">{lane.code}</strong>{lane.type === 'exception' ? <span className="text-xs text-amber-700 dark:text-amber-300">Exception</span> : null}{!lane.is_active ? <span className="text-xs text-slate-600 dark:text-slate-400">Inactive</span> : null}</span><span className="block truncate text-xs text-slate-600 dark:text-slate-400">{lane.name}</span></button><button aria-label={'Print ' + lane.code + ' label'} className={iconButton} onClick={() => void openLabel(lane)} title="Open printable label" type="button"><FaPrint aria-hidden="true" /></button></li>)}</ul> : <p className="px-3 py-5 text-center text-sm text-slate-600 dark:text-slate-400">Create lanes in Sort plan.</p>}
-        </section>
+        <SortingLanes lanes={overview?.lanes ?? []} selectedLaneId={selectedLaneId} selectionVersion={laneSelectionVersion}
+          onSelect={(lane) => { setSelectedLaneId(lane.id); setAutoRoute(false) }}
+          onPrint={(lane) => void openLabel(lane)} />
       </aside>
     </div>
 

@@ -1,4 +1,6 @@
+import { AccountSettingsState } from "@aisley/ui/account-settings";
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
 import { CustomerAccountContent } from "@/components/account/customer-account-content";
 
@@ -9,5 +11,9 @@ export const metadata: Metadata = {
 };
 
 export default function CustomerProfilePage() {
-  return <CustomerAccountContent />;
+  return <Suspense fallback={<AccountSettingsState />}>
+
+    <CustomerAccountContent />
+
+  </Suspense>;
 }

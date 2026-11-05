@@ -14,6 +14,11 @@ implementation_reviewed_on: 2026-10-12
 
 ## WHAT
 
+### Provisioning integration — 2026-11-05
+
+[Admin provisioning](../admin-provisioning/spec.md) owns other-admin creation, custom roles, grants and status changes. This feature remains self-service and cannot change privileges. Changing the current Admin email now clears `email_verified_at`, requires OTP at `/setup`, and blocks operational access until verification succeeds. That resolves the earlier open question about verification of changed email identities. Password creation, first-login replacement and ordinary password editing share the existing minimum-eight/mixed-case/numeric rule through one Admin password policy. Existing ordinary password updates retain current-session behavior; first-login completion separately rotates sessions and invalidates other temporary-credential sessions.
+
+
 ### Current implementation — 2026-10-12
 
 Admin AccountController and AccountPage implement current account GET, profile/email PATCH, password PUT and private profile-photo POST/GET/DELETE under `/api/v1/admin/account`. MFA, preferences and security-session APIs below remain conceptual. Source inspection establishes availability; unchecked criteria and live/release gates remain open. No application tests/builds were rerun for this documentation update.
@@ -504,3 +509,11 @@ where that remains the project's account identity rule.
   - https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html
 - OWASP Multifactor Authentication Cheat Sheet:
   - https://cheatsheetseries.owasp.org/cheatsheets/Multifactor_Authentication_Cheat_Sheet.html
+
+
+### Account settings experience — 2026-11-05
+
+- `/account` uses the shared `@aisley/ui/account-settings` presentation with a compact identity summary and Profile and Security sections. The `section` query parameter preserves reload and browser history; missing or unsupported values display Profile. Existing routes and outer role navigation remain intact.
+- Ordinary sections mount on first visit and retain unsaved drafts and running uploads when switching sections. Security forms dispose their passwords/codes/challenges when left, while existing authenticated-session password cooldown, pending-operation and reconciliation state survives. Private editor state resets on identity change; obsolete mutation responses cannot refresh a different account.
+- Forms keep their existing API contracts, role/tenant boundaries and field allowlists. Each form has local feedback, readable labels, accessible errors, visible saving states and confirmed image removal. The layout follows `docs/design.md`, including role colors, supported themes, 320px responsiveness and reduced motion. No new backend capability or mobile implementation is implied.
+- Admin retains its current-password email/password forms. A changed email follows the existing provisioning `/setup` verification gate; self-service settings cannot change privileges.

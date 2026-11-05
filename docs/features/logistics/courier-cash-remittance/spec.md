@@ -24,3 +24,10 @@
 - Return private no-store Resources; use integer centavos throughout.
 - Follow docs/design.md, existing Finance navigation and @aisley/ui. Verify mobile, keyboard, light/dark, and error states.
 - Test tenant isolation, mixed selections, retries, concurrent receipts, balance conservation, and pending-credit recovery.
+
+## Finance date filters and presentation (2026-11-05)
+
+- Apply the shared Finance portal design and `@aisley/ui/date-range` control in both themes, preserving Logistics blue and the existing cash-received workflow.
+- Index and receipt reads accept paired inclusive Manila `date_from`/`date_to`, or `all_time=1`, with the [shared validation rules](../../shared/commission-settlement/spec.md#finance-period-reporting-and-portal-refresh-2026-11-05). Filter outstanding obligations by `delivered_at` and receipts by `received_at` before pagination.
+- Grouped balances stay current across all dates and are labeled accordingly. Changing the range clears ordinary selection and resets pagination. Busy or uncertain receipts lock filters and retain the original selection/idempotency key for retry.
+- No Courier API or external mobile contract changes. New regression coverage exercises filtered obligation/receipt reads alongside existing approval, receipt, funding and ownership tests.

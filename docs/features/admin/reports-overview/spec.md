@@ -7,7 +7,7 @@ version: 3.0
 status: Revised; Finance reporting baseline implemented; extensions and verification gaps remain
 role: Admin
 scope: Admin React dashboard and Laravel Finance API
-last_reconciled: 2026-10-03
+last_reconciled: 2026-11-05
 ---
 
 # Admin Finance Reports Overview
@@ -29,7 +29,7 @@ last_reconciled: 2026-10-03
 - Current sections are summary cards, recorded/projected revenue, revenue/cost bridge, remittance/payouts, credit-account breakdown, money flow, and searchable ledger/CSV.
 - Dedicated Finance remittance, payout, automation, and gateway sandbox pages now provide invoice review, legacy clearing/rejection, manual payouts, timing configuration, and payment documents. Order drill-down and costs/closure remain API-only in the shared overview. See `../../shared/cod-automation/spec.md`.
 - Admin Dashboard remains a separate permission-scoped registration/support/compliance overview; do not duplicate Finance charts or commission calculations there.
-- Custom date/group/Shop/status filters, full-history report exports, report PDF, export jobs, tax reporting, live payouts, and Customer refund workflows are not implemented.
+- Custom group/Shop/status filters, full-history report exports, report PDF, export jobs, tax reporting, live payouts, and Customer refund workflows are not implemented.
 - Future enhancements extend existing Finance contracts and permission boundaries; no parallel commission ledger or new report-export schema is authorized here.
 
 ## MUST
@@ -54,9 +54,9 @@ last_reconciled: 2026-10-03
 - Current `revenueCents` sums platform `commission_revenue` credits, not merchandise totals, Customer COD, or Logistics/Seller liabilities.
 - Current `costsCents` nets debits minus credits for `voucher_expense,shipping_subsidy_expense,operating_expense,recorded_loss,processing_fee`.
 - Platform operating profit subtracts those costs from commission revenue; beneficiary payouts settle liabilities and are not a second platform expense.
-- Current `availableBalanceCents = max(0, revenueCents - costsCents)`; it is not actual bank cash, remittable COD, or beneficiary payout eligibility.
-- Summary totals are to-date; recorded revenue/profit series covers 90 daily points and is not custom-period reporting.
-- Current `profitState` checks a complete closure for the current Manila month, but closing the current month is rejected; actual-period labeling needs reconciliation.
+- Current `availableBalanceCents = max(0, all-time revenue - all-time costs)`; it is not actual bank cash, remittable COD, or beneficiary payout eligibility.
+- Summary and daily recorded revenue/profit series honor the selected reporting dates. Unfiltered API summary remains all-time and the legacy unfiltered series remains 90 days; `all_time=1` includes complete owned daily history through today.
+- Period `profitState` is actual only when every selected month is explicitly closed with complete costs and the range excludes the current month; otherwise provisional. All-time/unfiltered profit remains provisional.
 - Missing expenses or unclosed coverage must not be interpreted as certified zero costs or final profit.
 - `revenueBreakdown` groups all positive platform credits, including non-revenue accounts; keep it distinct from commission revenue.
 - Revenue reversal/correction semantics and balance labels require targeted accounting tests; do not disguise gaps by inventing a second financial definition.
@@ -78,13 +78,13 @@ last_reconciled: 2026-10-03
 
 - Ledger accepts `search` up to 120 characters and `per_page` from 1–100, default 25; Laravel pagination uses `page`.
 - Search matches event type, memo, or Order reference; it changes ledger rows, not summary/chart reporting periods.
-- Journals sort by descending `effective_at`; equal-time tie-breaking and concurrent pagination stability remain unverified.
+- Journals sort by `effective_at DESC, id DESC`; date/search predicates run before pagination. Concurrent-write pagination stability remains unverified.
 - CSV streams one selected page of at most 100 journals and their platform-owned lines, not a full ledger dump.
 - CSV columns are `effective_at,event_type,order_reference,account,debit_cents,credit_cents,currency`.
-- Current Export CSV link carries no search/page state; filtered downloads, export feedback, and formula-injection defenses are not certified.
+- CSV downloads preserve dates and ledger search, offer explicit export-page selection, escape formula-like text cells, and show recoverable download errors. Each page contains at most 100 journals.
 - Follow `docs/design.md`: familiar Finance navigation, mobile-first layout, both themes, keyboard access, contained tables, and text/chart-data alternatives.
 - Current UI provides initial loading/failure/retry, empty ledger/payouts, forecast insufficiency, and a refresh-error banner retaining prior data.
-- Ledger pagination, drill-down, manage-action UI, request deadlines/cancellation, permission-loss clearing, and structured export failures remain gaps.
+- Ledger pagination, cancellation, account/permission lifetime, access-loss clearing and structured CSV failures are implemented in the shared workspace. Overview Order drill-down, expense/close forms and request deadlines remain outside this refresh.
 - A failed, forbidden, expired-session, or consent-blocked read must not appear as an authoritative financial zero.
 
 ### Acceptance criteria
@@ -110,10 +110,10 @@ All paths below are relative to `/api/v1/admin/finance` and require `finance.vie
 
 | Method/path | Implemented request and response |
 | --- | --- |
-| `GET /summary` | No report filters; `{data: FinanceWorkspaceData}`. |
+| `GET /summary` | Optional paired `date_from,date_to` or `all_time=1`; `{data: FinanceWorkspaceData}`. |
 | `GET /series`, `GET /forecast`, `GET /payouts` | Currently the same complete workspace envelope, not dedicated section DTOs. |
-| `GET /ledger` | Optional `search,per_page,page`; Laravel paginator of journals, minimal Order reference, and platform-owned lines. |
-| `GET /ledger.csv` | Current `search,page` behavior; authenticated synchronous CSV, 100 journals maximum per page. |
+| `GET /ledger` | Optional `date_from,date_to,all_time,search,per_page,page`; Laravel paginator of journals, minimal Order reference, and platform-owned lines. |
+| `GET /ledger.csv` | Validated dates/search and selected export `page`; authenticated synchronous CSV, 100 journals maximum per page. |
 | `GET /orders/{order}` | Order UUID; `{data}` with reference/status/paymentStatus, totals/pricing, item snapshots, and status-event history. |
 | `POST /costs` | Additionally `finance.manage`; category/description/integer amount/date, optional recurring/correction fields; 201 expense. |
 | `POST /periods/{month}/close` | Additionally `finance.manage`; `YYYY-MM`, `costs_complete: true`; closure response; current month 409. |
@@ -138,3 +138,9 @@ All paths below are relative to `/api/v1/admin/finance` and require `finance.vie
 - Profile collection-based aggregation before introducing SQL summaries/indexes or precomputation; log failures without raw financial payloads.
 - Document any approved enhancement in this spec and the shared Finance contract; preserve separate Admin Dashboard and accounting workflow responsibilities.
 - Append actual verification results to `docs/PROGRESS.md`; leave unmet acceptance criteria unchecked.
+
+## Finance portal refresh (2026-11-05)
+
+- The shared [Finance period-reporting contract](../../shared/commission-settlement/spec.md#finance-period-reporting-and-portal-refresh-2026-11-05) defines This month defaults, preset/custom dates, period versus current metrics, forecast handling, CSV bounds and request lifetimes.
+- The web refresh covers all existing Finance workflows using Stitch references and the repository design contract; role authorization and financial write semantics remain authoritative on the API.
+- See [dated verification](../../shared/commission-settlement/finance-ui-verification-2026-11-05.md) for executed checks and remaining acceptance. Earlier unchecked broader accounting criteria are not automatically certified by this UI/date-filter work.
