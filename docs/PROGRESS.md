@@ -40,3 +40,8 @@ Short, dated log of what has been implemented across the whole app. Append new e
 
 - Terms and Privacy now use separate bounded, keyboard-focusable scroll regions on Customer, Seller, Admin, and Logistics consent screens. Confirmation checkboxes and Accept remain outside the reading regions; the shared policy specification records this interaction.
 - Verification: Seller, Admin, and Logistics production builds, scoped Oxlint/ESLint, and 28 synthetic Chromium role/theme/viewport checks plus acceptance and independent-scroll flows passed. The Customer Next.js build stalled during optimized compilation and was stopped; Customer production-build verification remains open.
+
+## 2026-11-06 — Shared portal Settings workspace
+
+- Admin and Seller now follow Logistics Settings navigation with Account, Terms and conditions, Billing entry links to existing Finance settings, and System/Light/Dark Appearance. Shared presentation preserves role palettes, account forms, consent/setup gates, legacy query/hash redirects and Finance permissions; Customer and API/mobile contracts remain unchanged.
+- Verification: three portal TypeScript/build/lint checks and Customer TypeScript passed (existing Logistics test lint warning remains); 48 Admin/Seller Settings and 88 account browser combinations passed. An adapted local Logistics Settings check passed 24 combinations after correcting stale notification/policy fixtures/selectors. Reviewed responsive light/dark screenshots and passing Taste inspections with a documented sparse-form warning. See [verification](features/shared/account-settings/portal-settings-verification-2026-11-06.md); live/deployed acceptance remains open.

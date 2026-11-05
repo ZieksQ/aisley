@@ -33,13 +33,13 @@ function AccountEditor() {
   const [params, setParams] = useSearchParams();
   const select = (id: string) => { setParams((previous) => { const next = new URLSearchParams(previous); next.set('section', id); return next; }, { preventScrollReset: true }); };
   const active = sections.some(section => section.id === params.get('section')) ? params.get('section') : 'profile';
-  if (settings.loading) return <AccountSettingsState headingLevel={2} />;
-  if (settings.loadingError || !account) return <AccountSettingsState headingLevel={2} error={settings.loadingError || 'Account settings are unavailable.'} onRetry={() => void settings.load()} />;
+  if (settings.loading) return <AccountSettingsState headingLevel={2} title="Account" />;
+  if (settings.loadingError || !account) return <AccountSettingsState headingLevel={2} title="Account" error={settings.loadingError || 'Account settings are unavailable.'} onRetry={() => void settings.load()} />;
   if (!account) return null;
   const name = [account.profile.first_name, account.profile.last_name].filter(Boolean).join(' ');
   const initials = name.split(/\s+/).map(part => part[0]).slice(0, 2).join('');
   return <AccountSettings
-    headingLevel={2}
+    headingLevel={2} title="Account"
     sections={sections}
     activeSection={active}
     onSectionChange={select}

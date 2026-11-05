@@ -30,3 +30,7 @@ Follow [the web design contract](../../../design.md) for appearance, responsive 
 Verify the four Settings routes at narrow, intermediate and desktop widths; legacy redirects; required-consent access; device theme changes, explicit overrides and reload persistence; Account/Billing/Terms loading and failure feedback. Browser fixtures establish frontend behavior, not live API integration.
 
 Account Settings now groups existing personal, organization/hub and security workflows behind the `section` query parameter. These are sections of `/settings/account`, preserving the Settings sidebar, legacy redirects and consent gates.
+
+## Shared presentation — 2026-11-06
+
+Settings navigation and Appearance presentation are shared through `@aisley/ui/portal` with Admin and Seller. Logistics retains its routes, blue/slate theme, `logistics-theme` preference and Billing API. Account is labeled **Account**, including loading/error headings.

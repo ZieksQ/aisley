@@ -1,3 +1,4 @@
+import { PortalThemeProvider, applyPortalTheme, readPortalTheme } from '@aisley/ui/portal'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
@@ -7,14 +8,18 @@ import 'leaflet/dist/leaflet.css'
 import '@mdxeditor/editor/style.css'
 import App from './App.tsx'
 
+applyPortalTheme(readPortalTheme('aisley-seller-theme'))
+
 // Data routing preserves the existing screens and enables unsaved voucher guards.
 const router = createBrowserRouter([
   {
     path: '*',
     element: (
-      <AuthProvider>
-        <App />
-      </AuthProvider>
+      <PortalThemeProvider storageKey="aisley-seller-theme">
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      </PortalThemeProvider>
     ),
   },
 ])

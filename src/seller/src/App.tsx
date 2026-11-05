@@ -1,3 +1,6 @@
+import { AppearancePage } from './pages/AppearancePage'
+import { BillingPage } from './pages/BillingPage'
+import { LegacySettingsRedirect } from './components/LegacySettingsRedirect'
 import { LegacyMessageRedirect } from './components/LegacyMessageRedirect'
 import { VouchersPage } from './pages/VouchersPage'
 import { Navigate, Route, Routes } from 'react-router-dom'
@@ -77,8 +80,13 @@ function App() {
             <Route element={<InventoryDetailPage />} path="/inventory/:skuId" />
             <Route element={<LowStockAlertsPage />} path="/low-stock-alerts" />
             <Route element={<LowStockAlertDetailPage />} path="/low-stock-alerts/:alertId" />
-            <Route element={<AccountPage />} path="/account" />
-            <Route element={<PolicyConsentPage />} path="/policy-consent" />
+            <Route element={<LegacySettingsRedirect to="/settings/account" />} path="/account" />
+            <Route element={<LegacySettingsRedirect to="/settings/account" />} path="/settings" />
+            <Route element={<AccountPage />} path="/settings/account" />
+            <Route element={<PolicyConsentPage />} path="/settings/terms" />
+            <Route element={<BillingPage />} path="/settings/billing" />
+            <Route element={<AppearancePage />} path="/settings/appearance" />
+            <Route element={<LegacySettingsRedirect to="/settings/terms" />} path="/policy-consent" />
           </Route>
         </Route>
       </Route>

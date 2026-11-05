@@ -25,3 +25,7 @@ export {
 export { ProductThumbnail } from './ProductThumbnail'
 
 export { FinanceMetricIcon } from './FinanceMetricIcon'
+
+export { SettingsNavigation } from './SettingsNavigation'
+export { AppearanceSettings } from './AppearanceSettings'
+export { PortalThemeProvider, usePortalTheme, readPortalTheme, applyPortalTheme, type ThemePreference } from './PortalTheme'

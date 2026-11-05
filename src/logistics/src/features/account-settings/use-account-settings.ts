@@ -56,7 +56,7 @@ export function useAccountSettings() {
   const [hubLocationMessage, setHubLocationMessage] = useState<string | null>(null);
   const [hubLocationSaving, setHubLocationSaving] = useState(false);
   const geoapifyApiKey = import.meta.env.GEOAPIFY_API_KEY ?? '';
-  useEffect(() => { document.title = 'Account settings | Aisley'; }, []);
+  useEffect(() => { document.title = 'Account | Aisley'; }, []);
   function applyAccount(next: LogisticsAccount, reset: 'all' | 'profile' | 'organization' | 'hub' | 'none' = 'all') {
     if (!isCurrent()) return;
     setAccount(next);

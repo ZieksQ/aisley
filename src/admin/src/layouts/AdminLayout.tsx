@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { PortalShell } from '@aisley/ui/portal'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
-import { ThemeToggle } from '../components/ThemeToggle'
+import { SettingsSidebarNav } from '../components/SettingsSidebarNav'
 import { AdminAvatar } from '../components/AdminAvatar'
 import { AdminNotificationBell } from '../components/AdminNotificationBell'
 import { AdminSidebarNav } from '../components/AdminSidebarNav'
@@ -22,7 +22,8 @@ export function AdminLayout() {
   const isRegistrationDetail = /^\/registrations\/[^/]+$/.test(location.pathname)
   const isAuditDetail = /^\/audit-logs\/[^/]+$/.test(location.pathname)
   const isHomepageAdEditor = location.pathname.startsWith('/platform-settings/homepage-ads/')
-  const pageTitle = location.pathname.startsWith('/admin-accounts') ? 'Admin accounts' : location.pathname.startsWith('/admin-roles') ? 'Custom roles' : location.pathname.startsWith('/vouchers') ? 'Vouchers' : location.pathname.startsWith('/support-tickets') ? 'Support tickets' : location.pathname.startsWith('/notification-campaigns') ? 'Notification campaigns' : location.pathname.startsWith('/registrations')
+  const settings = location.pathname === '/settings' || location.pathname.startsWith('/settings/')
+  const pageTitle = settings ? 'Settings' : location.pathname.startsWith('/admin-accounts') ? 'Admin accounts' : location.pathname.startsWith('/admin-roles') ? 'Custom roles' : location.pathname.startsWith('/vouchers') ? 'Vouchers' : location.pathname.startsWith('/support-tickets') ? 'Support tickets' : location.pathname.startsWith('/notification-campaigns') ? 'Notification campaigns' : location.pathname.startsWith('/registrations')
     ? isRegistrationDetail ? 'Registration review' : 'Manage account registrations'
     : location.pathname.startsWith('/audit-logs')
       ? isAuditDetail ? 'Audit event' : 'System audit logs'
@@ -38,9 +39,9 @@ export function AdminLayout() {
   }
 
   return <PortalShell role="admin" title={pageTitle} routeKey={location.pathname}
-    navigation={<AdminSidebarNav permissions={admin?.permissions ?? []} />}
+    navigation={settings ? <SettingsSidebarNav /> : <AdminSidebarNav permissions={admin?.permissions ?? []} />}
     account={{ name: firstName, email: admin?.email, avatar: <AdminAvatar initials={initials} photoUrl={admin?.profile?.profile_photo_url} /> }}
-    actions={<>{canViewNotifications && <AdminNotificationBell />}<ThemeToggle /></>}
+    actions={<>{canViewNotifications && <AdminNotificationBell />}</>}
     onLogout={() => void handleLogout()} signingOut={isSigningOut} policyBaseUrl={storefrontUrl}>
     <Outlet />
   </PortalShell>

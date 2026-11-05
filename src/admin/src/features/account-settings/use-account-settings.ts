@@ -30,7 +30,7 @@ export function useAccountSettings() {
   const [message, setMessage] = useState('');
   const [loadError, setLoadError] = useState('');
   const [reload, setReload] = useState(0);
-  useEffect(() => { document.title = 'Account settings | Aisley Admin'; }, []);
+  useEffect(() => { document.title = 'Account | Aisley Admin'; }, []);
   useEffect(() => {
     const controller = new AbortController();
     setIsLoading(true); setLoadError('');

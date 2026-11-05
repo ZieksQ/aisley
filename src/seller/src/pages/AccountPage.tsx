@@ -48,13 +48,13 @@ function AccountEditor() {
       setEmailPassword('');
     }
   }, [active, setErrors, setMessage, setEmailPassword]);
-  if (settings.isLoading) return <AccountSettingsState headingLevel={2} />;
-  if (settings.loadError || !account) return <AccountSettingsState headingLevel={2} error={settings.loadError || 'Account settings are unavailable.'} onRetry={() => settings.setReload(value => value + 1)} />;
+  if (settings.isLoading) return <AccountSettingsState headingLevel={2} title="Account" />;
+  if (settings.loadError || !account) return <AccountSettingsState headingLevel={2} title="Account" error={settings.loadError || 'Account settings are unavailable.'} onRetry={() => settings.setReload(value => value + 1)} />;
   if (!account) return null;
   const name = [account.profile.first_name, account.profile.last_name].filter(Boolean).join(' ');
   const initials = name.split(/\s+/).map(part => part[0]).slice(0, 2).join('');
   return <AccountSettings
-    headingLevel={2}
+    headingLevel={2} title="Account"
     sections={sections}
     activeSection={active}
     onSectionChange={select}

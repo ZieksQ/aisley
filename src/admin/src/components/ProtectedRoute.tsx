@@ -20,7 +20,7 @@ export function SessionRoute() {
 export function ProtectedRoute() {
   const { admin, isLoading } = useAuth()
   const location = useLocation()
-  const isConsentRoute = location.pathname === '/policy-consent'
+  const isConsentRoute = ['/policy-consent', '/settings/terms'].includes(location.pathname)
   const [consentState, setConsentState] = useState<ConsentState>('checking')
   const [consentError, setConsentError] = useState('')
   const consentKey = `${admin?.id ?? ''}:${isConsentRoute}`
@@ -75,7 +75,7 @@ export function ProtectedRoute() {
   }
 
   if (consentState === 'required') {
-    return <Navigate replace state={{ from: `${location.pathname}${location.search}` }} to="/policy-consent" />
+    return <Navigate replace state={{ from: `${location.pathname}${location.search}` }} to="/settings/terms" />
   }
 
   return <Outlet />

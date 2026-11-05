@@ -1,5 +1,5 @@
 import { PortalNavigation } from '@aisley/ui/portal'
-import { LuArrowLeftRight, LuChartNoAxesCombined, LuClipboardCheck, LuFileText, LuHistory, LuInbox, LuLayoutDashboard, LuMegaphone, LuScale, LuSlidersHorizontal, LuTags, LuToggleRight, LuUserRoundCog, LuUsers } from 'react-icons/lu'
+import { LuArrowLeftRight, LuChartNoAxesCombined, LuClipboardCheck, LuSettings, LuHistory, LuInbox, LuLayoutDashboard, LuMegaphone, LuScale, LuSlidersHorizontal, LuTags, LuToggleRight, LuUserRoundCog, LuUsers } from 'react-icons/lu'
 import type { IconType } from 'react-icons'
 import { Link, useLocation } from 'react-router-dom'
 
@@ -53,8 +53,7 @@ const groups: NavGroup[] = [
     id: 'personal',
     label: 'My account',
     items: [
-      { label: 'Account settings', path: '/account', icon: LuUserRoundCog },
-      { label: 'Policy consent', path: '/policy-consent', icon: LuFileText },
+      { label: 'Settings', path: '/settings', icon: LuSettings },
     ],
   },
 ]
