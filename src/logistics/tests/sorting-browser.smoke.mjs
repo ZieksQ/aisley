@@ -62,6 +62,7 @@ function fixtures() {
   window.fetch = async (url, options = {}) => {
     const parsed = new URL(url, location.origin); const path = parsed.pathname
     const f = window.sortFixture
+    if (path === '/label') return new Response('<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"/>', {headers:{'Content-Type':'image/svg+xml'}})
     if (path.endsWith('/chat-notifications')) return json({ data: [], meta: { unread_count: 0 } })
     if (path.endsWith('/logistics/linehaul')) return json({ data: { service_areas: [], connections: [] } })
     if (!path.includes('/sorting') && !path.includes('/dispatch/') && !path.includes('/dashboard/queue') && !path.includes('/linehaul/trips')) return original(url, options)
@@ -147,6 +148,26 @@ try {
     if (width === 390 || (width === 1440 && dark)) { const shot = await cdp('Page.captureScreenshot', { format: 'png' }); await writeFile(`${shots}/${path.slice(1)}-${width}-${dark ? 'dark' : 'light'}.png`, Buffer.from(shot.data, 'base64')) }
     console.log('Responsive / keyboard', path, width, dark ? 'dark' : 'light')
   }
+  // Sorting lanes are bounded independently of session/camera/routing state.
+  await navigate('/sorting'); await until('document.querySelector("#sorting-lanes-title")')
+  const laneSection = 'document.querySelector("section[aria-labelledby=sorting-lanes-title]")'
+  assert.equal(await js(`${laneSection}.querySelector('nav') === null`), true, 'Short lane lists have no pagination')
+  await js(`(() => { const lanes = window.sortFixture.lanes; for (let i = lanes.length; i < 17; i++) lanes.push({...lanes[0], id:'extra-'+i, code:'EXTRA-'+i, name:'Additional lane '+i, position:i+1}); })()`)
+  await clickLabel('Refresh sorting'); await until(`${laneSection}.innerText.includes('1–8 of 17 lanes')`)
+  assert.equal(await js(`${laneSection}.querySelectorAll('li').length`), 8, 'Eight lanes per page')
+  await js(`${laneSection}.querySelectorAll('li button')[0].click()`)
+  await until('document.body.innerText.includes("LANE-1 · Physical LANE-1")')
+  await js(`${laneSection}.querySelectorAll('nav button')[1].click()`); await until(`${laneSection}.innerText.includes('9–16 of 17 lanes')`)
+  assert.equal(await js('document.body.innerText.includes("LANE-1 · Physical LANE-1")'), true, 'Paging preserves manual routing selection')
+  await js('window.sortFixture.labelPopup = {location:{href:""},close(){}}; window.open = () => window.sortFixture.labelPopup')
+  await clickLabel('Print EXTRA-8 label'); await until('window.sortFixture.labelPopup.location.href.startsWith("blob:")')
+  assert.equal(await js(`${laneSection}.innerText.includes('9–16 of 17 lanes')`), true, 'Printing preserves current lane page')
+  await js(`${laneSection}.querySelectorAll('nav button')[1].click()`); await until(`${laneSection}.innerText.includes('17–17 of 17 lanes')`)
+  assert.equal(await js(`${laneSection}.querySelectorAll('nav button')[1].disabled`), true, 'Final page Next disabled')
+  await js('window.sortFixture.lanes.splice(9)'); await clickLabel('Refresh sorting'); await until(`${laneSection}.innerText.includes('9–9 of 9 lanes')`)
+  await js('window.sortFixture.lanes.splice(8)'); await clickLabel('Refresh sorting'); await until(`${laneSection}.querySelectorAll('li').length === 8`)
+  assert.equal(await js(`${laneSection}.querySelector('nav') === null`), true, 'Exactly eight lanes hide pagination')
+  await js('window.sortFixture.lanes.splice(0)'); await clickLabel('Refresh sorting'); await until(`${laneSection}.innerText.includes('Create lanes in Sort plan')`)
   await navigate('/sort-plan'); await click('Edit active plan'); await click('Published versions (2)'); await js('window.sortFixture.failNext = true'); await click('Activate selected version'); await until('document.body.innerText.includes("Verify previous action")'); await click('Verify previous action'); await until('window.sortFixture.writes.length === 2'); assert.deepEqual(await js('window.sortFixture.writes[0]'), await js('window.sortFixture.writes[1]'), 'Exact plan retry identity')
   await navigate('/sort-plan'); await click('Edit active plan'); await click('Published versions (2)')
   await fill('dialog[aria-labelledby=published-versions-title] input[type=search]', 'No such version')

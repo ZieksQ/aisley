@@ -169,3 +169,11 @@ active Logistics session
 - Use the existing `--portal-surface` background and 1px `--portal-border` in both light and dark themes, matching `.portal-panel`; keep the card visibly distinct from the page canvas. Cards are informational and show no focus ring or outline.
 - Keep shipment-stage and pending-workload visualizations in the existing dashboard chart panels. Animate chart panels with immediate readable states and honor `prefers-reduced-motion`. Tooltips follow the active hovered stage/category and show its label and count, with accessible keyboard/chart summaries.
 - Do not infer historical changes, completed-history, on-time performance, capacity, or revenue from the current queue. Preserve sole-hub scope, freshness/error behavior, skeleton geometry, and System/Light/Dark themes.
+
+### Parcel search workspace refresh — 2026-11-05
+
+- `/operations` puts manual reference lookup and the existing camera scanner first. Queue search, custody/evidence filters, reset, and ten-row server pagination remain separate from exact parcel lookup.
+- Use the Logistics blue/slate shared portal controls and supported light/dark themes. Desktop pairs compact results with parcel details; below 1024px, a selected/loading/failed lookup precedes results in DOM and visual order. Back to results restores focus to the result region. Lookup and filter labels stay visible, actions meet 44px targets, and long references wrap.
+- Keep URL filters/page/reference navigation, safe organization/hub-scoped caching, local barcode hints, authoritative online lookup, and explicitly read-only cached records. Distinguish failed queue reads from empty results. Ignore superseded lookup/queue responses and clear parcel-specific recovery drafts/evidence selection when resolving another record.
+- Custody updates use the loaded record's reference rather than unsent lookup input. An uncertain update retains its exact payload and UUID and blocks parcel switching until Verify previous update resolves it. Existing authorization, proof-viewing and completion-intent requirements remain authoritative.
+- Browser/static evidence and remaining limitations: [verification](parcel-search-verification-2026-11-05.md). No API or external mobile contract changes.

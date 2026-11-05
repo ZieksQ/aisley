@@ -179,3 +179,9 @@ The API extension in `docs/features/logistics/hub-to-hub-routing/specs.md` imple
 - A newly accepted local capture shows plain green bottom-left text with “Pending verification” and a short chime, expiring after five seconds. Errors stay distinguishable and never play success sounds. Re-entry, duplicate rejection and generic synchronization messages do not replay the chime; sound restrictions never block the queue. All server verification, trip conditions, custody and retry contracts remain unchanged.
 
 - Continuous readings of the same held parcel (including equivalent waybill QR/barcode values) do not replace accepted capture feedback with duplicate errors or replay sounds. A different code, confirmed label removal or restarting the camera allows a deliberate retry. Manual entry and server duplicate/replay rules remain unchanged.
+
+### Parcel search presentation and retry safety — 2026-11-05
+
+- Parcel search now uses a search-first Logistics portal workspace with separate result filters/reset, responsive selected details, and focused custody/task/evidence sections. Preserve the existing ten-row queue API, barcode decoder, private POD review, allowed-transition controls and read-only offline cache contract.
+- Discard obsolete reads and clear record-specific recovery state on parcel changes. A transition uses the resolved parcel reference even if the lookup field contains an unsent draft. Unknown transition outcomes keep the original payload/idempotency key for Verify previous update and block new parcel actions until resolved; conflicts reload authoritative state before another decision.
+- Canonical layout and verification details live in the [Dashboard parcel-search revision](../dashboard/specs.md#parcel-search-workspace-refresh--2026-11-05).
