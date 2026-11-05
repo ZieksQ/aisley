@@ -8,8 +8,8 @@ use App\Http\Requests\Admin\IndexFinanceHoldRequest;
 use App\Http\Resources\Admin\FinanceHoldResource;
 use App\Models\FinancialHold;
 use App\Models\LogisticsOrganization;
+use App\Services\Finance\FinanceDateRange;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class FinanceHoldController extends Controller
 {
@@ -20,11 +20,11 @@ class FinanceHoldController extends Controller
         'LINEHAUL_EVIDENCE_MISSING',
     ];
 
-    public function index(IndexFinanceHoldRequest $request): AnonymousResourceCollection
+    public function index(IndexFinanceHoldRequest $request): JsonResponse
     {
         $status = $request->validated('status', 'open');
         $search = trim((string) $request->validated('search', ''));
-        $holds = FinancialHold::query()
+        $holds = FinanceDateRange::apply(FinancialHold::query(), 'placed_at', $request->validated())
             ->whereIn('reason_code', self::RECONCILIATION_REASONS)
             ->when($status === 'open', fn ($query) => $query->whereNull('released_at'))
             ->when($status === 'resolved', fn ($query) => $query->whereNotNull('released_at'))
@@ -34,7 +34,7 @@ class FinanceHoldController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        return FinanceHoldResource::collection($holds);
+        return FinanceHoldResource::collection($holds)->response()->header('Cache-Control', 'private, no-store');
     }
 
     public function show(string $hold): JsonResponse
@@ -47,7 +47,7 @@ class FinanceHoldController extends Controller
         return response()->json([
             'data' => FinanceHoldResource::make($record),
             'organizations' => $this->organizationOptions(),
-        ]);
+        ])->header('Cache-Control', 'private, no-store');
     }
 
     /** @return list<string> */

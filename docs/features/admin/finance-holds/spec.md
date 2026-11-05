@@ -40,3 +40,9 @@ source_coverage: docs/features/shared/commission-settlement/spec.md, docs/featur
 ## VERIFICATION
 
 - Cover permission boundaries, supported-reason filtering, safe payload fields, open/resolved views, active organization options, exact-total validation, duplicate rows, subsidy handling, stale reconciliation, responsive layout, keyboard operation, and light/dark presentation.
+
+## Finance date filters and presentation (2026-11-05)
+
+- The queue uses the shared Finance date control with the explicit label **Hold placed date**; filter `placed_at`, not resolution time. This month is the web default. The detail/reconciliation screen has no date picker.
+- `GET /finance/holds` additionally accepts paired `date_from`/`date_to` or `all_time=1` under the [shared Finance date rules](../../shared/commission-settlement/spec.md#finance-period-reporting-and-portal-refresh-2026-11-05). Apply date conditions before existing status/search predicates and pagination. No dates preserves the existing unrestricted API read.
+- Keep dates through queue search/status/page changes and the detail Back link. Cancel obsolete reads, reset account/permission-scoped content, and retain all reconciliation amount/evidence/confirmation rules.

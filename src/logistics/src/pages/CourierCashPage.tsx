@@ -1,11 +1,18 @@
-import { Button } from '@aisley/ui'
+import { DateRangePicker } from '@aisley/ui/date-range'
+import { useAuth } from '../auth/useAuth'
+import { PortalButton as Button } from '@aisley/ui/portal'
 import { FinanceNavigation } from '../components/FinanceNavigation'
 import { ErrorNotice, field } from '../components/PickupUi'
 import { CashReceiptHistory } from '../features/logisticsFinance/CashReceiptHistory'
 import { useCourierCash } from '../features/logisticsFinance/useCourierCash'
-import { date, money, workflowButton, workspace } from '../features/logisticsFinance/presentation'
+import { date, money, workspace } from '../features/logisticsFinance/presentation'
 
 export function CourierCashPage() {
+  const { logistics } = useAuth()
+  return <CourierCashWorkspace key={`${logistics?.id}:${logistics?.organization?.id}`} />
+}
+
+function CourierCashWorkspace() {
   const state = useCourierCash()
   const rows = state.data?.data ?? []
   const selectedRows = state.attempt?.selection ?? rows.filter((row) => state.selected.includes(row.id))
@@ -15,13 +22,13 @@ export function CourierCashPage() {
   const lastPage = (state.view === 'outstanding' ? state.data : state.history)?.meta.last_page ?? 1
   return <>
     <FinanceNavigation />
-    <main className={workspace}>
+    <main className={`${workspace} finance-workspace finance-courier-cash`}>
       <header className="flex flex-wrap items-start justify-between gap-3 border-b border-zinc-200 pb-4 dark:border-white/10">
         <div>
           <h2 className="text-xl font-semibold">Courier cash remittance</h2>
           <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Record COD cash received from Couriers after delivery approval.</p>
         </div>
-        <Button variant="outline" className={workflowButton} disabled={state.busy || state.loading} onClick={state.reload}>Refresh</Button>
+        <Button disabled={state.busy || state.loading} onClick={state.reload}>Refresh</Button>
       </header>
       <nav className="mt-4 flex gap-5 border-b border-zinc-200 dark:border-white/10" aria-label="Courier cash views">
         {(['outstanding', 'history'] as const).map((view) => <button
@@ -29,12 +36,13 @@ export function CourierCashPage() {
           type="button"
           disabled={state.locked}
           aria-current={state.view === view ? 'page' : undefined}
-          className="border-b-2 border-transparent py-3 text-sm font-medium aria-[current=page]:border-[#4C1268] aria-[current=page]:text-[#4C1268] disabled:opacity-50 dark:aria-[current=page]:border-purple-300 dark:aria-[current=page]:text-purple-300"
+          className="border-b-2 border-transparent py-3 text-sm font-medium aria-[current=page]:border-[#2563EB] aria-[current=page]:text-[#2563EB] disabled:opacity-50 dark:aria-[current=page]:border-blue-300 dark:aria-[current=page]:text-blue-300"
           onClick={() => state.changeView(view)}
         >
           {view === 'outstanding' ? 'Outstanding cash' : 'Receipt history'}
         </button>)}
       </nav>
+      <div className="mt-5"><DateRangePicker label={state.view === 'outstanding' ? 'Cash obligation delivery date' : 'Cash receipt received date'} value={state.period.period} onApply={state.applyPeriod} disabled={state.locked} /></div>
       {state.error && <div className="mt-4">
         <ErrorNotice message={state.error} retry={state.reload} />
       </div>}
@@ -44,7 +52,7 @@ export function CourierCashPage() {
       {state.loading ? <p role="status" className="py-8 text-sm">Loading Courier cash…</p> : state.view === 'history' ? <div className="mt-4">
         {state.history && <CashReceiptHistory receipts={state.history.data} />}
       </div> : <>
-        {state.data && <p className="my-5 text-sm">Unremitted cash: <strong className="tabular-nums">
+        {state.data && <p className="my-5 text-sm">Current unremitted cash · all dates: <strong className="tabular-nums">
           {Object.entries(totals).map(([code, amount]) => money(amount, code)).join(' · ') || money(0)}
         </strong></p>}
         <label className="block max-w-lg text-sm font-medium">Courier and currency
@@ -83,7 +91,7 @@ export function CourierCashPage() {
                   <td className="px-3 py-3">
                     <input
                       type="checkbox"
-                      className="size-4 accent-[#4C1268]"
+                      className="size-4 accent-[#2563EB]"
                       aria-label={`Select ${row.order_reference}`}
                       disabled={state.locked || incompatible}
                       checked={state.selected.includes(row.id)}
@@ -115,8 +123,7 @@ export function CourierCashPage() {
             <p className="mt-1 text-zinc-600 dark:text-zinc-400">Select one Courier and currency. This records physical cash received and funds the simulated account.</p>
           </div>
           <Button
-            variant="secondary"
-            className={workflowButton}
+            variant="primary"
             isLoading={state.busy}
             disabled={!state.attempt && !selectedRows.length}
             onClick={() => void state.receive()}
@@ -131,15 +138,11 @@ export function CourierCashPage() {
         className="mt-6 flex items-center justify-between gap-3 border-t border-zinc-200 pt-4 dark:border-white/10"
       >
         <Button
-          variant="outline"
-          className={workflowButton}
           disabled={state.locked || state.loading || state.page <= 1}
           onClick={() => state.changePage(state.page - 1)}
         >Previous</Button>
         <span className="text-sm">Page {state.page} of {lastPage}</span>
         <Button
-          variant="outline"
-          className={workflowButton}
           disabled={state.locked || state.loading || state.page >= lastPage}
           onClick={() => state.changePage(state.page + 1)}
         >Next</Button>

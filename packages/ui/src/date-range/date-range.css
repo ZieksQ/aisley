@@ -1,0 +1,36 @@
+.report-period {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 16px;
+  padding: 16px 20px;
+  border: 1px solid var(--portal-border, #e5e7eb);
+  border-radius: 12px;
+  background: var(--portal-surface, #fff);
+  color: var(--portal-text, #231429);
+}
+.report-period-context { display: flex; align-items: center; gap: 12px; margin-right: auto; align-self: center; font-size: 14px; font-weight: 600; }
+.report-period-context svg { width: 20px; height: 20px; color: var(--portal-accent, #4c1268); }
+.report-period-context small { display: block; font-size: 12px; font-weight: 400; color: var(--portal-muted, #4b5563); margin-top: 2px; }
+.report-period label { display: grid; gap: 6px; font-size: 12px; font-weight: 500; min-width: 0; }
+.report-period :is(input, select, button) { min-height: 44px; border: 1px solid var(--report-control-border, #9ca3af); border-radius: 8px; background: var(--portal-surface, #fff); color: inherit; padding: 8px 12px; font: inherit; font-size: 14px; min-width: 0; }
+.report-period select { appearance: auto; padding-right: 24px; }
+.report-period input { width: 152px; color-scheme: light; }
+.dark .report-period input { color-scheme: dark; }
+.report-period-actions { display: flex; gap: 8px; }
+.report-period button { cursor: pointer; font-weight: 500; }
+.report-period .report-period-apply { background: var(--brand-primary, #4c1268); border-color: transparent; color: #fff; }
+.report-period .report-period-apply:hover:not(:disabled) { background: var(--brand-hover, #3d0e54); }
+.report-period button:hover:not(:disabled):not(.report-period-apply) { background: var(--portal-subtle, #f3f4f6); }
+.report-period :is(input, select, button):focus-visible { outline: 2px solid var(--brand-focus, #6d28d9); outline-offset: 2px; }
+.report-period :disabled { cursor: not-allowed; opacity: .55; }
+.report-period-error { width: 100%; margin: 0; color: #b42318; font-size: 14px; }
+.dark .report-period-error { color: #fca5a5; }
+@media (max-width: 639px) {
+  .report-period { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding: 16px; }
+  .report-period-context, .report-period label:has(select), .report-period-actions, .report-period-error { grid-column: 1 / -1; }
+  .report-period input { width: 100%; }
+  .report-period-actions button { flex: 1; }
+}
+
+.dark .report-period { --report-control-border: #64748b; }

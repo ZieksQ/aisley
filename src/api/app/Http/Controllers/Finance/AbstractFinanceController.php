@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Finance;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Finance\FinanceReadRequest;
 use App\Services\Finance\FinanceReportService;
 use App\Services\Finance\FinanceWorkflowService;
 use Illuminate\Http\JsonResponse;
@@ -14,30 +15,30 @@ abstract class AbstractFinanceController extends Controller
 {
     abstract protected function role(): string;
 
-    public function show(Request $request, FinanceReportService $reports): JsonResponse
+    public function show(FinanceReadRequest $request, FinanceReportService $reports): JsonResponse
     {
-        return response()->json(['data' => $reports->workspace($reports->scope($request->user(), $this->role()))])->header('Cache-Control', 'private, no-store');
+        return response()->json(['data' => $reports->workspace($reports->scope($request->user(), $this->role()), $request->validated())])->header('Cache-Control', 'private, no-store');
     }
 
-    public function ledger(Request $request, FinanceReportService $reports): JsonResponse
+    public function ledger(FinanceReadRequest $request, FinanceReportService $reports): JsonResponse
     {
-        $filters = $request->validate(['search' => ['nullable', 'string', 'max:120'], 'per_page' => ['nullable', 'integer', 'between:1,100']]);
+        $filters = $request->validated();
         $page = $reports->ledger($reports->scope($request->user(), $this->role()), $filters);
 
         return response()->json($page)->header('Cache-Control', 'private, no-store');
     }
 
-    public function csv(Request $request, FinanceReportService $reports): StreamedResponse
+    public function csv(FinanceReadRequest $request, FinanceReportService $reports): StreamedResponse
     {
         $scope = $reports->scope($request->user(), $this->role());
-        $page = $reports->ledger($scope, ['search' => $request->string('search')->toString(), 'per_page' => 100]);
+        $page = $reports->ledger($scope, array_merge($request->validated(), ['per_page' => 100]));
 
         return response()->streamDownload(function () use ($page): void {
             $output = fopen('php://output', 'w');
             fputcsv($output, ['effective_at', 'event_type', 'order_reference', 'account', 'debit_cents', 'credit_cents', 'currency']);
             foreach ($page->items() as $journal) {
                 foreach ($journal->lines as $line) {
-                    fputcsv($output, [$journal->effective_at->toISOString(), $journal->event_type, $journal->order?->reference, $line->account_code, $line->debit_cents, $line->credit_cents, $journal->currency]);
+                    fputcsv($output, [$journal->effective_at->toISOString(), $this->csvCell($journal->event_type), $this->csvCell($journal->order?->reference), $this->csvCell($line->account_code), $line->debit_cents, $line->credit_cents, $journal->currency]);
                 }
             }
             fclose($output);
@@ -88,6 +89,11 @@ abstract class AbstractFinanceController extends Controller
         unset($scope['revenue_account']);
 
         return response()->json(['data' => $workflow->closePeriod($request->user(), $scope, $month, true)]);
+    }
+
+    private function csvCell(?string $value): ?string
+    {
+        return $value !== null && preg_match('/^[\s]*[=+@\-]/u', $value) ? "'".$value : $value;
     }
 
     private function cents(mixed $amount): int

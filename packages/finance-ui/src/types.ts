@@ -1,4 +1,7 @@
+import type { ReportFilters } from '@aisley/ui/date-range'
+
 export type FinanceWorkspaceData = {
+  period?: { dateFrom: string | null; dateTo: string | null; allTime: boolean }
   currency: 'PHP'
   timezone: 'Asia/Manila'
   generatedAt: string
@@ -13,6 +16,7 @@ export type FinanceWorkspaceData = {
 }
 
 export type FinanceWorkspaceProps = {
+  filters: ReportFilters
   roleLabel: 'Platform' | 'Seller' | 'Logistics'
   endpointPrefix: string
   csvUrl: string

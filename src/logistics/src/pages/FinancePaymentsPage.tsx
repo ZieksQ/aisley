@@ -1,20 +1,23 @@
+import { useAuth } from '../auth/useAuth'
 import { PayoutsView, SettingsView, RemittancesView, InvoiceView, BatchView, type PaymentProps } from '@aisley/finance-ui'
-import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import { useSearchParams, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { request, apiUrl } from '../lib/api'
 
 import { FinanceNavigation } from '../components/FinanceNavigation'
 import { FlatpickrField } from '../components/FlatpickrInput'
 
 export function FinancePaymentsPage() {
+  const [params, setParams] = useSearchParams()
   const location = useLocation()
   const { invoiceId, batchId } = useParams()
   const navigate = useNavigate()
+  const { logistics } = useAuth()
   const canManage = true
-  const props: PaymentProps = { role: 'logistics', prefix: '/api/v1/logistics/finance', request: request, url: apiUrl, canManage, openInvoice: (id: string) => navigate(`/finance/remittances/invoices/${id}`), openBatch: (id: string) => navigate(`/finance/remittances/${id}`) }
+  const props: PaymentProps = { filters: { params, setParams }, role: 'logistics', prefix: '/api/v1/logistics/finance', request: request, url: apiUrl, canManage, openInvoice: (id: string) => navigate(`/finance/remittances/invoices/${id}`), openBatch: (id: string) => navigate(`/finance/remittances/${id}`) }
   const view = location.pathname.endsWith('/payouts') ? <PayoutsView {...props} />
     : invoiceId ? <InvoiceView {...props} invoiceId={invoiceId} />
       : batchId ? <BatchView {...props} batchId={batchId} />
         : location.pathname.endsWith('/remittances') ? <RemittancesView {...props} />
           : <SettingsView {...props} renderCollectionTime={(field) => <FlatpickrField {...field} options={{ allowInput: true, enableTime: true, noCalendar: true, time_24hr: true, dateFormat: 'H:i', minuteIncrement: 1 }} required />} />
-  return <><FinanceNavigation />{view}</>
+  return <div key={`${logistics?.id}:${logistics?.organization?.id}`}><FinanceNavigation />{view}</div>
 }

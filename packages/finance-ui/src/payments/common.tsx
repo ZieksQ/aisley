@@ -70,14 +70,14 @@ export function Feedback({ loading, error, message, retry }: {
     {message && <p role="status" className="payment-feedback payment-success">{message}</p>}
   </>
 }
-export function Paging<T>({ page, value, change }: { page: Page<T> | null; value: number; change: (page: number) => void }) {
+export function Paging<T>({ page, value, change, disabled = false }: { page: Page<T> | null; value: number; change: (page: number) => void; disabled?: boolean }) {
   const last = page?.meta?.last_page ?? page?.last_page ?? 1
   const total = page?.meta?.total ?? page?.total ?? 0
   return <nav className="payment-pagination" aria-label="Table pagination">
     <p className="payment-muted">{total} {total === 1 ? 'result' : 'results'} · Page {value} of {last}</p>
     <div className="payment-header-actions">
-      <Button variant="outline" disabled={value <= 1} onClick={() => change(value - 1)}>Previous</Button>
-      <Button variant="outline" disabled={value >= last} onClick={() => change(value + 1)}>Next</Button>
+      <Button variant="outline" disabled={disabled || value <= 1} onClick={() => change(value - 1)}>Previous</Button>
+      <Button variant="outline" disabled={disabled || value >= last} onClick={() => change(value + 1)}>Next</Button>
     </div>
   </nav>
 }

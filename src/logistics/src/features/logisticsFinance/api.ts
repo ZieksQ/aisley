@@ -24,14 +24,15 @@ export type ReceiptPage = { data: CashReceipt[]; meta: { last_page: number; tota
 export type CashAttempt = { obligation_ids: string[]; confirmed: true; idempotency_key: string; selection: Obligation[] }
 export type Billing = { label: string; masked_identifier: string; currency: string; active: boolean; simulation_enabled: boolean }
 
-export function cashBalances(page: number, courier: string, currency: string, signal?: AbortSignal) {
+export function cashBalances(page: number, courier: string, currency: string, signal?: AbortSignal, period?: string) {
   const params = new URLSearchParams({ page: String(page), per_page: '20' })
+  if (period) new URLSearchParams(period).forEach((value, key) => params.set(key, value))
   if (courier) params.set('courier_id', courier)
   if (currency) params.set('currency', currency)
   return request<CashPage>(`/api/v1/logistics/finance/courier-cash?${params}`, { signal })
 }
-export function cashReceipts(page: number, signal?: AbortSignal) {
-  return request<ReceiptPage>(`/api/v1/logistics/finance/courier-cash/receipts?page=${page}`, { signal })
+export function cashReceipts(page: number, signal?: AbortSignal, period = '') {
+  return request<ReceiptPage>(`/api/v1/logistics/finance/courier-cash/receipts?page=${page}&${period}`, { signal })
 }
 export async function receiveCash(attempt: CashAttempt) {
   await csrf()

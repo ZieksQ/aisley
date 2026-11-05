@@ -1,9 +1,10 @@
 import { apiRequest } from './api'
 import type { FinanceHoldDetailResponse, FinanceHoldPageResponse, ReconcileFinanceHoldPayload } from '../types/financeHolds'
 
-export function fetchFinanceHolds(status: 'open' | 'resolved', search: string, page: number, signal?: AbortSignal) {
+export function fetchFinanceHolds(status: 'open' | 'resolved', search: string, page: number, signal?: AbortSignal, period?: string) {
   const query = new URLSearchParams({ status, page: String(page) })
   if (search) query.set('search', search)
+  if (period) new URLSearchParams(period).forEach((value, key) => query.set(key, value))
   return apiRequest<FinanceHoldPageResponse>(`/api/v1/admin/finance/holds?${query.toString()}`, { signal })
 }
 

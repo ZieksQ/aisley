@@ -4,6 +4,7 @@
   "private": true,
   "sideEffects": ["*.css"],
   "exports": {
+    "./date-range": "./src/date-range/index.ts",
     ".": "./src/index.ts",
     "./chat": "./src/chat/index.ts",
     "./notifications": "./src/notifications/index.ts",

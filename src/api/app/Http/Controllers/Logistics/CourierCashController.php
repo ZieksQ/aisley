@@ -9,6 +9,7 @@ use App\Http\Resources\Logistics\CourierCashReceiptResource;
 use App\Models\CourierCashReceipt;
 use App\Services\Finance\CourierCashReadService;
 use App\Services\Finance\CourierCashService;
+use App\Services\Finance\FinanceDateRange;
 
 class CourierCashController
 {
@@ -25,7 +26,7 @@ class CourierCashController
     public function receipts(CourierCashIndexRequest $request)
     {
         $organization = $request->user()->logisticsOrganization()->firstOrFail();
-        $page = CourierCashReceipt::query()->where('logistics_organization_id', $organization->id)->with(['items.obligation', 'credit'])
+        $page = FinanceDateRange::apply(CourierCashReceipt::query(), 'received_at', $request->validated())->where('logistics_organization_id', $organization->id)->with(['items.obligation', 'credit'])
             ->when($request->validated('courier_id'), fn ($q, $id) => $q->where('courier_id', $id))
             ->latest('received_at')->orderByDesc('id')->paginate($request->integer('per_page', 20));
 

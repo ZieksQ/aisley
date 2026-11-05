@@ -23,3 +23,5 @@ export {
   PortalSkeleton,
 } from './WorkspaceControls'
 export { ProductThumbnail } from './ProductThumbnail'
+
+export { FinanceMetricIcon } from './FinanceMetricIcon'

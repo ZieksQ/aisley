@@ -1,6 +1,8 @@
+import type { ReportFilters } from '@aisley/ui/date-range'
+
 export type Request = <T>(path: string, options?: RequestInit) => Promise<T>
 export type PaymentRole = 'admin' | 'seller' | 'logistics'
-export type PaymentProps = { role: PaymentRole; prefix: string; request: Request; url: (path: string) => string; canManage?: boolean; openInvoice?: (id: string) => void; openBatch?: (id: string) => void }
+export type PaymentProps = { filters: ReportFilters; role: PaymentRole; prefix: string; request: Request; url: (path: string) => string; canManage?: boolean; openInvoice?: (id: string) => void; openBatch?: (id: string) => void }
 export type Invoice = { id: string; reference: string; order_id: string; order_reference: string; logistics_organization_id: string | null; collector_name: string | null; status: string; overdue: boolean; currency: string; total_cents: number; remaining_cents: number; delivered_at: string; due_at: string; seller_eligible_at: string; logistics_eligible_at: string; paid_at: string | null; review_reason: string | null }
 export type Attempt = { id: string; status: string; direction: string; provider_reference: string | null; amount_cents: number; currency: string; failure_code: string | null; cod_remittance_batch_id: string | null; finance_payout_id: string | null; created_at: string; resolved_at: string | null }
 export type Batch = { id: string; collector_name?: string | null; reference: string; status: string; currency: string; total_cents: number; is_gateway: boolean; submitted_at: string; cleared_at: string | null; rejection_reason: string | null; allocations: { order_id: string; order_reference: string; amount_cents: number }[]; attempts: Attempt[] }

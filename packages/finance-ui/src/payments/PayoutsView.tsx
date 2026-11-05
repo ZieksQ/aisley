@@ -1,18 +1,21 @@
-import { useState } from 'react'
+import { DateRangePicker, useReportPeriod } from '@aisley/ui/date-range'
+import { useEffect, useState } from 'react'
 import { SelectField } from '@aisley/ui'
 import { downloadPdf } from './client'
 import { Button, date, EmptyState, Feedback, money, Paging, PaymentSection, PaymentShell, PaymentTable, StatusText } from './common'
 import { useFinanceRead, usePaymentAction } from './hooks'
 import type { Obligation, Page, PaymentProps, Payout } from './types'
 export function PayoutsView(props: PaymentProps) {
+  const period = useReportPeriod(props.filters)
   const [type, setType] = useState(props.role === 'seller' ? 'seller' : 'logistics')
   const [early, setEarly] = useState(false)
   const [page, setPage] = useState(1)
   const [historyPage, setHistoryPage] = useState(1)
   const [selected, setSelected] = useState<string[]>([])
   const read = useFinanceRead<Page<Obligation>>(props, `/payout-obligations?beneficiary_type=${type}&early=${early ? 1 : 0}&page=${page}`)
-  const history = useFinanceRead<Page<Payout>>(props, `/payout-history?page=${historyPage}`)
+  const history = useFinanceRead<Page<Payout>>(props, `/payout-history?page=${historyPage}&${period.query}`)
   const action = usePaymentAction()
+  useEffect(() => { if (!action.busy && !action.uncertain) setSelected([]) }, [period.query, action.busy, action.uncertain])
   const items = read.data?.data.filter((item) => selected.includes(`${item.beneficiary_id}:${item.order_id}`) && item.blocked.length === 0) ?? []
   const total = items.reduce((sum, item) => sum + item.amount_cents, 0)
   function refresh() { read.reload(); history.reload(); setSelected([]) }
@@ -27,14 +30,15 @@ export function PayoutsView(props: PaymentProps) {
   return <PaymentShell
     title="Payouts"
     description="Track amounts awaiting payment and download completed payment receipts."
-    actions={<Button variant="outline" onClick={refresh}>Refresh</Button>}>
+    actions={<Button variant="outline" disabled={action.busy || action.uncertain} onClick={refresh}>Refresh</Button>}>
     <Feedback error={action.error} message={action.message} />
     <PaymentSection
       title="Unpaid obligations"
-      description="Payouts require cleared COD, no financial holds, and an eligible delivery date.">
+      description="Current obligations across all dates. Payouts require cleared COD, no financial holds, and an eligible delivery date.">
       {props.role === 'admin' && <div className="payment-filters">
         <SelectField
           id="payout-beneficiary"
+          disabled={action.busy || action.uncertain}
           label="Beneficiary type"
           value={type}
           onChange={(event) => { setType(event.target.value); setEarly(false); setSelected([]); setPage(1) }}>
@@ -42,7 +46,7 @@ export function PayoutsView(props: PaymentProps) {
           <option value="logistics">Logistics</option>
         </SelectField>
         {type === 'logistics' && props.canManage && <label className="payment-checkbox">
-          <input type="checkbox" checked={early} onChange={(event) => { setEarly(event.target.checked); setSelected([]) }} />
+          <input type="checkbox" disabled={action.busy || action.uncertain} checked={early} onChange={(event) => { setEarly(event.target.checked); setSelected([]) }} />
           Include early Logistics payouts
         </label>}
       </div>}
@@ -68,7 +72,7 @@ export function PayoutsView(props: PaymentProps) {
                   type="checkbox"
                   aria-label={`Select payout for ${item.order_reference} to ${item.beneficiary_name}`}
                   checked={selected.includes(identity)}
-                  disabled={action.busy || otherBeneficiary || item.blocked.length > 0}
+                  disabled={action.busy || action.uncertain || otherBeneficiary || item.blocked.length > 0}
                   onChange={(event) => setSelected(event.target.checked ? [...selected, identity] : selected.filter((id) => id !== identity))} />
               </td>}
               <td>{item.order_reference}</td>
@@ -89,10 +93,11 @@ export function PayoutsView(props: PaymentProps) {
           </div>
           <Button disabled={items.length === 0} isLoading={action.busy} onClick={send}>Send payout</Button>
         </div>}
-        <Paging page={read.data} value={page} change={(value) => { setPage(value); setSelected([]) }} />
+        <Paging disabled={action.busy || action.uncertain} page={read.data} value={page} change={(value) => { setPage(value); setSelected([]) }} />
       </>}
     </PaymentSection>
     <PaymentSection title="Payment history" description="Receipts are available after successful payment.">
+      <DateRangePicker label="Payout submission date" value={period.period} disabled={action.busy || action.uncertain} onApply={(value) => { period.apply(value); setHistoryPage(1) }} />
       <Feedback loading={history.loading} error={history.error} retry={history.reload} />
       {history.data && <>
         {history.data.data.length > 0 ? <PaymentTable caption="Payout history">
@@ -124,7 +129,7 @@ export function PayoutsView(props: PaymentProps) {
             </Button> : <span className="payment-muted">Not yet available</span>}</td>
           </tr>)}</tbody>
         </PaymentTable> : <EmptyState title="No payouts yet." description="Submitted payments will appear here with their current status." />}
-        <Paging page={history.data} value={historyPage} change={setHistoryPage} />
+        <Paging disabled={action.busy || action.uncertain} page={history.data} value={historyPage} change={setHistoryPage} />
       </>}
     </PaymentSection>
     <p className="payment-muted">All dates use Asia/Manila time. Sandbox payments use simulated money.</p>

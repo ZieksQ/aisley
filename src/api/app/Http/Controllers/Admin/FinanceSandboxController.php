@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Finance\FinanceReadRequest;
 use App\Http\Requests\Finance\SandboxAccountRequest;
 use App\Http\Requests\Finance\SandboxResolveRequest;
 use App\Jobs\Finance\DeliverGatewayEvent;
@@ -10,16 +11,17 @@ use App\Models\FinanceGatewayEvent;
 use App\Models\LogisticsOrganization;
 use App\Models\SandboxGatewayAccount;
 use App\Models\SandboxGatewayTransaction;
+use App\Services\Finance\FinanceDateRange;
 use App\Services\Finance\Gateway\SandboxGatewayService;
 use Illuminate\Support\Facades\DB;
 
 class FinanceSandboxController extends Controller
 {
-    public function index()
+    public function index(FinanceReadRequest $request)
     {
         return response()->json(['accounts' => SandboxGatewayAccount::query()->orderBy('reference')->get(),
-            'transactions' => SandboxGatewayTransaction::query()->latest()->paginate(25),
-            'events' => FinanceGatewayEvent::query()->latest()->limit(25)->get(),
+            'transactions' => FinanceDateRange::apply(SandboxGatewayTransaction::query(), 'created_at', $request->validated())->latest()->orderByDesc('id')->paginate(25),
+            'events' => FinanceDateRange::apply(FinanceGatewayEvent::query(), 'created_at', $request->validated())->latest()->orderByDesc('id')->limit(25)->get(),
             'organizations' => LogisticsOrganization::query()->orderBy('business_name')->get(['id', 'business_name'])])->header('Cache-Control', 'private, no-store');
     }
 

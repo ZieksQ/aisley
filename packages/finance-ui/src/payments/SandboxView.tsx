@@ -1,13 +1,15 @@
+import { DateRangePicker, useReportPeriod } from '@aisley/ui/date-range'
 import { useState } from 'react'
 import { SelectField, TextField } from '@aisley/ui'
 import { Button, date, EmptyState, Feedback, label, money, Paging, PaymentShell, PaymentTable, StatusText } from './common'
 import { useFinanceRead, usePaymentAction, useUnsavedPaymentForm } from './hooks'
 import type { GatewayAccount, PaymentProps, SandboxResponse } from './types'
 export function SandboxView(props: PaymentProps) {
+  const period = useReportPeriod(props.filters)
   const [page, setPage] = useState(1)
   const [tab, setTab] = useState<'accounts' | 'payments' | 'webhooks'>('accounts')
   const [editor, setEditor] = useState<GatewayAccount | 'new' | null>(null)
-  const read = useFinanceRead<SandboxResponse>(props, `/sandbox?page=${page}`)
+  const read = useFinanceRead<SandboxResponse>(props, `/sandbox?page=${page}&${period.query}`)
   const action = usePaymentAction()
   const [message, setMessage] = useState('')
   return <PaymentShell
@@ -26,6 +28,7 @@ export function SandboxView(props: PaymentProps) {
             setEditor(null); setTab(value)
           }}>{value === 'webhooks' ? 'Webhook deliveries' : label(value)}</button>)}
       </div>
+      {tab !== 'accounts' && <DateRangePicker label={tab === 'payments' ? 'Transaction creation date' : 'Event creation date'} value={period.period} disabled={action.busy} onApply={(value) => { period.apply(value); setPage(1) }} />}
       {tab === 'accounts' && <>
         {props.canManage && <div className="payment-toolbar">
           <Button
