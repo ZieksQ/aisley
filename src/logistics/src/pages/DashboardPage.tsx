@@ -1,3 +1,4 @@
+import { DashboardSetupGuide } from '../features/setup-guide/DashboardSetupGuide'
 import { useAuth } from '../auth/useAuth'
 import { DashboardSkeleton } from '@aisley/ui/portal'
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -39,6 +40,7 @@ function DashboardOverview() {
   const logoutRef = useRef(logout)
   logoutRef.current = logout
   const activeRequest = useRef<AbortController | null>(null)
+  const [guideRefresh, setGuideRefresh] = useState(0)
   const [data, setData] = useState<Dashboard | null>(null)
   const [queue, setQueue] = useState<FulfillmentQueueResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -92,8 +94,10 @@ function DashboardOverview() {
   return <div className="portal-page dashboard-page">
     <div className="dashboard-heading">
       <div><h2 className="portal-page-heading">Operations overview</h2><p className="portal-secondary mt-1 text-sm">Shipments and pending actions at your operational hub.</p></div>
-      <button className="portal-button" disabled={loading || queueLoading} onClick={() => void load()} type="button"><LuRefreshCw aria-hidden="true" /> {loading ? 'Refreshing…' : 'Refresh'}</button>
+      <button className="portal-button" disabled={loading || queueLoading} onClick={() => { setGuideRefresh(value => value + 1); void load() }} type="button"><LuRefreshCw aria-hidden="true" /> {loading ? 'Refreshing…' : 'Refresh'}</button>
     </div>
+
+    <DashboardSetupGuide refreshKey={guideRefresh} />
 
     {loading && !data && !queue ? <DashboardSkeleton className="mt-6" /> : null}
     {error ? <section className="mt-6"><ErrorNotice message={error} retry={() => void load()} /></section> : null}

@@ -100,6 +100,7 @@ use App\Http\Controllers\Logistics\SortingExceptionController;
 use App\Http\Controllers\Logistics\SortingPlanController;
 use App\Http\Controllers\Messaging\ChatAttachmentController;
 use App\Http\Controllers\Messaging\OperationalConversationController;
+use App\Http\Controllers\Onboarding\SetupGuideController;
 use App\Http\Controllers\PlatformContentController;
 use App\Http\Controllers\PolicyConsentController;
 use App\Http\Controllers\ProductDescriptionAssetController;
@@ -466,6 +467,7 @@ Route::prefix('v1/seller')->name('seller.')->middleware(['auth:sanctum', 'seller
     Route::patch('/pickup-addresses/{address}', [SellerPickupAddressController::class, 'update'])->whereUuid('address')->name('pickup-addresses.update');
     Route::delete('/pickup-addresses/{address}', [SellerPickupAddressController::class, 'destroy'])->whereUuid('address')->name('pickup-addresses.destroy');
     Route::get('/dashboard', [SellerDashboardController::class, 'show'])->name('dashboard.show');
+    Route::get('/setup-guide', SetupGuideController::class)->name('setup-guide.show');
     Route::get('/product-questions', [SellerProductQAController::class, 'index'])
         ->middleware('throttle:120,1')
         ->name('product-questions.index');
@@ -657,6 +659,7 @@ Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', '
         ->name('account.profile-photo.destroy');
     Route::get('/dashboard/queue', [LogisticsDashboardController::class, 'queue'])->name('dashboard.queue');
     Route::get('/dashboard', [LogisticsDashboardController::class, 'show'])->name('dashboard.show');
+    Route::get('/setup-guide', SetupGuideController::class)->name('setup-guide.show');
     Route::get('/courier-applications', [CourierApprovalController::class, 'index'])->name('courier-applications.index');
     Route::get('/courier-applications/{affiliation}', [CourierApprovalController::class, 'show'])->whereUuid('affiliation')->name('courier-applications.show');
     Route::get('/courier-applications/{affiliation}/documents/{document}', [CourierApprovalController::class, 'document'])->whereUuid('affiliation')->whereUuid('document')->name('courier-applications.documents.show');
