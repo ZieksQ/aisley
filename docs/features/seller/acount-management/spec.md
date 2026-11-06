@@ -15,7 +15,7 @@ scope: Seller Web Application and Laravel API
 
 - **Purpose:** Let an approved active Seller manage their own profile, the one Shop's storefront details and cover photo, login email/password, vacation state, and profile photo.
 - **Authority:** React/Vite owns forms and feedback; Laravel owns allow-lists, validation, Seller/Shop scope, re-authentication, storage, and safe DTOs.
-- **Current implementation:** profile/storefront editing, vacation fields, current-password-protected email/password changes, private profile-photo upload/view/replace/remove, Shop cover upload/preview/replace/remove, and a Seller pickup-address book are available at `/account`.
+- **Current implementation:** profile/storefront editing, vacation fields, current-password-protected email/password changes, private profile-photo upload/view/replace/remove, Shop cover upload/preview/replace/remove, and a Seller pickup-address book are available at `/settings/account`.
 - **One-Shop rule:** a Seller edits the registration-created Shop. Account Management never creates a second Shop; incomplete required storefront data is surfaced as `SHOP_SETUP_REQUIRED` by the Dashboard.
 - **Boundaries:** Seller Auth owns sessions/recovery; Admin owns status, approval, compliance, and controlled review; Product/Catalog owns product data; Inventory owns balances; payout integrations own provider secrets.
 - **Non-goals:** role/status/permission changes, Admin decisions, another Seller's data, arbitrary column patches, Seller closure, MFA, payouts without an approved provider, notification preferences, or replacement evidence review.
@@ -93,7 +93,7 @@ scope: Seller Web Application and Laravel API
 - Current routes are `GET/PATCH /api/v1/seller/account`, profile/storefront/email updates, `PUT /account/password`, and `POST/GET/DELETE /account/profile-photo` and `/account/shop-cover` under `auth:sanctum,seller.active`.
 - Pickup address routes are `GET/POST /api/v1/seller/pickup-addresses` and `PATCH/DELETE /api/v1/seller/pickup-addresses/{address}` under the same active-Seller boundary.
 - Current implementation is `src/api/app/Http/Controllers/Seller/AccountController.php`, `SellerAccountService`, Seller Form Requests/Resources, and the configured filesystem. `SellerAccountService` locks profile rows, stores generated photo keys, redacts logs, and cleans up replaced objects.
-- The Seller `/account` pages consume the credentialed API and show profile, storefront, vacation, security, profile-photo, and Shop-cover controls. Do not add unsupported payout/preference panels as if they were live.
+- The Seller `/settings/account` pages consume the credentialed API and show profile, storefront, vacation, security, profile-photo, and Shop-cover controls. Do not add unsupported payout/preference panels as if they were live.
 - Keep migrations additive; enum-like values remain strings with PHP enum casts. Add controlled-change or asset metadata tables only after their policies are approved.
 - Test Seller isolation, protected-field rejection, validation, current-password failures, role-scoped email uniqueness, password hashing/token invalidation, photo MIME/extension/size spoofing, private delivery, replacement rollback, and stale writes. Run Seller lint, TypeScript, build, and API tests on SQLite/PostgreSQL.
 
@@ -145,6 +145,10 @@ scope: Seller Web Application and Laravel API
 
 ### Account settings experience — 2026-11-05
 
-- `/account` uses the shared `@aisley/ui/account-settings` presentation with a compact identity summary and Profile, Storefront, Pickup addresses, and Security sections. The `section` query parameter preserves reload and browser history; missing or unsupported values display Profile. Existing routes and outer role navigation remain intact.
+- `/settings/account` uses the shared `@aisley/ui/account-settings` presentation with a compact identity summary and Profile, Storefront, Pickup addresses, and Security sections. The `section` query parameter preserves reload and browser history; missing or unsupported values display Profile. Existing routes and outer role navigation remain intact.
 - Ordinary sections mount on first visit and retain unsaved drafts and running uploads when switching sections. Security forms dispose their passwords/codes/challenges when left, while existing authenticated-session password cooldown, pending-operation and reconciliation state survives. Private editor state resets on identity change; obsolete mutation responses cannot refresh a different account.
 - Forms keep their existing API contracts, role/tenant boundaries and field allowlists. Each form has local feedback, readable labels, accessible errors, visible saving states and confirmed image removal. The layout follows `docs/design.md`, including role colors, supported themes, 320px responsiveness and reduced motion. No new backend capability or mobile implementation is implied.
+
+## Settings navigation — 2026-11-06
+
+The web account screen now lives at `/settings/account`, labeled **Account** within the dedicated [Settings workspace](../settings/spec.md). Legacy `/account` redirects while preserving query parameters and fragments. Existing form, API, identity, draft and security contracts remain unchanged.

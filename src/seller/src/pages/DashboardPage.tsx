@@ -1,3 +1,4 @@
+import { DashboardSetupGuide } from '../features/setup-guide/DashboardSetupGuide'
 import { DashboardSkeleton } from '@aisley/ui/portal'
 import { OrderActivityOverview } from '../components/dashboard/OrderActivityOverview'
 import { useEffect, useState } from 'react'
@@ -103,6 +104,8 @@ function DashboardOverview() {
           </button>
         </div>
       </div>
+
+      <DashboardSetupGuide refreshKey={reloadKey} />
 
       {isLoading && !dashboard ? <DashboardSkeleton className="mt-6" metricCount={4} /> : null}
       {isLoading && dashboard ? <p className="sr-only" role="status">Refreshing dashboard…</p> : null}

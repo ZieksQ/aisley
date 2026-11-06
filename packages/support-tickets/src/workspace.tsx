@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '@aisley/ui'
-import { TicketViewport, ticketStatusLabel } from '@aisley/ui/chat'
+import { TicketViewport, TicketSummaryButton } from '@aisley/ui/chat'
 import type { TicketClient, TicketDraftState } from './types'
 import { NewTicketForm } from './new-ticket-form'
 import { TicketDetailView } from './ticket-detail'
@@ -90,11 +90,14 @@ export function SupportTicketsWorkspace({ client, initialTicketId = null, onSele
         {tickets.error && <p className="support-ticket-error" role="alert">{tickets.error} <button onClick={tickets.refresh}>Retry</button></p>}
         {tickets.loading && <p className="support-state" role="status">Loading tickets…</p>}
         {!tickets.loading && !tickets.error && tickets.items.length === 0 && <p className="support-state">No tickets yet. Create a ticket when you need help.</p>}
-        {tickets.items.map(ticket => <button aria-current={ticket.id === tickets.selectedId ? 'true' : undefined} className="support-ticket-list-item" disabled={draft.busy || draft.uncertain || tickets.olderBusy} key={ticket.id} onClick={() => select(ticket.id)} type="button">
-          <strong>{ticket.subject}</strong>
-          <span className="support-list-meta"><span>{ticketStatusLabel(ticket.status, true)}</span><time dateTime={ticket.last_activity_at}>{new Date(ticket.last_activity_at).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric' })}</time></span>
-          <span className="support-list-meta"><span>{ticket.reference}</span>{ticket.unread_count > 0 && <em>{ticket.unread_count} unread</em>}</span>
-        </button>)}
+        {tickets.items.map(ticket => <TicketSummaryButton
+          key={ticket.id}
+          ticket={ticket}
+          selected={ticket.id === tickets.selectedId}
+          disabled={draft.busy || draft.uncertain || tickets.olderBusy}
+          requester
+          onSelect={() => select(ticket.id)}
+        />)}
         {tickets.cursor && <button className="support-ticket-secondary" disabled={tickets.moreBusy} onClick={() => void tickets.loadMore()} type="button">{tickets.moreBusy ? 'Loading…' : 'More tickets'}</button>}
       </section>
       <div className="support-ticket-content" ref={content}>

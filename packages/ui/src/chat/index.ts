@@ -30,6 +30,7 @@ export { ChatLoadingThread } from "./loading";
 export { TicketHistory, ticketStatusLabel } from './ticket-history';
 export type { TicketHistoryEvent } from './ticket-history';
 export { TicketViewport } from './ticket-workspace';
+export { TicketSummaryButton, TicketStatusBadge } from './ticket-presentation';
 
 export { UnifiedChatInbox } from "./unified-inbox";
 export { useUnifiedInbox, messageHref, chatRoleLabel } from "./unified-state";

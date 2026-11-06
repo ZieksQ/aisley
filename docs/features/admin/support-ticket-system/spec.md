@@ -182,3 +182,10 @@ scope: Laravel API, Admin React dashboard, and role-owned requester interfaces
 - Group requester, category, and assignment metadata beneath the subject/status header. Use the shared `@aisley/ui/chat` ticket history for reply bubbles, Manila dates/times, distinct lifecycle events, older-history anchoring and new-activity navigation.
 - Keep public reply composition beneath history. Place assignment and status controls in a separate management panel, alongside the conversation on wide desktops and below it on smaller screens. View-only users see no mutation controls; resolved tickets explain the need to reopen before replying.
 - Protect unsaved changes during navigation and preserve uncertain retries. No API, lifecycle, data-access, ordinary-chat, or Flutter contract changes. Controlled component verification is documented in `packages/support-tickets/tests/README.md`; live mutations and authenticated role-shell acceptance remain separate checks.
+
+## Web UI refinement — 2026-11-06
+
+- Admin uses the shared ticket-summary and status presentation, with category, requester role, Manila date and explicit unread text. Existing status/category/assignee URL filters remain unchanged.
+- **Manage ticket** toggles the assignment/status panel with an accessible expanded state. The panel sits alongside the conversation on wide desktops and in a bounded scroll region above it on smaller screens; it starts collapsed so the history and public reply take priority. Closing it preserves unsaved management fields and their navigation guards.
+- The public reply composer has an associated character count, visible sending feedback, and resolved-ticket guidance pointing to management. View-only users see no management trigger or mutation controls. Existing safe retries, explicit status saves, permissions and API/mobile contracts remain unchanged.
+- See [verification](chat-ui-verification-2026-11-06.md) and the [Stitch design project](https://stitch.withgoogle.com/projects/13843117589710674814).

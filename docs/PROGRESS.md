@@ -40,3 +40,18 @@ Short, dated log of what has been implemented across the whole app. Append new e
 
 - Terms and Privacy now use separate bounded, keyboard-focusable scroll regions on Customer, Seller, Admin, and Logistics consent screens. Confirmation checkboxes and Accept remain outside the reading regions; the shared policy specification records this interaction.
 - Verification: Seller, Admin, and Logistics production builds, scoped Oxlint/ESLint, and 28 synthetic Chromium role/theme/viewport checks plus acceptance and independent-scroll flows passed. The Customer Next.js build stalled during optimized compilation and was stopped; Customer production-build verification remains open.
+
+## 2026-11-06 — Shared portal Settings workspace
+
+- Admin and Seller now follow Logistics Settings navigation with Account, Terms and conditions, Billing entry links to existing Finance settings, and System/Light/Dark Appearance. Shared presentation preserves role palettes, account forms, consent/setup gates, legacy query/hash redirects and Finance permissions; Customer and API/mobile contracts remain unchanged.
+- Verification: three portal TypeScript/build/lint checks and Customer TypeScript passed (existing Logistics test lint warning remains); 48 Admin/Seller Settings and 88 account browser combinations passed. An adapted local Logistics Settings check passed 24 combinations after correcting stale notification/policy fixtures/selectors. Reviewed responsive light/dark screenshots and passing Taste inspections with a documented sparse-form warning. See [verification](features/shared/account-settings/portal-settings-verification-2026-11-06.md); live/deployed acceptance remains open.
+
+## 2026-11-06 — Support ticket chat UI/UX
+
+- Refreshed Customer, Seller, Logistics and Admin support tickets using Google Stitch MCP with endpoint context: shared readable inbox rows/statuses, clearer public history, anchored labeled composers, resolved-ticket guidance and collapsible Admin management. Consolidated conflicting styles and retained role palettes, draft guards, exact retries, permissions and API/mobile contracts.
+- Verification: all four TypeScript/production builds, scoped lint, existing Admin filter test and 35 controlled Chromium role/theme/viewport combinations plus form/navigation/status/management/retry/history checks passed. Reviewed responsive screenshots and Taste inspections; documented sparse-inbox and slate-border allowances. See [verification](features/admin/support-ticket-system/chat-ui-verification-2026-11-06.md) and [Stitch project](https://stitch.withgoogle.com/projects/13843117589710674814). Authenticated/deployed acceptance remains open.
+
+## 2026-11-06 — Seller and Logistics dashboard setup guides
+
+- Added shared six-item dashboard guides with role-specific navigation tips, direct workspace links, automatic Product/provider/rate-card checks, accessible progress, browser-local lessons and hide/reopen preferences. New-account auto-opening uses a fixed deployment cutoff; existing accounts opt in. Preserved operational dashboards, approval/consent gates, tenant isolation and external mobile contracts.
+- Verification: both TypeScript/production builds, scoped lint/PHP formatting, 5 new API tests (103 assertions) and 8 existing Seller dashboard tests (123 assertions) passed. Chromium passed 72 task/theme/viewport combinations plus persistence, completion, account isolation and failure/retry checks. Reviewed responsive light/dark captures and passing Taste inspections with documented existing-shell allowances and empty-chart warnings. Configure `DASHBOARD_GUIDE_LAUNCH_AT` at rollout; deployed/PostgreSQL acceptance remains open. See [verification](features/shared/dashboard-setup-guide/verification-2026-11-06.md).

@@ -27,11 +27,12 @@ type AccountSettingsProps = {
   children: ReactNode;
   customer?: boolean;
   headingLevel?: 1 | 2;
+  title?: string;
 };
 
 export function AccountSettings({
   sections, activeSection, onSectionChange, name, email, role, status, avatar, children,
-  customer = false, headingLevel = 1,
+  customer = false, headingLevel = 1, title = "Account settings",
 }: AccountSettingsProps) {
   const Heading = headingLevel === 1 ? "h1" : "h2";
   const ContextHeading = headingLevel === 1 ? "h2" : "h3";
@@ -46,7 +47,7 @@ export function AccountSettings({
     <Context.Provider value={{ active: active.id, prefix }}>
       <div className={`account-settings${customer ? " account-settings-customer" : ""}`}>
         <header className="account-settings-heading">
-          <Heading>Account settings</Heading>
+          <Heading>{title}</Heading>
           <p>Manage your profile and the settings that matter to your {role.toLowerCase()} account.</p>
         </header>
         <div className="account-settings-identity">
@@ -128,11 +129,11 @@ export function AccountSettingsFeedback({ error, message }: { error?: string | n
   );
 }
 
-export function AccountSettingsState({ error, onRetry, headingLevel = 1 }: { error?: string | null; onRetry?: () => void; headingLevel?: 1 | 2 }) {
+export function AccountSettingsState({ error, onRetry, headingLevel = 1, title = "Account settings" }: { error?: string | null; onRetry?: () => void; headingLevel?: 1 | 2; title?: string }) {
   const Heading = headingLevel === 1 ? "h1" : "h2";
   return (
     <div className="account-settings account-settings-state">
-      <Heading>Account settings</Heading>
+      <Heading>{title}</Heading>
       {error ? (
         <div className="account-settings-state-panel" role="alert">
           <h2>We couldn’t load your settings</h2>

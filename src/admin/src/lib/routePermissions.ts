@@ -13,6 +13,7 @@ export function routePermission(path: string): string | undefined {
     ['/vouchers', 'vouchers.view'],
     ['/finance-holds', 'finance.view'],
     ['/finance', 'finance.view'],
+    ['/settings/billing', 'finance.view'],
     ['/pricing-and-fees', 'finance.view'],
     ['/audit-logs', 'audit-logs.view'],
     ['/platform-settings', 'platform-settings.view'],

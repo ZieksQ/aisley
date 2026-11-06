@@ -163,3 +163,7 @@ public current policy/history read
 - Session bootstrap and consent checking no longer show a full-screen spinner or “Checking” interstitial. Private screens remain gated until authenticated and consent-allowed; the portal shell remains mounted after identity resolution, with dashboard-shaped skeletons only for Dashboard content and no generic route loader elsewhere.
 - Within a mounted boundary, ordinary protected navigation reuses the current account/session's in-memory consent result. A newly mounted Customer boundary still verifies consent. Returning from consent rechecks; account/session changes invalidate the result. Storefront keys results to the Customer and session revision; portal guards key results to identity and consent boundary. No trusted consent is persisted to browser storage. Server policy middleware continues to enforce the current version on every protected action/read, including publication during an already-open session.
 - Preserve required-consent redirects, inline errors/retry, safe return paths and the existing Logistics offline receiving contract. This web presentation change does not alter the shared API or external Flutter behavior.
+
+### Portal Settings navigation — 2026-11-06
+
+Admin, Seller and Logistics host the existing consent screen at `/settings/terms`, labeled Terms and conditions. Legacy `/policy-consent` remains a redirect preserving safe return state. Both paths remain accessible during required consent; other Settings destinations remain gated. Policy content, acceptance and API contracts are unchanged.

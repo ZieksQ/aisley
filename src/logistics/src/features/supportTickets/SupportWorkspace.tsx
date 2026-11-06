@@ -1,13 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '@aisley/ui'
-import { TicketViewport } from '@aisley/ui/chat'
+import { TicketViewport, TicketSummaryButton } from '@aisley/ui/chat'
 import { NewTicketForm, TicketDetailView, type TicketClient, type TicketDraftState } from '@aisley/support-tickets'
 import { FaArrowLeft, FaPlus, FaRotate } from 'react-icons/fa6'
 import { useBlocker } from 'react-router-dom'
 import { useSupportTickets } from './useSupportTickets'
 import './support.css'
 
-const statuses = { open: 'Open', in_progress: 'In progress', waiting_for_requester: 'Waiting for you', resolved: 'Resolved' }
 const emptyDraft: TicketDraftState = { dirty: false, busy: false, uncertain: false }
 
 export function SupportWorkspace({
@@ -80,7 +79,7 @@ export function SupportWorkspace({
   return <section className="logistics-support support-tickets-workspace">
     <header className="support-toolbar">
       <div>
-        <h2>Support tickets</h2>
+        <h1>Support tickets</h1>
         <p>Contact Admin support and follow your requests.</p>
       </div>
       <div className="support-toolbar-actions" ref={newButton}>
@@ -112,25 +111,14 @@ export function SupportWorkspace({
         {!tickets.loading && !tickets.error && tickets.items.length === 0 && <div className="support-state">
           <p>No tickets yet.</p><p>Use New ticket when you need help.</p>
         </div>}
-        {tickets.items.map((ticket) => <button
-          aria-current={ticket.id === tickets.selectedId && !creating ? 'true' : undefined}
-          className="support-ticket-list-item"
-          disabled={draft.busy || draft.uncertain || tickets.olderBusy}
+        {tickets.items.map(ticket => <TicketSummaryButton
           key={ticket.id}
-          onClick={() => select(ticket.id)}
-          type="button"
-        >
-          <span className="support-list-meta">
-            <span>{ticket.reference}</span><span>{statuses[ticket.status]}</span>
-          </span>
-          <strong>{ticket.subject}</strong>
-          <span className="support-list-meta">
-            <time dateTime={ticket.last_activity_at}>
-              {new Date(ticket.last_activity_at).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric' })}
-            </time>
-            {ticket.unread_count > 0 && <em>{ticket.unread_count} unread</em>}
-          </span>
-        </button>)}
+          ticket={ticket}
+          selected={ticket.id === tickets.selectedId && !creating}
+          disabled={draft.busy || draft.uncertain || tickets.olderBusy}
+          requester
+          onSelect={() => select(ticket.id)}
+        />)}
         {tickets.cursor && <button className="support-ticket-secondary support-load-more" disabled={tickets.moreBusy} onClick={() => void tickets.loadMore()} type="button">
           {tickets.moreBusy ? 'Loading…' : 'Load more tickets'}
         </button>}

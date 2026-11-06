@@ -1,3 +1,4 @@
+import { TicketSummaryButton } from '@aisley/ui/chat'
 import type { SupportTicket, TicketCategory, TicketStatus } from '@aisley/support-tickets'
 import type { SupportTicketFilters } from '../../lib/supportTickets'
 
@@ -12,10 +13,10 @@ type Props = {
   onMore: () => void
 }
 
-const selectClass = 'min-h-10 rounded-md border border-slate-300 bg-white px-2.5 text-sm dark:border-white/20 dark:bg-[#19151e]'
+const selectClass = 'min-h-11 rounded-md border border-slate-300 bg-white px-2.5 text-sm dark:border-white/20 dark:bg-slate-900'
 
 export function SupportTicketQueue({ tickets, selectedId, filters, loading, hasMore, onFilters, onSelect, onMore }: Props) {
-  return <section aria-label="Support queue" className="min-w-0 h-[clamp(540px,calc(100dvh-200px),900px)] overflow-y-auto border-r border-slate-200 bg-white dark:border-white/10 dark:bg-slate-800">
+  return <section aria-label="Support queue" className="admin-ticket-queue min-w-0 h-[clamp(540px,calc(100dvh-200px),900px)] overflow-y-auto border-r border-slate-200 bg-white dark:border-white/10 dark:bg-slate-800">
     <div className="border-b border-slate-200 p-4 dark:border-white/10">
       <h2 className="text-base font-semibold">Support queue</h2>
       <div className="mt-3 grid gap-2 grid-cols-1">
@@ -39,20 +40,8 @@ export function SupportTicketQueue({ tickets, selectedId, filters, loading, hasM
     {loading && <p className="p-4 text-sm text-slate-500 dark:text-slate-400">Loading tickets…</p>}
     {!loading && tickets.length === 0 && <p className="p-4 text-sm text-slate-500 dark:text-slate-400">No tickets match these filters.</p>}
     <ul>
-      {tickets.map((ticket) => <li className="border-b border-slate-200 last:border-0 dark:border-white/10" key={ticket.id}>
-        <button
-          aria-current={selectedId === ticket.id ? 'true' : undefined}
-          className="w-full px-4 py-3 text-left hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-[#4C1268] aria-[current=true]:bg-purple-50 dark:focus-visible:outline-[#C4B5FD] dark:hover:bg-white/5 dark:aria-[current=true]:bg-white/10"
-          onClick={() => onSelect(ticket.id)}
-          type="button"
-        >
-          <span className="flex items-start justify-between gap-2">
-            <strong className="break-words text-sm">{ticket.subject}</strong>
-            {ticket.unread_count > 0 && <span className="shrink-0 text-xs font-semibold text-[#4C1268] dark:text-purple-200">{ticket.unread_count} unread</span>}
-          </span>
-          <span className="mt-1 block break-all text-xs text-slate-500 dark:text-slate-400">{ticket.reference} · {ticket.requester_role} · {ticket.status.replaceAll('_', ' ')}</span>
-          <span className="mt-1 block text-xs text-slate-500 dark:text-slate-400">{new Date(ticket.last_activity_at).toLocaleString()}</span>
-        </button>
+      {tickets.map((ticket) => <li key={ticket.id}>
+        <TicketSummaryButton ticket={ticket} selected={selectedId === ticket.id} onSelect={() => onSelect(ticket.id)} />
       </li>)}
     </ul>
     {hasMore && <button

@@ -76,3 +76,7 @@
 - Abort obsolete reads/downloads and discard late results; never label an earlier period/account response as current. Scope component lifetime to the signed-in account (and Admin permissions), clear sensitive content on denied reads, preserve read retries, and retain uncertain payment identity/selection. Money actions continue to use existing confirmations, reservations and idempotency rules.
 - Reuse the same styling for Finance overview, remittances/payouts, invoice/payment details, automation/payment settings, Admin sandbox/holds and Logistics courier cash. Settings/detail pages have no date picker. Logistics Billing remains in Settings. No dependency, migration, accounting mutation or Courier/Buyer mobile contract is added.
 - Verification evidence and remaining live acceptance are recorded in [Finance UI verification](finance-ui-verification-2026-11-05.md).
+
+## Portal Billing entry points — 2026-11-06
+
+Admin and Seller Settings include `/settings/billing` entry pages linking to existing `/finance/automation` (Admin) and `/finance/payment-settings` (Seller). Admin Billing navigation/direct access requires `finance.view`; existing management authorization remains unchanged. Finance continues to own all payment workflows. Logistics retains its existing Billing account-metadata screen.
