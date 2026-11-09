@@ -55,6 +55,68 @@ class UserAccountManagementTest extends TestCase
             ->assertUnprocessable();
     }
 
+    public function test_list_includes_logistics_profiles_and_falls_back_to_email_without_a_profile(): void
+    {
+        $admin = $this->adminWithPermissions('users.view');
+        $customer = $this->customer();
+        $logistics = $this->logistics();
+        $withoutProfile = User::factory()->create([
+            'role' => UserRole::Logistics,
+            'status' => UserStatus::Active,
+        ]);
+
+        $response = $this->actingAs($admin)->getJson('/api/v1/admin/users')
+            ->assertOk()
+            ->assertJsonCount(3, 'data')
+            ->assertJsonMissing(['id' => $admin->id]);
+
+        $accounts = collect($response->json('data'))->keyBy('id');
+        $this->assertSame('Lara Mae Logistics', $accounts[$logistics->id]['display_name']);
+        $this->assertSame('logistics', $accounts[$logistics->id]['role']);
+        $this->assertSame($withoutProfile->email, $accounts[$withoutProfile->id]['display_name']);
+        $this->assertSame('Customer Account', $accounts[$customer->id]['display_name']);
+    }
+
+    public function test_logistics_accounts_can_be_filtered_and_searched_by_name(): void
+    {
+        $admin = $this->adminWithPermissions('users.view');
+        $logistics = $this->logistics();
+        $this->customer(firstName: 'Lara');
+
+        foreach (['lara', 'logistics'] as $search) {
+            $this->actingAs($admin)
+                ->getJson("/api/v1/admin/users?role=logistics&search={$search}")
+                ->assertOk()
+                ->assertJsonCount(1, 'data')
+                ->assertJsonPath('data.0.id', $logistics->id);
+        }
+    }
+
+    public function test_logistics_detail_and_lifecycle_responses_include_a_safe_profile(): void
+    {
+        $admin = $this->adminWithPermissions('users.view', 'users.manage');
+        $logistics = $this->logistics();
+
+        $this->actingAs($admin)->getJson("/api/v1/admin/users/{$logistics->id}")
+            ->assertOk()
+            ->assertJsonPath('data.display_name', 'Lara Mae Logistics')
+            ->assertJsonPath('data.role', 'logistics')
+            ->assertJsonPath('data.profile.first_name', 'Lara')
+            ->assertJsonPath('data.profile.middle_name', 'Mae')
+            ->assertJsonPath('data.profile.last_name', 'Logistics')
+            ->assertJsonPath('data.profile.contact_number', '•••••••4567')
+            ->assertJsonPath('data.role_summary', null);
+
+        $this->actingAs($admin)->postJson("/api/v1/admin/users/{$logistics->id}/suspend", [
+            'expected_status' => 'active',
+            'reason' => 'Logistics account policy review.',
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.status', 'suspended')
+            ->assertJsonPath('data.display_name', 'Lara Mae Logistics')
+            ->assertJsonPath('data.profile.contact_number', '•••••••4567');
+    }
+
     public function test_detail_is_role_aware_and_omits_secrets_and_private_evidence(): void
     {
         $admin = $this->adminWithPermissions('users.view');
@@ -330,6 +392,24 @@ class UserAccountManagementTest extends TestCase
             'contact_number' => '09171234567',
             'sex' => 'prefer_not_to_say',
             'birth_date' => '1995-01-01',
+        ]);
+
+        return $user;
+    }
+
+    private function logistics(): User
+    {
+        $user = User::factory()->create([
+            'role' => UserRole::Logistics,
+            'status' => UserStatus::Active,
+        ]);
+        $user->logisticsProfile()->create([
+            'first_name' => 'Lara',
+            'middle_name' => 'Mae',
+            'last_name' => 'Logistics',
+            'contact_number' => '09171234567',
+            'sex' => 'prefer_not_to_say',
+            'birth_date' => '1990-01-01',
         ]);
 
         return $user;

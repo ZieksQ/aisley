@@ -1,5 +1,8 @@
 # Production API Docker deployment
 
+If the private environment file was lost or deployment reports a Vim swap file,
+follow [Production environment recovery and API keys](production-env-recovery.md).
+
 All production-container configuration lives in this directory:
 
 ```text

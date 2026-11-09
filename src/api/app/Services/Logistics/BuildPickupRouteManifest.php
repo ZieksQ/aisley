@@ -157,7 +157,7 @@ class BuildPickupRouteManifest
             'tasks' => [],
         ]];
         $grouped = [];
-        $tasks = $schedule->tasks->sortBy(fn ($task) => $task->created_at?->format('U.u').'|'.$task->id)->values();
+        $tasks = $schedule->tasks->reject(fn ($task) => $task->released_at !== null)->sortBy(fn ($task) => $task->created_at?->format('U.u').'|'.$task->id)->values();
         foreach ($tasks as $position => $task) {
             $pickup = $task->waybill?->snapshot?->payload['pickup'] ?? null;
             if (! is_array($pickup)) {

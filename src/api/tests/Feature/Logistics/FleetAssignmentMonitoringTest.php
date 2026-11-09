@@ -107,12 +107,17 @@ class FleetAssignmentMonitoringTest extends TestCase
         $a = $this->pinnedHub();
         $b = $this->pinnedHub();
         $trip = $this->linehaul($a, $b);
+        $trip->truck->update(['last_confirmed_hub_id' => $a[2]->id]);
         $trip->update(['direction' => 'return', 'from_hub_id' => $b[2]->id, 'to_hub_id' => $a[2]->id, 'requested_by' => $b[0]->id, 'parcel_count' => 0]);
         $this->actingAs($a[0]);
         foreach (['pending_acceptance', 'scheduled', 'in_transfer', 'receiving'] as $status) {
             $trip->update(['status' => $status]);
             $this->getJson(self::URL.'?stage=linehaul')->assertOk()->assertJsonPath('data.0.direction', 'return')
-                ->assertJsonPath('data.0.parcel_count', 0)->assertJsonPath('data.0.stops.0.latitude', (float) $b[2]->address->latitude);
+                ->assertJsonPath('data.0.parcel_count', 0)->assertJsonPath('data.0.stops.0.latitude', (float) $b[2]->address->latitude)
+                ->assertJsonPath('data.0.stops.2.kind', 'last_confirmed_hub')
+                ->assertJsonPath('data.0.stops.2.latitude', (float) $a[2]->address->latitude)
+                ->assertJsonPath('data.0.outbound_logistics', $b[1]->business_name)
+                ->assertJsonPath('data.0.inbound_logistics', $a[1]->business_name);
         }
         $this->actingAs($b[0])->getJson(self::URL)->assertOk()->assertJsonCount(0, 'data');
         $this->actingAs($a[0]);

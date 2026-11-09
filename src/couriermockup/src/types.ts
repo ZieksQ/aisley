@@ -145,6 +145,8 @@ export interface FirstMileTask {
   id: string
   status: 'assigned' | 'accepted' | 'picked_up_from_seller'
   picked_up_at: string | null
+  failed_pickup_count: number
+  max_failed_pickups: number
   order: { id: string; reference: string }
   waybill: { reference: string }
   pickup: {
@@ -169,7 +171,9 @@ export interface FirstMileTask {
     id: string
     reference: string
     starts_at: string
-    ends_at: string
+    ends_at: string | null
+    pickup_due_at: string
+    retry_deadline_at: string
     timezone: 'UTC'
   }
 }
@@ -231,7 +235,7 @@ export interface PickupRouteManifest {
     id: string
     reference: string
     starts_at: string
-    ends_at: string
+    ends_at: string | null
     timezone: 'UTC'
     order_count: number
   }

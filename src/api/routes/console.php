@@ -50,3 +50,5 @@ Artisan::command('sorting:activate-due', function () {
 Schedule::command('sorting:activate-due')->everyMinute()->timezone('Asia/Manila')->withoutOverlapping()->onOneServer();
 
 Schedule::command('chat:maintain-media')->everyFiveMinutes()->withoutOverlapping()->onOneServer();
+
+Schedule::command('pickups:expire-schedules')->everyMinute()->withoutOverlapping()->onOneServer();

@@ -87,7 +87,7 @@ class SellerOrderResource extends JsonResource
                     'reference' => $this->firstMileTask->schedule->reference,
                     'status' => $this->firstMileTask->schedule->status->value,
                     'starts_at' => $this->firstMileTask->schedule->starts_at->toIso8601String(),
-                    'ends_at' => $this->firstMileTask->schedule->ends_at->toIso8601String(),
+                    'ends_at' => $this->firstMileTask->schedule->ends_at?->toIso8601String(),
                     'timezone' => 'Asia/Manila',
                 ],
             ],

@@ -31,6 +31,7 @@ use App\Models\LinehaulTripShipment;
 use App\Models\LogisticsHub;
 use App\Models\LogisticsOrganization;
 use App\Models\Parcel;
+use App\Models\PickupSchedule;
 use App\Models\Shipment;
 use App\Models\ShipmentEvent;
 use App\Models\ShipmentEvidence;
@@ -40,6 +41,7 @@ use App\Models\Waybill;
 use App\Services\Courier\CourierNotificationService;
 use App\Services\Finance\FinanceLifecycleService;
 use App\Services\Logistics\LogisticsNotificationService;
+use App\Services\Logistics\PickupScheduleLifecycleService;
 use App\Services\Logistics\Routing\LinehaulService;
 use App\Services\Logistics\Routing\ShipmentRouteService;
 use App\Services\Logistics\Sorting\SortingAssignmentService;
@@ -79,7 +81,7 @@ class FulfillmentTransitionService
 
             if ($legacy->status === FirstMileTaskStatus::PickedUp && $physical->status !== FulfillmentTaskStatus::PickedUpFromSeller) {
                 $before = $shipment->status->value;
-                $physical->update(['status' => FulfillmentTaskStatus::PickedUpFromSeller, 'courier_id' => $legacy->courier_id, 'picked_up_at' => $legacy->picked_up_at ?? now(), 'revision' => $physical->revision + 1]);
+                $physical->update(['status' => FulfillmentTaskStatus::PickedUpFromSeller, 'courier_id' => $legacy->courier_id, 'legacy_first_mile_task_id' => $legacy->id, 'picked_up_at' => $legacy->picked_up_at ?? now(), 'revision' => $physical->revision + 1]);
                 $shipment->update(['status' => ShipmentStatus::PickedUpFromSeller, 'revision' => $shipment->revision + 1]);
                 $this->event($shipment, $physical, 'legacy_first_mile_pickup', $before, ShipmentStatus::PickedUpFromSeller->value, $legacy->courier_id, null, null, null, ['legacy_task_id' => $legacy->id]);
             }
@@ -421,6 +423,9 @@ class FulfillmentTransitionService
             }
             $org = $this->logisticsOrganization($logistics);
             $waybill = $this->resolveWaybill($org, (string) $input['reference']);
+            $pickupSchedule = ($input['target_state'] ?? null) === ShipmentStatus::ReceivedAtHub->value
+                ? PickupSchedule::query()->whereHas('tasks', fn ($query) => $query->where('order_id', $waybill->order_id)->where('status', FirstMileTaskStatus::PickedUp))->lockForUpdate()->first()
+                : null;
             $shipment = $this->ensureForWaybillInTransaction($waybill);
             $shipment = Shipment::query()->whereKey($shipment->id)->with($this->shipmentRelations())->lockForUpdate()->firstOrFail();
             if ($shipment->revision !== (int) $input['expected_revision']) {
@@ -494,6 +499,9 @@ class FulfillmentTransitionService
                     $updates['received_at_hub_at'] = now();
                 }
                 $shipment->update($updates);
+                if ($pickupSchedule !== null) {
+                    app(PickupScheduleLifecycleService::class)->completeIfReady($pickupSchedule, $logistics->id);
+                }
                 if ($target === ShipmentStatus::DispatchedFromHub->value) {
                     $task = $this->createFinalTask($shipment);
                 }
@@ -551,6 +559,9 @@ class FulfillmentTransitionService
 
             $org = $this->logisticsOrganization($logistics);
             $waybill = $this->resolveWaybill($org, $normalizedReference);
+            $schedule = PickupSchedule::query()
+                ->whereHas('tasks', fn ($query) => $query->where('order_id', $waybill->order_id)->where('status', FirstMileTaskStatus::PickedUp))
+                ->lockForUpdate()->first();
             $shipment = $this->ensureForWaybillInTransaction($waybill);
             $shipment = Shipment::query()->whereKey($shipment->id)->with($this->shipmentRelations())->lockForUpdate()->firstOrFail();
             if ($shipment->status === ShipmentStatus::ReceivedAtHub) {
@@ -569,6 +580,9 @@ class FulfillmentTransitionService
 
             $shipment->update(['status' => ShipmentStatus::ReceivedAtHub, 'revision' => $shipment->revision + 1, 'received_at_hub_at' => now()]);
             $event = $this->event($shipment, $task, 'hub_receipt', ShipmentStatus::PickedUpFromSeller->value, ShipmentStatus::ReceivedAtHub->value, $task->courier_id, $logistics->id, null, null, ['request_hash' => $requestHash, 'captured_at' => $scannedAt], $idempotencyKey);
+            if ($schedule !== null) {
+                app(PickupScheduleLifecycleService::class)->completeIfReady($schedule, $logistics->id);
+            }
 
             return ['shipment' => $shipment->fresh($this->shipmentRelations()), 'task' => $task, 'event' => $event];
         }, 3);
@@ -1197,7 +1211,7 @@ class FulfillmentTransitionService
                 'item_count' => (int) $waybill->order->items->sum('quantity'),
             ]);
         }
-        $legacy = FirstMileTask::query()->where('order_id', $waybill->order_id)->with('schedule')->orderByDesc('created_at')->first();
+        $legacy = FirstMileTask::query()->where('order_id', $waybill->order_id)->whereIn('status', [FirstMileTaskStatus::Assigned, FirstMileTaskStatus::Accepted, FirstMileTaskStatus::PickedUp])->with('schedule')->first();
         $physicalState = match ($legacy?->status) {
             FirstMileTaskStatus::PickedUp => ShipmentStatus::PickedUpFromSeller,
             FirstMileTaskStatus::Accepted => ShipmentStatus::SellerPickupAccepted,

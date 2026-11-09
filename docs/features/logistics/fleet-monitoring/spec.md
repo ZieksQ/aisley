@@ -9,7 +9,7 @@ canonical: true
 
 ## WHAT
 
-- Dedicated read-only `/fleet-monitoring` workspace for first-mile pickups, owned-truck linehaul and last-mile deliveries; `/fleet-monitoring/:truckId` retains owned truck details/history.
+- Dedicated read-only `/fleet-monitoring` workspace for first-mile pickups, owned-truck linehaul and last-mile deliveries; `/fleet-monitoring/:truckId` retains the current owned-truck schedule; its **Past transfers** button opens `/fleet-monitoring/:truckId/history`, with a **View transfer** action opening `/fleet-monitoring/:truckId/history/:tripId`.
 - Answer where trucks were last confirmed, what work they are assigned, their schedules, drivers, committed parcel capacity and recorded history.
 - Registration and capability management stay in Company fleet; dispatch and receiving stay in their existing workspaces.
 - Operational location only: the assignment map displays saved pickup, hub and delivery pins, never live Courier positions. No GPS collection, ETA, maintenance workflow, notifications or Courier client contract changes.
@@ -23,7 +23,7 @@ canonical: true
 - Resolve active trips independently of recent history. Include outbound and return assignments, including another hub scheduling an owned truck home.
 - Truck rows show last confirmed hub, active route/driver/schedule and committed reserved/onboard count against current truck capacity. These are not measured physical occupancy.
 - In transit, identify origin → destination separately from last confirmed hub. Unknown values remain unavailable.
-- Details show home hub, identity, availability, active trip and paginated history including completed, rejected and cancelled trips.
+- Truck details retain home hub, identity, availability and the complete active trip schedule. A separate paginated Past transfers table includes only completed (`received`), rejected and cancelled trips. Current schedules remain on monitoring.
 - Timeline shows recorded decision, release, departure, driver arrival report, confirmed arrival and unloading closure. Missing timestamps are explicitly unrecorded; reported arrival never implies confirmed arrival.
 - Display dates in Asia/Manila. API timestamps use ISO strings; include server time on all monitoring responses.
 - Visible pages refresh every 30 seconds, on becoming visible, and manually. Prevent overlapping reads and ignore obsolete/account-switched responses. Show last successful refresh time; failed refresh retains explicitly outdated data for the same resource only.
@@ -44,7 +44,7 @@ canonical: true
 - Assignment contains composite stage/ID, source ID, stage/status, reference, safe Courier ID/name, nullable schedule/reference/window, parcel count, nullable truck ID/plate and direction, recorded event timestamps and stop projections. Stops include kind, label, area summary and nullable coordinate pair. No contact fields, full street address, POD/documents or GPS history.
 - Use immutable waybill pickup pins, the authoritative Order delivery address and saved hub pins. Invalid/missing coordinate pairs remain null; monitoring never geocodes, computes routes or writes operational state. Timestamp absence remains **Not recorded**.
 - Map and list describe the same current assignment page; total results and **Map shows N on page P** explicitly distinguish page coverage. Stage/search/page live in `stage`, `assignment_search`, `assignment_page` URL parameters, independently of truck filters. Preserve both sets through truck details/Back.
-- Use installed Leaflet with Geoapify raster tiles and browser-only origin-restricted credentials. Keep attribution visible. First-mile pickup/open-package icons are teal, linehaul/truck icons blue, last-mile delivery icons violet; hub icons are slate. Pair color with icons, stage labels and a legend. Truck icons at origin stops mean assigned origins, not current truck positions.
+- Use installed Leaflet with Geoapify raster tiles and browser-only origin-restricted credentials. Keep attribution visible. First-mile pickup/open-package icons are teal, linehaul/truck icons blue, last-mile delivery icons violet; hub icons are slate. Pair color with icons, stage labels and a legend. Square hub icons mark assigned origin/destination stops. Truck icons mark the saved last-confirmed hub for both active and idle trucks, with permanent plate/location labels. In-transit labels explicitly say the truck has left that hub and its current position is unavailable. Never infer a current position from the route origin.
 - Group coincident coordinates into one marker with a count and selectable assignment menu. Marker/row selection highlights the assignment stops and opens schedule, stop and recorded-event details with links to existing workspaces. Provide keyboard selection, zoom and **Fit shown stops**. Polling updates markers without resetting the operator's viewport.
 - Retain the list/details when tiles, credentials or pins are unavailable. Show loading, tile failure/slow response and retry explicitly. An unconfigured map provider makes the map unavailable rather than fabricating a basemap. Keep visible-tab/manual refresh, same-resource stale notices and private-state disposal from existing monitoring.
 
@@ -52,14 +52,25 @@ canonical: true
 
 - `GET /api/v1/logistics/fleet/monitoring`: query `search` (max 100 characters), `availability` (existing enum), `overdue` (0/1), `page`, `per_page`. Returns `{data: Truck[], meta: {current_page, last_page, per_page, total, server_time, summary}}`.
 - `GET /api/v1/logistics/fleet/monitoring/{truck}`: `{data: Truck, meta: {server_time}}`.
-- `GET /api/v1/logistics/fleet/monitoring/{truck}/trips`: `page`, `per_page`, newest created time then ID; `{data: Trip[], meta: {current_page, last_page, per_page, total, server_time}}`.
+- `GET /api/v1/logistics/fleet/monitoring/{truck}/trips`: `page`, `per_page`, optional `past` boolean (default false, preserving existing reads); `past=1` restricts to `received`, `rejected`, `cancelled`. Order newest created time then ID; `{data: Trip[], meta: {current_page, last_page, per_page, total, server_time}}`.
 - Truck contains safe identity fields, active flag/availability, home and last-confirmed hub IDs/names, capacity, committed parcel count, remaining capacity and nullable active Trip.
-- Trip contains ID, direction/status, route hub IDs/names, assigned driver ID/name, parcel count/capacity snapshot, schedule, overdue flag and recorded event timestamps. No parcel references, personal documents or driver email/contact fields.
+- `GET /api/v1/logistics/fleet/monitoring/{truck}/trips/{trip}` returns `{data: Trip, meta: {server_time}}` for a terminal trip belonging to the selected owned truck. Another truck, foreign organization, active trip or unknown ID returns scoped 404 under the same access/consent gates.
+- Trip contains ID, manifest ID (nullable), direction/status, route hub IDs/names, safe sending/receiving organization IDs/names, validated nullable hub coordinate pairs, assigned driver ID/name, parcel count/capacity snapshot, schedule, overdue flag and recorded event timestamps. No parcel references, personal documents or driver email/contact fields.
 - Use a focused monitoring service, Form Requests and Resources; eager-load only relevant active trips for lists, paginate historical reads at the database. Responses are `private, no-store`.
 - Add role-owned monitoring types, API client, polling hook, tables, detail components and route composition. Existing management APIs and trip lifecycle stay compatible; no schema migration.
 - API acceptance covers isolation/access gates, validation, stable pagination, filters, time boundaries, old active assignments, return trips and truthful timestamps.
 - Browser acceptance covers filters/Back, details/history, refresh failures/retry, obsolete responses, logout, keyboard use, light/dark themes and 320/768/1440px overflow.
 - Run focused API regressions, Logistics TypeScript/lint/build checks and record actual browser checks separately from live deployment acceptance.
+
+### Clear locations and past-transfer pages — 2026-11-09
+
+- Preserve current schedules, driver, status, parcel commitment and recorded events. Label source organization/hub **Outbound Logistics · Sending** and destination organization/hub **Inbound Logistics · Receiving**, independently of outbound/return trip type. Assignment stop details and the company-truck table also identify sending and receiving Logistics.
+- Linehaul assignments append a `last_confirmed_hub` stop after their existing origin/destination stops and expose nullable `outbound_logistics` / `inbound_logistics` business names. Fetch saved location separately from route hubs. Unknown hub pins remain unavailable; preserve existing stop ordering for consumers.
+- Add Past transfers navigation to company-truck rows, selected truck work and truck details. History uses `history_page`; preserve independent fleet and assignment URL filters through history, details and Back. Clamp an out-of-range history page after refresh.
+- History rows show route endpoints, driver, Manila schedule, terminal status, committed parcel count/capacity snapshot and **View transfer**. Transfer details show the same schedule context, sending/receiving organizations, manifest/trip references, recorded event timeline and a map of that trip's origin and destination only.
+- Only past-transfer details draw the hub-to-hub connection. Label it as a dashed schematic link, never the road travelled or live truck location. Pin labels identify Outbound and Inbound hubs. Empty returns, cancelled or rejected trips can lack a manifest; explicitly label their map as the scheduled hub pair when no manifest was recorded.
+- Route hub IDs belong to the stored trip. Names, organization labels and pins resolve from the current saved hub records; they are not historical name/address snapshots. Missing or invalid coordinate pairs, map configuration and tile failures retain readable schedule/hub/event details; one missing pin suppresses the connection.
+- Reuse existing Leaflet/provider setup and monitoring refresh/session disposal. No schema, GPS collection, routing-provider call, operational mutation or external Flutter contract change.
 
 ## Verification — 2026-11-05
 

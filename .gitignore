@@ -14,6 +14,9 @@ docs/context/seller-operations-redesign/
 !/src/**/.env.example
 !/src/api/.env.example
 *.log
+# Vim swap files may contain private environment values.
+*.swp
+*.swo
 
 # cabigan extra docs
 docs/cabigan/*

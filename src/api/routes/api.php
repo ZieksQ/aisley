@@ -39,6 +39,7 @@ use App\Http\Controllers\Courier\FinalMileTaskController;
 use App\Http\Controllers\Courier\FirstMileTaskController;
 use App\Http\Controllers\Courier\LinehaulTripController as CourierLinehaulTripController;
 use App\Http\Controllers\Courier\NotificationController as CourierNotificationController;
+use App\Http\Controllers\Courier\PickupDecisionController;
 use App\Http\Controllers\Courier\PickupRouteManifestController;
 use App\Http\Controllers\Courier\ProofOfDeliveryController;
 use App\Http\Controllers\Courier\VehicleController as CourierVehicleController;
@@ -609,6 +610,7 @@ Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', '
     Route::get('/fleet/monitoring', [FleetMonitoringController::class, 'index']);
     Route::get('/fleet/monitoring/assignments', [\App\Http\Controllers\Logistics\FleetAssignmentController::class, 'index']);
     Route::get('/fleet/monitoring/{truck}', [FleetMonitoringController::class, 'show'])->whereUuid('truck');
+    Route::get('/fleet/monitoring/{truck}/trips/{trip}', [FleetMonitoringController::class, 'trip'])->whereUuid('truck')->whereUuid('trip');
     Route::get('/fleet/monitoring/{truck}/trips', [FleetMonitoringController::class, 'trips'])->whereUuid('truck');
     Route::get('/fleet', [CompanyFleetController::class, 'index'])->name('fleet.index');
     Route::post('/fleet/trucks', [CompanyFleetController::class, 'store'])->name('fleet.trucks.store');
@@ -794,6 +796,8 @@ Route::prefix('v1/courier')->name('courier.')->middleware(['auth:sanctum', 'cour
     Route::get('/pickup-schedules/{schedule}/route-manifest', [PickupRouteManifestController::class, 'show'])->whereUuid('schedule')->name('pickup-schedules.route-manifest.show');
     Route::get('/map-style', [PickupRouteManifestController::class, 'style'])->name('map.style');
     Route::get('/map-tiles/{z}/{x}/{y}.png', [PickupRouteManifestController::class, 'tile'])->whereNumber(['z', 'x', 'y'])->name('map.tiles');
+    Route::post('/first-mile-tasks/{task}/failed-pickup', [PickupDecisionController::class, 'failed'])->whereUuid('task')->name('first-mile-tasks.failed-pickup');
+    Route::post('/pickup-schedules/{schedule}/reject', [PickupDecisionController::class, 'reject'])->whereUuid('schedule')->name('pickup-schedules.reject');
     Route::post('/first-mile-tasks/{task}/accept', [FirstMileTaskController::class, 'accept'])->whereUuid('task')->name('first-mile-tasks.accept');
     Route::post('/first-mile-tasks/{task}/pickup', [FirstMileTaskController::class, 'pickup'])->whereUuid('task')->name('first-mile-tasks.pickup');
     Route::post('/waybills/resolve', [FirstMileTaskController::class, 'resolveWaybill'])->middleware('throttle:60,1')->name('waybills.resolve');

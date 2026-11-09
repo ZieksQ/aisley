@@ -5,7 +5,7 @@ import { loadAssignments } from './api'
 import { AssignmentDetails } from './AssignmentDetails'
 import { AssignmentIcon } from './AssignmentIcon'
 import { AssignmentMap } from './AssignmentMap'
-import { assignmentDestination, assignmentStatus, hasPin, stageLabels } from './assignmentTypes'
+import { assignmentDestination, assignmentStatus, hasPin, stageLabels, truckLocation } from './assignmentTypes'
 import type { AssignmentStage } from './assignmentTypes'
 import { MonitoringRefresh } from './MonitoringRefresh'
 import { manilaTime, pageNumber } from './types'
@@ -100,6 +100,7 @@ export function AssignmentsWorkspace() {
                         <span className="block">{stageLabels[work.stage]} · {assignmentStatus(work)}</span>
                         <span className="portal-secondary block break-words">{work.reference}{work.direction === 'return' ? ' · Return' : ''}</span>
                         <span className="portal-secondary block break-words">{assignmentDestination(work)}</span>
+                        {work.truck ? <span className="block font-medium">{truckLocation(work)}</span> : null}
                         <span className="portal-secondary block">{work.scheduled_for ? manilaTime(work.scheduled_for) : (work.status === 'no_active_trip' ? 'Last confirmed hub · No active schedule' : 'Schedule unavailable')}{work.stops.some((stop) => !hasPin(stop)) ? ' · Missing map pin' : ''}</span>
                       </span>
                     </button>

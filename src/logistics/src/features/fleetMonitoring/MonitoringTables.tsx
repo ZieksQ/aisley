@@ -1,6 +1,6 @@
 import { PortalState, PortalTable } from '@aisley/ui/portal'
 import { Link } from 'react-router-dom'
-import { TripStatus, TripTimeline } from './TripDetails'
+import { TripStatus } from './TripDetails'
 import { availabilityLabels, manilaTime } from './types'
 import type { MonitoringTrip, MonitoringTruck } from './types'
 
@@ -31,6 +31,9 @@ export function MonitoringTrucks({ trucks, query }: { trucks: MonitoringTruck[];
                 >
                   {truck.plate_number}
                 </Link>
+                <div>
+                  <Link className="portal-button" to={`/fleet-monitoring/${truck.id}/history?${query}`}>Past transfers</Link>
+                </div>
                 <span className="portal-table-meta">
                   {[truck.make, truck.model].filter(Boolean).join(' ') || 'Make/model not set'}
                 </span>
@@ -51,7 +54,8 @@ export function MonitoringTrucks({ trucks, query }: { trucks: MonitoringTruck[];
               <td>
                 {truck.active_trip ? (
                   <>
-                    <p>{truck.active_trip.from_hub?.name ?? 'Unknown hub'} → {truck.active_trip.to_hub?.name ?? 'Unknown hub'}</p>
+                    <p>Outbound: {truck.active_trip.from_hub?.logistics?.name ?? 'Organization unavailable'} · {truck.active_trip.from_hub?.name ?? 'Unknown hub'}</p>
+                    <p>Inbound: {truck.active_trip.to_hub?.logistics?.name ?? 'Organization unavailable'} · {truck.active_trip.to_hub?.name ?? 'Unknown hub'}</p>
                     <span className="portal-table-meta">
                       {truck.active_trip.driver?.name ?? 'Driver unavailable'} · {truck.active_trip.direction === 'return' ? 'Return' : 'Outbound'}
                     </span>
@@ -78,9 +82,9 @@ export function MonitoringTrucks({ trucks, query }: { trucks: MonitoringTruck[];
   )
 }
 
-export function MonitoringHistoryTable({ trips }: { trips: MonitoringTrip[] }) {
+export function MonitoringHistoryTable({ trips, truckId, query }: { trips: MonitoringTrip[]; truckId: string; query: string }) {
   if (!trips.length) {
-    return <PortalState title="No recorded trips" description="Scheduled trips will appear here once this truck is assigned." />
+    return <PortalState title="No past transfers" description="Completed, cancelled and rejected transfers will appear here." />
   }
 
   return (
@@ -93,14 +97,15 @@ export function MonitoringHistoryTable({ trips }: { trips: MonitoringTrip[] }) {
             <th scope="col">Scheduled departure · Manila</th>
             <th scope="col">Trip status</th>
             <th scope="col" className="text-right">Parcels / capacity</th>
-            <th scope="col">Events</th>
+            <th scope="col">Action</th>
           </tr>
         </thead>
         <tbody>
           {trips.map((trip) => (
             <tr key={trip.id}>
               <td>
-                <p>{trip.from_hub?.name ?? 'Unknown hub'} → {trip.to_hub?.name ?? 'Unknown hub'}</p>
+                <p>Outbound: {trip.from_hub?.name ?? 'Unknown hub'}</p>
+                <p>Inbound: {trip.to_hub?.name ?? 'Unknown hub'}</p>
                 <span className="portal-table-meta">
                   {trip.direction === 'return' ? 'Return' : 'Outbound'}
                   {trip.direction === 'return' && trip.parcel_count === 0 ? ' · Empty' : ''}
@@ -111,12 +116,9 @@ export function MonitoringHistoryTable({ trips }: { trips: MonitoringTrip[] }) {
               <td><TripStatus trip={trip} /></td>
               <td className="text-right tabular-nums">{trip.parcel_count} / {trip.capacity_snapshot}</td>
               <td>
-                <details>
-                  <summary className="portal-link flex min-h-11 cursor-pointer items-center underline">
-                    View timeline<span className="sr-only"> for trip {trip.id}</span>
-                  </summary>
-                  <div className="min-w-64 py-3"><TripTimeline trip={trip} /></div>
-                </details>
+                <Link className="portal-button" to={`/fleet-monitoring/${truckId}/history/${trip.id}?${query}`}>
+                  View transfer<span className="sr-only"> {trip.id}</span>
+                </Link>
               </td>
             </tr>
           ))}
