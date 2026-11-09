@@ -133,3 +133,11 @@
     transition: none !important;
   }
 }
+
+.assignment-location-label {
+  max-width: 160px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  color: #0f172a;
+  font: 12px/1.4 Geist, sans-serif;
+}

@@ -609,6 +609,7 @@ Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', '
     Route::get('/fleet/monitoring', [FleetMonitoringController::class, 'index']);
     Route::get('/fleet/monitoring/assignments', [\App\Http\Controllers\Logistics\FleetAssignmentController::class, 'index']);
     Route::get('/fleet/monitoring/{truck}', [FleetMonitoringController::class, 'show'])->whereUuid('truck');
+    Route::get('/fleet/monitoring/{truck}/trips/{trip}', [FleetMonitoringController::class, 'trip'])->whereUuid('truck')->whereUuid('trip');
     Route::get('/fleet/monitoring/{truck}/trips', [FleetMonitoringController::class, 'trips'])->whereUuid('truck');
     Route::get('/fleet', [CompanyFleetController::class, 'index'])->name('fleet.index');
     Route::post('/fleet/trucks', [CompanyFleetController::class, 'store'])->name('fleet.trucks.store');

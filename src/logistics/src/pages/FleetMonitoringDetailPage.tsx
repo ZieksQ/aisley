@@ -1,19 +1,18 @@
 import { useCallback, useEffect } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
-import { PortalPagination, PortalSkeleton, PortalState } from '@aisley/ui/portal'
-import { loadTruckMonitoring } from '../features/fleetMonitoring/api'
+import { PortalSkeleton, PortalState } from '@aisley/ui/portal'
+import { loadTruck } from '../features/fleetMonitoring/api'
 import { MonitoringRefresh } from '../features/fleetMonitoring/MonitoringRefresh'
-import { MonitoringHistoryTable } from '../features/fleetMonitoring/MonitoringTables'
+import { TripRouteDetails } from '../features/fleetMonitoring/TripRouteDetails'
 import { TripStatus, TripTimeline } from '../features/fleetMonitoring/TripDetails'
-import { availabilityLabels, manilaTime, pageNumber } from '../features/fleetMonitoring/types'
+import { availabilityLabels, manilaTime } from '../features/fleetMonitoring/types'
 import { useFleetMonitoring } from '../features/fleetMonitoring/useFleetMonitoring'
 
 export function FleetMonitoringDetailPage() {
   const { truckId = '' } = useParams()
-  const [params, setParams] = useSearchParams()
-  const page = pageNumber(params.get('history_page'))
-  const load = useCallback(() => loadTruckMonitoring(truckId, page), [truckId, page])
-  const { data, loading, error, missing, refresh } = useFleetMonitoring(`${truckId}:${page}`, load)
+  const [params] = useSearchParams()
+  const load = useCallback(() => loadTruck(truckId), [truckId])
+  const { data, loading, error, missing, refresh } = useFleetMonitoring(truckId, load)
   const back = new URLSearchParams(params)
   back.delete('history_page')
   const truck = data?.data
@@ -34,7 +33,10 @@ export function FleetMonitoringDetailPage() {
           <h2 className="portal-page-heading">{truck?.plate_number ?? 'Truck monitoring'}</h2>
           <p className="portal-page-description">Operational location and recorded trip history. All times are in Manila.</p>
         </div>
-        <Link className="portal-button" to="/fleet">Manage company fleet</Link>
+        <div className="portal-inline-actions">
+          <Link className="portal-button" to={`/fleet-monitoring/${truckId}/history?${params}`}>Past transfers</Link>
+          <Link className="portal-button" to="/fleet">Manage company fleet</Link>
+        </div>
       </header>
       <MonitoringRefresh loading={loading} error={missing ? '' : error} updatedAt={data?.meta.server_time} refresh={refresh} />
       {missing ? <PortalState error title="Truck unavailable" description="This truck could not be found in your company fleet." /> : null}
@@ -88,6 +90,7 @@ export function FleetMonitoringDetailPage() {
                   </div>
                   <TripStatus trip={trip} />
                 </div>
+                <TripRouteDetails trip={trip} />
                 <TripTimeline trip={trip} />
                 <div className="portal-inline-actions">
                   <Link className="portal-button" to="/linehaul-dispatch">Open linehaul dispatch</Link>
@@ -95,21 +98,6 @@ export function FleetMonitoringDetailPage() {
                 </div>
               </>
             ) : <PortalState title="No active trip" description="This truck has no pending, scheduled, in-transit or receiving assignment." />}
-          </section>
-          <section className="space-y-4" aria-labelledby="truck-history-title">
-            <h3 id="truck-history-title" className="text-lg font-semibold">
-              Trip history <span className="portal-secondary text-sm font-normal">({data.history.meta.total})</span>
-            </h3>
-            <MonitoringHistoryTable trips={data.history.data} />
-            <PortalPagination
-              page={data.history.meta.current_page} lastPage={data.history.meta.last_page}
-              total={data.history.meta.total} disabled={loading}
-              onPage={(next) => {
-                const values = new URLSearchParams(params)
-                values.set('history_page', String(next))
-                setParams(values)
-              }}
-            />
           </section>
         </>
       ) : null}

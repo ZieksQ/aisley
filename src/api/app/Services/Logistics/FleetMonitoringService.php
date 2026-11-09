@@ -5,6 +5,7 @@ namespace App\Services\Logistics;
 use App\Enums\Logistics\CompanyTruckAvailability;
 use App\Exceptions\Fulfillment\FulfillmentException;
 use App\Models\CompanyTruck;
+use App\Models\LinehaulTrip;
 use App\Models\User;
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -64,8 +65,26 @@ class FleetMonitoringService
 
     public function history(User $actor, string $id, array $input): LengthAwarePaginator
     {
-        return $this->truck($actor, $id)->trips()->with(['driver.courierProfile', 'fromHub:id,name', 'toHub:id,name'])
+        return $this->truck($actor, $id)->trips()->with($this->tripRelations())
+            ->when($input['past'] ?? false, fn ($query) => $query->whereIn('status', ['received', 'rejected', 'cancelled']))
             ->orderByDesc('created_at')->orderByDesc('id')->paginate($input['per_page'] ?? 20);
+    }
+
+    public function trip(User $actor, string $truck, string $id): LinehaulTrip
+    {
+        $trip = $this->truck($actor, $truck)->trips()->with($this->tripRelations())->whereKey($id)
+            ->whereIn('status', ['received', 'rejected', 'cancelled'])->first();
+        if ($trip === null) {
+            throw FulfillmentException::notFound('FLEET_TRANSFER_NOT_FOUND', 'This past transfer is unavailable.');
+        }
+
+        return $trip;
+    }
+
+    private function tripRelations(): array
+    {
+        return ['driver.courierProfile', 'fromHub.address', 'fromHub.organization:id,business_name',
+            'toHub.address', 'toHub.organization:id,business_name'];
     }
 
     private function owned(User $actor): Builder
@@ -82,6 +101,6 @@ class FleetMonitoringService
     {
         return $query->with(['homeHub:id,name', 'lastConfirmedHub:id,name', 'trips' => fn ($trip) => $trip
             ->whereIn('status', self::ACTIVE)->orderByDesc('created_at')->orderByDesc('id')
-            ->with(['driver.courierProfile', 'fromHub:id,name', 'toHub:id,name'])]);
+            ->with($this->tripRelations())]);
     }
 }

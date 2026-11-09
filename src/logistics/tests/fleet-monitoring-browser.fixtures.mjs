@@ -4,8 +4,8 @@ export function installMonitoringFixtures() {
   const original = window.fetch.bind(window)
   const statuses = ['available', 'reserved', 'in_transit', 'unloading', 'visiting', 'inactive']
   const at = '2026-11-04T04:00:00Z'
-  const hub = { id: 'local', name: 'San Pedro hub' }
-  const destination = { id: 'davao', name: 'Davao hub' }
+  const hub = { id: 'local', name: 'San Pedro hub', logistics: { id: 'local-org', name: 'Laguna Logistics' }, latitude: 14.358, longitude: 121.058 }
+  const destination = { id: 'davao', name: 'Davao hub', logistics: { id: 'davao-org', name: 'Davao Logistics' }, latitude: 7.07, longitude: 125.6 }
   const trips = Array.from({ length: 23 }, (_, index) => ({
     id: `trip-${index}`, direction: index % 2 ? 'return' : 'outbound', status: index === 0 ? 'pending_acceptance' : index % 2 ? 'cancelled' : 'received',
     from_hub: hub, to_hub: destination, driver: { id: 'driver', name: 'Rafael Mendoza' },
@@ -38,7 +38,7 @@ export function installMonitoringFixtures() {
       direction: stage === 'linehaul' ? index === 4 ? 'return' : 'outbound' : null,
       events: stage === 'linehaul' ? { departed_at: index === 1 ? at : null, courier_arrived_at: null, arrived_at: null } : { accepted_at: at, picked_up_at: index === 3 ? at : null },
       stops: stage === 'first_mile' ? [pickup, assignmentHub] : stage === 'final_mile' ? [assignmentHub, delivery] : [
-        { ...assignmentHub, kind: 'origin' }, { kind: 'destination', label: 'Calamba hub', area: 'Calamba, Laguna', latitude: 14.211, longitude: 121.166 },
+        { ...assignmentHub, kind: 'last_confirmed_hub' }, { ...assignmentHub, kind: 'origin' }, { kind: 'destination', label: 'Calamba hub', area: 'Calamba, Laguna', latitude: 14.211, longitude: 121.166 },
       ],
     }
   })
@@ -90,7 +90,14 @@ export function installMonitoringFixtures() {
     const id = path.split('/monitoring/')[1].split('/')[0]
     const truck = trucks.find((truck) => truck.id === id)
     if (!truck) return json({ message: 'Truck unavailable.' }, 404)
-    if (path.endsWith('/trips')) return json(page(mode === 'empty' ? [] : [truck.active_trip ?? { ...trips[0], status: 'received', overdue: false }, ...trips.slice(1)], url))
+    if (path.includes('/trips/')) {
+      const trip = trips.find((row) => row.id === path.split('/trips/')[1])
+      return trip && trip.status !== 'pending_acceptance' ? json({ data: trip, meta: { server_time: at } }) : json({ message: 'Transfer unavailable.' }, 404)
+    }
+    if (path.endsWith('/trips')) {
+      const rows = [truck.active_trip ?? { ...trips[0], status: 'received', overdue: false }, ...trips.slice(1)]
+      return json(page(mode === 'empty' ? [] : url.searchParams.get('past') === '1' ? rows.filter((row) => ['received', 'cancelled', 'rejected'].includes(row.status)) : rows, url))
+    }
     return json({ data: truck, meta: { server_time: at } })
   }
 }

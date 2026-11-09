@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Logistics;
 
 use App\Enums\Logistics\LinehaulTripStatus;
+use App\Models\LogisticsHub;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -18,8 +19,9 @@ class FleetMonitoringTripResource extends JsonResource
             'id' => $this->id,
             'direction' => $this->direction->value,
             'status' => $this->status->value,
-            'from_hub' => $this->fromHub ? ['id' => $this->fromHub->id, 'name' => $this->fromHub->name] : null,
-            'to_hub' => $this->toHub ? ['id' => $this->toHub->id, 'name' => $this->toHub->name] : null,
+            'from_hub' => $this->hub($this->fromHub),
+            'to_hub' => $this->hub($this->toHub),
+            'manifest_id' => $this->linehaul_manifest_id,
             'driver' => $this->driver ? ['id' => $this->driver->id, 'name' => $name ?: 'Assigned driver'] : null,
             'parcel_count' => $this->parcel_count,
             'capacity_snapshot' => $this->capacity_snapshot,
@@ -33,6 +35,25 @@ class FleetMonitoringTripResource extends JsonResource
             'arrived_at' => $this->arrived_at?->toISOString(),
             'unloading_closed_at' => $this->unloading_closed_at?->toISOString(),
             'received_at' => $this->received_at?->toISOString(),
+        ];
+    }
+
+    private function hub(?LogisticsHub $hub): ?array
+    {
+        if ($hub === null) {
+            return null;
+        }
+        $latitude = $hub->address?->latitude;
+        $longitude = $hub->address?->longitude;
+        $valid = is_numeric($latitude) && is_numeric($longitude)
+            && is_finite((float) $latitude) && is_finite((float) $longitude)
+            && abs((float) $latitude) <= 90 && abs((float) $longitude) <= 180;
+
+        return [
+            'id' => $hub->id, 'name' => $hub->name,
+            'logistics' => $hub->organization ? ['id' => $hub->organization->id, 'name' => $hub->organization->business_name] : null,
+            'latitude' => $valid ? (float) $latitude : null,
+            'longitude' => $valid ? (float) $longitude : null,
         ];
     }
 }

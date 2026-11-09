@@ -18,6 +18,7 @@ class FleetMonitoringRequest extends FormRequest
         return [
             'search' => ['sometimes', 'nullable', 'string', 'max:100'],
             'availability' => ['sometimes', 'nullable', Rule::enum(CompanyTruckAvailability::class)],
+            'past' => ['sometimes', 'boolean'],
             'overdue' => ['sometimes', 'boolean'],
             'page' => ['sometimes', 'integer', 'min:1'],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],

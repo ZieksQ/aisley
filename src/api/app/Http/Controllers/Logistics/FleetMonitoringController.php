@@ -36,6 +36,13 @@ class FleetMonitoringController extends Controller
         return $this->response(FleetMonitoringTripResource::collection($page->items())->resolve($request), $request, $this->pagination($page));
     }
 
+    public function trip(FleetMonitoringRequest $request, string $truck, string $trip, FleetMonitoringService $service): JsonResponse
+    {
+        $request->attributes->set('fleet_monitoring_time', now());
+
+        return $this->response((new FleetMonitoringTripResource($service->trip($request->user(), $truck, $trip)))->resolve($request), $request);
+    }
+
     private function pagination(LengthAwarePaginator $page): array
     {
         return ['current_page' => $page->currentPage(), 'last_page' => $page->lastPage(), 'per_page' => $page->perPage(), 'total' => $page->total()];

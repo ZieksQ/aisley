@@ -12,7 +12,7 @@ node src/logistics/tests/fleet-monitoring-browser.smoke.mjs
 
 `LOGISTICS_UI_ORIGIN` and `LOGISTICS_UI_CDP` override the local addresses. The fixture extends the existing rates/fleet authentication harness and intercepts monitoring reads. Its 23-truck dataset exercises six availability states, outbound/empty-return work, approval-pending overdue departures, reported arrival, and 23-entry history pagination.
 
-Checks cover three routes at 320/768/1440px in both themes, contained horizontal table scrolling, filters/deep links, detail and Back state, history paging/timelines, initial loading/error, stale refresh/error recovery, empty/missing/idle states, obsolete requests, hidden-tab polling, keyboard focus, consent/session loss and late reads after logout. Ignored screenshots, the rendered snapshot and verification JSON live under `src/logistics/node_modules/.cache/fleet-monitoring-browser/`.
+Checks cover three monitoring routes at 320/768/1440px in both themes, contained horizontal table scrolling, filters/deep links, detail and Back state, separate history navigation/paging, initial loading/error, stale refresh/error recovery, empty/missing/idle states, obsolete requests, hidden-tab polling, keyboard focus, consent/session loss and late reads after logout. Ignored screenshots, the rendered snapshot and verification JSON live under `src/logistics/node_modules/.cache/fleet-monitoring-browser/`.
 
 API regression command:
 
@@ -31,3 +31,9 @@ Checks cover map/list selection, grouped pins, keyboard activation, stage/search
 Focused API command: `php src/api/vendor/bin/phpunit --configuration src/api/phpunit.xml --bootstrap src/api/tests/bootstrap-isolated.php src/api/tests/Feature/Logistics/FleetAssignmentMonitoringTest.php src/api/tests/Feature/Logistics/FleetMonitoringTest.php`.
 
 On 2026-11-05 the broader CompanyTruckLinehaulTest/LinehaulTripActionTest run reached eight fixture-setup failures: their Seller pickup addresses lack the pin required by the current pickup policy (422 before monitoring is exercised). Do not describe that broader run as passing; keep its fixture repair separate from this monitoring change.
+
+## Past-transfer navigation and map checks
+
+Run `node src/logistics/tests/fleet-transfers-browser.smoke.mjs` against the preview/CDP above. Run browser suites sequentially so foreground-tab visibility does not interfere with animation frames and polling checks.
+
+Covers current schedule preservation; separate terminal-history table and per-transfer details; Manila schedules; inbound/outbound Logistics labels; direct links, filters and history page retention; schematic past-hub connection; confirmed truck plate/location labels; current versus past map semantics; refresh recovery; empty/missing states; session disposal; and overflow at 320/768/1440px in both themes. Fixtures use synthetic API records and current saved hub pins. Screenshots, a rendered snapshot and results live under `src/logistics/node_modules/.cache/fleet-transfers-browser/`. Tile-provider availability is separate from marker/route verification.

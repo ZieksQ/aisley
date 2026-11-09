@@ -15,6 +15,8 @@ import { DispatchPage } from './pages/DispatchPage'
 import { FinancePaymentsPage } from './pages/FinancePaymentsPage'
 import { FinancePage } from './pages/FinancePage'
 import { FleetMonitoringPage } from './pages/FleetMonitoringPage'
+import { FleetTransferHistoryPage } from './pages/FleetTransferHistoryPage'
+import { FleetTransferDetailPage } from './pages/FleetTransferDetailPage'
 import { FleetMonitoringDetailPage } from './pages/FleetMonitoringDetailPage'
 import { FleetPage } from './pages/FleetPage'
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
@@ -74,6 +76,8 @@ export default function App() {
           <Route element={<CourierApplicationsPage />} path="/courier-applications" />
           <Route element={<CourierApplicationDetailPage />} path="/courier-applications/:affiliationId" />
           <Route element={<FleetMonitoringPage />} path="/fleet-monitoring" />
+          <Route element={<FleetTransferHistoryPage />} path="/fleet-monitoring/:truckId/history" />
+          <Route element={<FleetTransferDetailPage />} path="/fleet-monitoring/:truckId/history/:tripId" />
           <Route element={<FleetMonitoringDetailPage />} path="/fleet-monitoring/:truckId" />
           <Route element={<FleetPage />} path="/fleet" />
           <Route element={<CourierVehiclesPage />} path="/vehicles" />
