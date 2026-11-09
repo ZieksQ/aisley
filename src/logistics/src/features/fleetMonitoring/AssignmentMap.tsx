@@ -73,7 +73,7 @@ export function AssignmentMap({ rows, selected, onSelect }: {
       const first = pins[0]
       const unique = [...new Map(pins.map((pin) => [pin.work.id, pin])).values()]
       const chosen = pins.find((pin) => pin.work.id === selected)
-        ?? pins.find((pin) => pin.work.stage === 'linehaul' && pin.stop.kind === 'origin') ?? first
+        ?? pins.find((pin) => pin.work.stage === 'linehaul' && (pin.stop.kind === 'origin' || pin.stop.kind === 'last_confirmed_hub')) ?? first
       const hub = chosen.stop.kind === 'hub' || chosen.stop.kind === 'destination'
       const isSelected = pins.some((pin) => pin.work.id === selected)
       const html = renderToStaticMarkup(
@@ -82,7 +82,7 @@ export function AssignmentMap({ rows, selected, onSelect }: {
           {unique.length > 1 ? <span className="assignment-pin-count">{unique.length}</span> : null}
         </span>,
       )
-      const title = unique.length > 1 ? `${unique.length} assignments at this stop` : `${stageLabels[first.work.stage]}: ${first.work.courier?.name ?? 'Courier'} · ${first.stop.label}`
+      const title = unique.length > 1 ? `${unique.length} assignments at this stop` : `${stageLabels[first.work.stage]}: ${first.work.courier?.name ?? first.work.truck?.plate_number ?? 'Courier'} · ${first.stop.label}`
       const marker = leaflet.marker([first.stop.latitude, first.stop.longitude], {
         icon: leaflet.divIcon({ className: 'assignment-map-marker', html, iconSize: [44, 44], iconAnchor: [22, 22] }),
         title, alt: title, keyboard: true, riseOnHover: true, zIndexOffset: isSelected ? 500 : 0,
@@ -95,7 +95,7 @@ export function AssignmentMap({ rows, selected, onSelect }: {
       for (const { work } of unique) {
         const button = document.createElement('button')
         button.type = 'button'
-        button.textContent = `${stageLabels[work.stage]} · ${work.courier?.name ?? 'Courier unavailable'} · ${work.reference} · ${assignmentStatus(work)}`
+        button.textContent = `${stageLabels[work.stage]} · ${work.courier?.name ?? (work.truck ? 'Truck' : 'Courier unavailable')} · ${work.reference} · ${assignmentStatus(work)}`
         button.addEventListener('click', () => { onSelect(work.id); map.closePopup() })
         popup.append(button)
       }
@@ -134,7 +134,7 @@ export function AssignmentMap({ rows, selected, onSelect }: {
       {apiKey && !error && tilesLoading && !tileError ? <p className="portal-secondary px-4 pt-3 text-sm" role="status">Loading map tiles… Saved assignment stops are available.</p> : null}
       {tileError ? <p role="status" className="border-t border-[var(--portal-border)] px-4 py-3 text-sm">Map tiles are unavailable. Saved stop markers and the assignment list remain available. <button className="portal-link" onClick={() => setAttempt((value) => value + 1)}>Retry tiles</button></p> : null}
       {rows.length && !points.length ? <p role="status" className="px-4 py-3 text-sm">No saved map pins for this page. Select an assignment to read its stops.</p> : null}
-      <p className="portal-secondary px-4 py-3 text-sm">Saved pickup, hub and delivery stops · Not live courier GPS</p>
+      <p className="portal-secondary px-4 py-3 text-sm">Saved pickup, hub and delivery stops; idle trucks at last confirmed hubs · Not live GPS</p>
     </div>
   )
 }

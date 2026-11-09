@@ -66,7 +66,7 @@ Final-mile dispatch route geometry uses the same server-only Geoapify key and a 
 
 ## Logistics fleet assignment map
 
-Fleet monitoring uses installed Leaflet and Geoapify raster tiles with the existing origin-restricted Logistics browser key. Its Logistics-only assignments endpoint returns saved pickup snapshots, authoritative delivery pins and hub coordinates for the current page of authorized active work. Pins represent assignment stops, never Courier GPS positions. Monitoring performs no geocoding, Matrix/Routing request, device-location collection or custody mutation. Missing pins remain unavailable; provider/key/tile failures preserve the assignment list and recorded events. Show Geoapify, OpenStreetMap and OpenMapTiles attribution on the map. See [Fleet monitoring](features/logistics/fleet-monitoring/spec.md).
+Fleet monitoring uses installed Leaflet and Geoapify raster tiles with the existing origin-restricted Logistics browser key. Its Logistics-only assignments endpoint returns saved pickup snapshots, authoritative delivery pins and hub coordinates for the current page of authorized active work. Pins represent assignment stops, never Courier GPS positions. Owned linehaul trucks without active work remain visible at their saved last-confirmed hub pins, including after work ends; absent pins remain unavailable and the home hub is not substituted. Monitoring performs no geocoding, Matrix/Routing request, device-location collection or custody mutation. Missing pins remain unavailable; provider/key/tile failures preserve the assignment list and recorded events. Show Geoapify, OpenStreetMap and OpenMapTiles attribution on the map. See [Fleet monitoring](features/logistics/fleet-monitoring/spec.md).
 
 ## Coordinate and privacy rules
 

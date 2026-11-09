@@ -3,7 +3,7 @@ import type { PageMeta } from './types'
 export const stageLabels = { first_mile: 'First-mile', linehaul: 'Linehaul', final_mile: 'Last-mile' } as const
 export type AssignmentStage = keyof typeof stageLabels
 export type AssignmentStop = {
-  kind: 'pickup' | 'hub' | 'origin' | 'destination' | 'delivery'
+  kind: 'pickup' | 'hub' | 'origin' | 'destination' | 'delivery' | 'last_confirmed_hub'
   label: string
   area: string
   latitude: number | null
@@ -14,6 +14,7 @@ export type FleetAssignment = {
   source_id: string
   stage: AssignmentStage
   status: string
+  availability?: string
   reference: string
   courier: { id: string; name: string } | null
   scheduled_for: string | null
@@ -35,7 +36,7 @@ export function hasPin(stop: AssignmentStop): stop is AssignmentStop & { latitud
 }
 
 const statuses: Record<string, string> = {
-  assigned: 'Pickup assigned', accepted: 'Pickup accepted', picked_up_from_seller: 'Returning to hub',
+  no_active_trip: 'No active trip', assigned: 'Pickup assigned', accepted: 'Pickup accepted', picked_up_from_seller: 'Returning to hub',
   pending_acceptance: 'Awaiting destination approval', scheduled: 'Scheduled', in_transfer: 'In transit', receiving: 'Receiving at hub',
   delivery_assigned: 'Delivery assigned', delivery_accepted: 'Delivery accepted', picked_up_from_hub: 'Collected from hub',
   in_transit: 'In transit', out_for_delivery: 'Out for delivery',

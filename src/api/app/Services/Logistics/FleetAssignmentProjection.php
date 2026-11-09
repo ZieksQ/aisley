@@ -2,6 +2,7 @@
 
 namespace App\Services\Logistics;
 
+use App\Models\CompanyTruck;
 use App\Models\DeliveryTask;
 use App\Models\FirstMileTask;
 use App\Models\LinehaulTrip;
@@ -9,8 +10,11 @@ use App\Models\User;
 
 class FleetAssignmentProjection
 {
-    public function resolve(string $stage, FirstMileTask|DeliveryTask|LinehaulTrip $work): array
+    public function resolve(string $stage, FirstMileTask|DeliveryTask|LinehaulTrip|CompanyTruck $work): array
     {
+        if ($work instanceof CompanyTruck) {
+            return $this->truck($work);
+        }
         $courier = $stage === 'linehaul' ? $work->driver : $work->courier;
         $base = [
             'id' => $stage.':'.$work->id, 'source_id' => $work->id, 'stage' => $stage,
@@ -23,6 +27,21 @@ class FleetAssignmentProjection
             'linehaul' => $this->linehaul($work),
             'final_mile' => $this->delivery($work),
         }];
+    }
+
+    private function truck(CompanyTruck $truck): array
+    {
+        return [
+            'id' => 'linehaul_truck:'.$truck->id, 'source_id' => $truck->id, 'stage' => 'linehaul',
+            'status' => 'no_active_trip', 'availability' => $truck->availability->value,
+            'reference' => $truck->plate_number, 'courier' => null,
+            'updated_at' => $truck->updated_at?->toISOString(),
+            'scheduled_for' => null, 'schedule_ends_at' => null, 'schedule_reference' => null,
+            'parcel_count' => 0, 'direction' => null,
+            'truck' => ['id' => $truck->id, 'plate_number' => $truck->plate_number],
+            'events' => [],
+            'stops' => [$this->hubStop('last_confirmed_hub', $truck->lastConfirmedHub)],
+        ];
     }
 
     private function pickup(FirstMileTask $task): array
