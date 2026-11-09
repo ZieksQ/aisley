@@ -14,6 +14,7 @@ class ManagedUserDetailResource extends ManagedUserSummaryResource
             UserRole::Customer => $this->customerProfile,
             UserRole::Seller => $this->sellerProfile,
             UserRole::Courier => $this->courierProfile,
+            UserRole::Logistics => $this->logisticsProfile,
             UserRole::Admin => null,
         };
         $registration = $this->registrationApplications->sortByDesc('submitted_at')->first();

@@ -23,6 +23,7 @@ class ListUsersRequest extends FormRequest
                 UserRole::Customer->value,
                 UserRole::Seller->value,
                 UserRole::Courier->value,
+                UserRole::Logistics->value,
             ])],
             'status' => ['sometimes', Rule::enum(UserStatus::class)],
             'from' => ['sometimes', 'date_format:Y-m-d'],

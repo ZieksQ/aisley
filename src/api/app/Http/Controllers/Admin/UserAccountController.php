@@ -27,7 +27,7 @@ class UserAccountController extends Controller
     {
         $query = User::query()
             ->where('role', '!=', UserRole::Admin)
-            ->with(['customerProfile', 'sellerProfile', 'courierProfile'])
+            ->with(['customerProfile', 'sellerProfile', 'courierProfile', 'logisticsProfile'])
             ->withMax('lifecycleEvents as status_changed_at', 'occurred_at');
 
         $query
@@ -42,7 +42,7 @@ class UserAccountController extends Controller
                 $query->whereRaw('LOWER(CAST(id AS VARCHAR)) LIKE ?', [$term])
                     ->orWhereRaw('LOWER(email) LIKE ?', [$term]);
 
-                foreach (['customerProfile', 'sellerProfile', 'courierProfile'] as $relation) {
+                foreach (['customerProfile', 'sellerProfile', 'courierProfile', 'logisticsProfile'] as $relation) {
                     $query->orWhereHas($relation, fn (Builder $profiles) => $profiles
                         ->whereRaw('LOWER(first_name) LIKE ?', [$term])
                         ->orWhereRaw('LOWER(last_name) LIKE ?', [$term]));
@@ -65,6 +65,7 @@ class UserAccountController extends Controller
         $account = $this->managedUser($user)->load([
             'customerProfile',
             'sellerProfile',
+            'logisticsProfile',
             'courierProfile' => fn ($query) => $query->withCount('vehicles'),
             'registrationApplications',
             'shop',
@@ -125,6 +126,7 @@ class UserAccountController extends Controller
         $account = $this->managedUser($account->id)->load([
             'customerProfile',
             'sellerProfile',
+            'logisticsProfile',
             'courierProfile' => fn ($query) => $query->withCount('vehicles'),
             'registrationApplications',
             'shop',
