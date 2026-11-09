@@ -82,9 +82,16 @@ jobs:
             exit 1
           fi
 
-          if [ -n "$(git status --porcelain)" ]; then
+          if [ ! -s docker/.env.production ]; then
+            echo "Missing or empty docker/.env.production. Restore the private VM configuration using docker/production-env-recovery.md before deploying." >&2
+            exit 1
+          fi
+
+          # Also works on VM checkouts that do not have the new swap ignore rules yet.
+          checkout_changes=$(git status --porcelain -- . ':(exclude)docker/..env.production.sw?')
+          if [ -n "$checkout_changes" ]; then
             echo "Refusing to deploy because the VM checkout has local changes." >&2
-            git status --short >&2
+            printf '%s\n' "$checkout_changes" >&2
             exit 1
           fi
 
