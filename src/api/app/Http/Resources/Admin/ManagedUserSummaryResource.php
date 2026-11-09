@@ -29,6 +29,7 @@ class ManagedUserSummaryResource extends JsonResource
             UserRole::Customer => $this->customerProfile,
             UserRole::Seller => $this->sellerProfile,
             UserRole::Courier => $this->courierProfile,
+            UserRole::Logistics => $this->logisticsProfile,
             UserRole::Admin => null,
         };
         $name = trim(implode(' ', array_filter([

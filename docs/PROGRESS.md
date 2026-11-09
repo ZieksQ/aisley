@@ -70,3 +70,8 @@ Short, dated log of what has been implemented across the whole app. Append new e
 
 - Clarified active/idle truck maps with plate-labelled last-confirmed hub markers and explicit in-transit uncertainty, preserving current schedules. Added sending/Outbound and receiving/Inbound Logistics labels, per-truck Past transfers buttons, a separate terminal-history table and View transfer pages with schedule, manifest references, events and schematic origin/destination maps. Preserved tenant/role/consent boundaries, URL state and external mobile contracts; updated canonical specs/map docs.
 - Verification: 15 focused API tests (264 assertions), Logistics TypeScript/build, scoped lint/Pint and whitespace checks passed. Synthetic Chromium passed 66 new transfer, 65 monitoring and 68 assignment checks; reviewed responsive light/dark screenshots. Taste source/inspection passed with documented map/sidebar allowances and an existing below-fold warning. Basemap tiles were intermittent; deployed/PostgreSQL/real-truck acceptance remains open. See [verification](features/logistics/fleet-monitoring/verification-2026-11-09.md).
+
+## 2026-11-09 — Admin Logistics account responses
+
+- Fixed missing Logistics role handling in Admin account list/detail and lifecycle responses, preserving profile names, email fallback and contact masking. Included Logistics profiles in eager loading/name searches and allowed the Logistics role filter; Admin account exclusion and permission boundaries remain enforced.
+- Verification: new regressions reproduced the original failures before the fix; all 15 account-management API tests (93 assertions), scoped Pint and whitespace checks passed using SQLite. Deployed/PostgreSQL verification remains open.
