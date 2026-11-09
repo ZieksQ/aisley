@@ -16,8 +16,8 @@ export function AssignmentDetails({ work }: { work: FleetAssignment }) {
     <section className="border-t border-[var(--portal-border)] p-4 sm:p-5" aria-labelledby="selected-assignment-title">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <h4 id="selected-assignment-title" className="break-words font-semibold">{work.courier?.name ?? 'Courier unavailable'} · {work.reference}</h4>
-          <p className="portal-secondary mt-1 text-sm">{assignmentStatus(work)} · {work.parcel_count} parcel{work.parcel_count === 1 ? '' : 's'}{work.direction === 'return' ? ' · Return trip' : ''}</p>
+          <h4 id="selected-assignment-title" className="break-words font-semibold">{work.courier?.name ?? (work.truck ? 'Truck' : 'Courier unavailable')} · {work.reference}</h4>
+          <p className="portal-secondary mt-1 text-sm">{assignmentStatus(work)}{work.availability ? ` · ${work.availability.replaceAll('_', ' ')}` : ''} · {work.parcel_count} parcel{work.parcel_count === 1 ? '' : 's'}{work.direction === 'return' ? ' · Return trip' : ''}</p>
         </div>
         <Link className="portal-button" to={destination}>Open {work.stage === 'first_mile' ? 'Pickups' : work.stage === 'linehaul' ? 'Linehaul' : 'Dispatch'}</Link>
       </div>
@@ -32,7 +32,7 @@ export function AssignmentDetails({ work }: { work: FleetAssignment }) {
           {work.stops.map((stop, index) => (
             <li key={`${stop.kind}-${index}`} className="flex gap-2 text-sm">
               <span className={stop.kind === 'pickup' || stop.kind === 'delivery' ? `assignment-color-${work.stage}` : 'portal-secondary'}><AssignmentIcon stage={work.stage} hub={stop.kind !== 'pickup' && stop.kind !== 'delivery'} /></span>
-              <div><p className="font-medium">{stop.label}</p><p className="portal-secondary">{stop.area || 'Area unavailable'}{hasPin(stop) ? '' : ' · Map pin unavailable'}</p></div>
+              <div><p className="font-medium">{stop.kind === 'last_confirmed_hub' ? 'Last confirmed hub: ' : ''}{stop.label}</p><p className="portal-secondary">{stop.area || 'Area unavailable'}{hasPin(stop) ? '' : ' · Map pin unavailable'}</p></div>
             </li>
           ))}
         </ol>

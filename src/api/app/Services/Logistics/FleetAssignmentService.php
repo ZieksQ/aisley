@@ -3,6 +3,7 @@
 namespace App\Services\Logistics;
 
 use App\Exceptions\Fulfillment\FulfillmentException;
+use App\Models\CompanyTruck;
 use App\Models\DeliveryTask;
 use App\Models\DispatchScheduleShipment;
 use App\Models\FirstMileTask;
@@ -38,16 +39,20 @@ class FleetAssignmentService
                 ]))
             ->whereHas('shipment.parcel.order', fn ($q) => $q->whereNotIn('status', ['cancelled', 'rejected', 'delivered', 'returned']));
         $linehaul = LinehaulTrip::query()->where('owner_logistics_organization_id', $org->id)
-            ->whereNotNull('driver_id')->whereIn('status', ['pending_acceptance', 'scheduled', 'in_transfer', 'receiving']);
+            ->whereIn('status', ['pending_acceptance', 'scheduled', 'in_transfer', 'receiving']);
+
+        $idleTrucks = CompanyTruck::query()->where('logistics_organization_id', $org->id)
+            ->whereDoesntHave('trips', fn ($q) => $q->whereIn('status', ['pending_acceptance', 'scheduled', 'in_transfer', 'receiving']));
 
         $sources = [
             'first_mile' => [$first, 'courier', 'waybill'],
             'linehaul' => [$linehaul, 'driver', 'truck'],
+            'linehaul_truck' => [$idleTrucks, '', ''],
             'final_mile' => [$last, 'courier', 'shipment.parcel'],
         ];
         $union = null;
         foreach ($sources as $stage => [$query, $courier, $reference]) {
-            if (! empty($input['stage']) && $input['stage'] !== $stage) {
+            if (! empty($input['stage']) && $input['stage'] !== ($stage === 'linehaul_truck' ? 'linehaul' : $stage)) {
                 continue;
             }
             $this->search($query, trim($input['search'] ?? ''), $courier, $reference, $stage);
@@ -62,6 +67,7 @@ class FleetAssignmentService
         $relations = [
             'first_mile' => ['courier.courierProfile', 'schedule.hub.address', 'waybill.snapshot'],
             'linehaul' => ['driver.courierProfile', 'truck', 'fromHub.address', 'toHub.address'],
+            'linehaul_truck' => ['lastConfirmedHub.address'],
             'final_mile' => ['courier.courierProfile', 'shipment.currentHub.address', 'shipment.parcel.order.address'],
         ];
         foreach ($sources as $stage => [$query]) {
@@ -90,6 +96,11 @@ class FleetAssignmentService
             return;
         }
         $like = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], mb_strtolower($term)).'%';
+        if ($stage === 'linehaul_truck') {
+            $query->whereRaw("LOWER(plate_number) LIKE ? ESCAPE '!'", [$like]);
+
+            return;
+        }
         $query->where(function ($q) use ($like, $courier, $reference, $stage): void {
             $q->whereHas($courier.'.courierProfile', fn ($q) => $q->whereRaw("LOWER(first_name || ' ' || last_name) LIKE ? ESCAPE '!'", [$like]))
                 ->orWhereHas($reference, fn ($q) => $q->whereRaw('LOWER('.($stage === 'linehaul' ? 'plate_number' : 'reference').") LIKE ? ESCAPE '!'", [$like]));

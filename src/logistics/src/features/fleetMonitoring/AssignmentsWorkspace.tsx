@@ -45,7 +45,7 @@ export function AssignmentsWorkspace() {
     <section className="space-y-4" aria-labelledby="courier-work-title">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h3 id="courier-work-title" className="text-lg font-semibold">Pickup & delivery monitoring</h3>
-        <p className="portal-secondary text-sm">Assigned and underway · Manila time</p>
+        <p className="portal-secondary text-sm">Active work and owned trucks · Manila time</p>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap gap-1" aria-label="Assignment stage filters">
@@ -80,7 +80,7 @@ export function AssignmentsWorkspace() {
       {loading && !data ? <PortalSkeleton label="Loading courier assignments" /> : data ? (
         <div className="portal-panel overflow-hidden">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--portal-border)] px-4 py-3">
-            <p className="text-sm"><strong className="tabular-nums">{data.meta.total}</strong> matching assignment{data.meta.total === 1 ? '' : 's'} · Map shows {data.data.length} on page {data.meta.current_page}</p>
+            <p className="text-sm"><strong className="tabular-nums">{data.meta.total}</strong> matching record{data.meta.total === 1 ? '' : 's'} · Map shows {data.data.length} on page {data.meta.current_page}</p>
             <ul className="flex flex-wrap gap-x-4 gap-y-2 text-sm" aria-label="Map legend">
               {Object.entries(stageLabels).map(([value, label]) => <li key={value} className="flex items-center gap-1.5"><span className={`assignment-color-${value}`}><AssignmentIcon stage={value as AssignmentStage} /></span>{label}</li>)}
               <li className="flex items-center gap-1.5"><span className="portal-secondary"><AssignmentIcon stage="linehaul" hub /></span>Hub</li>
@@ -89,23 +89,23 @@ export function AssignmentsWorkspace() {
           <div className="grid min-w-0 lg:grid-cols-[minmax(0,1fr)_minmax(17rem,0.65fr)]">
             <AssignmentMap key={query} rows={data.data} selected={selected?.id ?? null} onSelect={select} />
             <div className="min-w-0 border-t border-[var(--portal-border)] lg:border-t-0 lg:border-l">
-              <h4 className="border-b border-[var(--portal-border)] px-4 py-3 font-medium">Active courier work</h4>
+              <h4 className="border-b border-[var(--portal-border)] px-4 py-3 font-medium">Courier work & trucks</h4>
               {data.data.length ? <ul className="max-h-[432px] overflow-y-auto" aria-label="Active courier assignments">
                 {data.data.map((work) => (
                   <li key={work.id}>
                     <button type="button" className="assignment-row flex w-full gap-3 px-4 py-3 text-left" aria-pressed={selected?.id === work.id} onClick={() => select(work.id)}>
                       <span className={`assignment-color-${work.stage} mt-0.5`}><AssignmentIcon stage={work.stage} /></span>
                       <span className="min-w-0 space-y-1 text-sm">
-                        <span className="block break-words font-semibold">{work.courier?.name ?? 'Courier unavailable'}</span>
+                        <span className="block break-words font-semibold">{work.courier?.name ?? (work.truck ? `Truck ${work.truck.plate_number}` : 'Courier unavailable')}</span>
                         <span className="block">{stageLabels[work.stage]} · {assignmentStatus(work)}</span>
                         <span className="portal-secondary block break-words">{work.reference}{work.direction === 'return' ? ' · Return' : ''}</span>
                         <span className="portal-secondary block break-words">{assignmentDestination(work)}</span>
-                        <span className="portal-secondary block">{work.scheduled_for ? manilaTime(work.scheduled_for) : 'Schedule unavailable'}{work.stops.some((stop) => !hasPin(stop)) ? ' · Missing map pin' : ''}</span>
+                        <span className="portal-secondary block">{work.scheduled_for ? manilaTime(work.scheduled_for) : (work.status === 'no_active_trip' ? 'Last confirmed hub · No active schedule' : 'Schedule unavailable')}{work.stops.some((stop) => !hasPin(stop)) ? ' · Missing map pin' : ''}</span>
                       </span>
                     </button>
                   </li>
                 ))}
-              </ul> : <PortalState title="No active assignments" description="No assigned pickup, linehaul or delivery work matches these filters." />}
+              </ul> : <PortalState title="No matching work or trucks" description="No pickup, truck or delivery records match these filters." />}
             </div>
           </div>
           {selected ? <AssignmentDetails work={selected} /> : data.data.length ? <p className="portal-secondary border-t border-[var(--portal-border)] px-4 py-3 text-sm">Select a stop or courier assignment for schedule, stops and recorded events.</p> : null}

@@ -102,7 +102,7 @@ class FleetAssignmentMonitoringTest extends TestCase
         $this->actingAs($b[0])->getJson(self::URL)->assertOk()->assertJsonCount(0, 'data');
     }
 
-    public function test_linehaul_includes_owned_empty_returns_scheduled_elsewhere_only_while_active(): void
+    public function test_linehaul_keeps_owned_trucks_visible_after_work_ends(): void
     {
         $a = $this->pinnedHub();
         $b = $this->pinnedHub();
@@ -118,8 +118,31 @@ class FleetAssignmentMonitoringTest extends TestCase
         $this->actingAs($a[0]);
         foreach (['received', 'cancelled', 'rejected'] as $status) {
             $trip->update(['status' => $status]);
-            $this->getJson(self::URL)->assertOk()->assertJsonCount(0, 'data');
+            $this->getJson(self::URL)->assertOk()->assertJsonCount(1, 'data')
+                ->assertJsonPath('data.0.status', 'no_active_trip')
+                ->assertJsonPath('data.0.truck.id', $trip->company_truck_id);
         }
+    }
+
+    public function test_idle_trucks_use_only_last_confirmed_pins_and_remain_searchable(): void
+    {
+        $a = $this->pinnedHub();
+        $b = $this->pinnedHub();
+        $truck = CompanyTruck::create(['logistics_organization_id' => $a[1]->id,
+            'home_hub_id' => $a[2]->id, 'last_confirmed_hub_id' => $b[2]->id,
+            'plate_number' => 'IDLE-123', 'max_parcels' => 100]);
+        $this->linehaul($b, $a);
+        $this->actingAs($a[0])->getJson(self::URL.'?stage=linehaul&search=IDLE-123')
+            ->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('data.0.status', 'no_active_trip')
+            ->assertJsonPath('data.0.courier', null)
+            ->assertJsonPath('data.0.stops.0.kind', 'last_confirmed_hub')
+            ->assertJsonPath('data.0.stops.0.latitude', (float) $b[2]->address->latitude);
+        $this->getJson(self::URL.'?stage=first_mile')->assertOk()->assertJsonCount(0, 'data');
+        $this->getJson(self::URL.'?search=%25')->assertOk()->assertJsonCount(0, 'data');
+        $truck->update(['last_confirmed_hub_id' => null]);
+        $this->getJson(self::URL.'?stage=linehaul')->assertOk()->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.stops.0.latitude', null);
     }
 
     public function test_filters_stable_pagination_validation_and_unavailable_pins(): void
