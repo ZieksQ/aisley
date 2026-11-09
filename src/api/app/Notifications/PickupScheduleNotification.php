@@ -56,6 +56,7 @@ class PickupScheduleNotification extends Notification implements ShouldQueue
             ->count();
         $window = $startsAt->format('M j, Y g:i A').($endsAt ? '–'.$endsAt->format('g:i A') : '').' PHT';
         $labels = [
+            'parcels_released' => ['Parcels available for scheduling', "Uncollected parcels from pickup schedule {$this->schedule->reference} are available for a new pickup schedule"],
             'assigned' => ['Pickup scheduled', "Pickup schedule {$this->schedule->reference} is set for {$window}"],
             'revised' => ['Pickup schedule updated', "Pickup schedule {$this->schedule->reference} was moved to {$window}"],
             'cancelled' => ['Pickup schedule cancelled', "Pickup schedule {$this->schedule->reference} for {$window} was cancelled"],

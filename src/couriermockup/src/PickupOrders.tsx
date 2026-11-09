@@ -2,6 +2,7 @@ import type { IScannerControls } from '@zxing/browser'
 import { Button, TextField } from '@aisley/ui'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ApiError, request } from './lib/api'
+import { PickupDecisionControls } from './PickupDecisionControls'
 import { PickupRouteMap } from './PickupRouteMap'
 import type { FirstMileTask, FirstMileTaskListResponse, PickupConfirmationResponse, WaybillResolveResponse } from './types'
 
@@ -237,6 +238,7 @@ export function PickupOrders({ token }: { token: string }) {
               <dl className="task-facts">
                 <div><dt>Schedule</dt><dd>{selected.schedule.reference}</dd></div>
                 <div><dt>Window</dt><dd>{formatManila(selected.schedule.starts_at)}{selected.schedule.ends_at ? `–${formatManila(selected.schedule.ends_at)}` : ''} PHT</dd></div>
+                <div><dt>Scheduled-day deadline</dt><dd>{formatManila(selected.schedule.pickup_due_at)} PHT</dd></div>
                 <div><dt>Seller</dt><dd>{selected.pickup?.shop_name ?? '—'}</dd></div>
                 <div><dt>Pickup address</dt><dd>{pickupAddress(selected)}</dd></div>
                 <div><dt>Order reference</dt><dd>{selected.order.reference}</dd></div>
@@ -272,6 +274,11 @@ export function PickupOrders({ token }: { token: string }) {
                   <Button className="min-h-11 rounded-md px-4 shadow-none" disabled={!identifier.trim()} isLoading={busy === 'pickup'} loadingLabel="Confirming" onClick={() => void confirmPickup()} variant="secondary">Confirm pickup</Button>
                 </div>
               ) : null}
+
+              <PickupDecisionControls key={`${token}:${selected.id}`} task={selected} token={token} onSaved={async (message) => {
+                setNotice(message)
+                await loadTasks()
+              }} />
 
               {confirmation ? (
                 <div className="pickup-success" role="status">

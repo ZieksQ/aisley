@@ -100,3 +100,7 @@ Backend contract `courier-direct-delivery-v2` permits private photo POD, failed-
 ## Pickup schedule contract — 2026-11-09
 
 Pickup task, route-manifest and notification `ends_at` can now be null. Render the scheduled start independently. Pickup reservations end only after all parcels reach the Logistics hub; see the [pickup contract](features/courier/pick-up-order/specs.md#pickup-scheduling-and-availability--2026-11-09). External Flutter adoption and device status remain unchanged.
+
+## Pickup retries and rejection — 2026-11-09
+
+The [pickup contract](features/courier/pick-up-order/specs.md#failed-pickup-and-schedule-rejection-contract--2026-11-09) now defines same-day pickup due time, a 72-hour retry deadline, per-parcel failed pickup reports (maximum three), and whole-schedule rejection before acceptance. Released uncollected parcels return to Logistics scheduling; collected parcels retain Courier custody until hub receipt. Backend and development prototype implementation do not establish external Flutter adoption or device acceptance; existing Flutter status remains unchanged.

@@ -9,6 +9,7 @@ use App\Enums\WaybillStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Courier\ConfirmFirstMilePickupRequest;
 use App\Models\FirstMileTask;
+use App\Models\PickupSchedule;
 use App\Models\Waybill;
 use App\Models\WaybillAccessEvent;
 use App\Services\Courier\ConfirmFirstMilePickup;
@@ -39,6 +40,7 @@ class FirstMileTaskController extends Controller
     {
         $record = DB::transaction(function () use ($request, $task) {
             $affiliation = $request->user()->courierLogisticsAffiliation()->firstOrFail();
+            PickupSchedule::query()->whereHas('tasks', fn ($q) => $q->whereKey($task)->where('courier_id', $request->user()->id))->lockForUpdate()->firstOrFail();
             $record = FirstMileTask::query()
                 ->where('courier_id', $request->user()->id)
                 ->where('logistics_organization_id', $affiliation->logistics_organization_id)
@@ -47,7 +49,7 @@ class FirstMileTaskController extends Controller
                 ->with('schedule')
                 ->lockForUpdate()
                 ->firstOrFail();
-            abort_unless($record->schedule->status === PickupScheduleStatus::Scheduled, 409, 'This task can no longer be accepted.');
+            abort_unless($record->schedule->status === PickupScheduleStatus::Scheduled && $record->schedule->retryDeadline()->gt(now()), 409, 'This task can no longer be accepted.');
             if ($record->status === FirstMileTaskStatus::Assigned) {
                 $record->update(['status' => FirstMileTaskStatus::Accepted, 'accepted_at' => now()]);
             }
@@ -110,6 +112,8 @@ class FirstMileTaskController extends Controller
             'id' => $task->id,
             'status' => $task->status instanceof \BackedEnum ? $task->status->value : $task->status,
             'picked_up_at' => $task->picked_up_at?->toISOString(),
+            'failed_pickup_count' => $task->failed_pickup_count,
+            'max_failed_pickups' => 3,
             'order' => ['id' => $task->order_id, 'reference' => $task->order?->reference],
             'waybill' => ['reference' => $task->waybill?->reference, 'tracking_id' => $task->waybill?->reference],
             'pickup' => $pickup ? [
@@ -126,7 +130,7 @@ class FirstMileTaskController extends Controller
                 'longitude' => $pickup['longitude'] ?? null,
             ] : null,
             'destination_area' => $destination ? ['city_municipality' => $destination->city_municipality, 'province' => $destination->province, 'region' => $destination->region] : null,
-            'schedule' => ['id' => $task->schedule->id, 'reference' => $task->schedule->reference, 'starts_at' => $task->schedule->starts_at->toISOString(), 'ends_at' => $task->schedule->ends_at?->toISOString(), 'timezone' => 'UTC'],
+            'schedule' => ['id' => $task->schedule->id, 'reference' => $task->schedule->reference, 'starts_at' => $task->schedule->starts_at->toISOString(), 'pickup_due_at' => $task->schedule->pickupDueAt()->toISOString(), 'retry_deadline_at' => $task->schedule->retryDeadline()->toISOString(), 'ends_at' => $task->schedule->ends_at?->toISOString(), 'timezone' => 'UTC'],
         ];
     }
 }
