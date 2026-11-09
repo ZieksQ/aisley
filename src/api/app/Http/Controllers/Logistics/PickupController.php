@@ -14,9 +14,11 @@ use App\Http\Requests\Logistics\ListPickupsRequest;
 use App\Http\Requests\Logistics\RevisePickupScheduleRequest;
 use App\Http\Resources\Logistics\CourierAssignmentVehicleResource;
 use App\Models\CourierLogisticsAffiliation;
+use App\Models\LinehaulTrip;
 use App\Models\PickupSchedule;
 use App\Models\SellerPickupRequest;
 use App\Models\Waybill;
+use App\Services\Logistics\PickupCourierWork;
 use App\Services\Logistics\PickupScheduleService;
 use App\Services\Waybills\WaybillPdfService;
 use Carbon\CarbonImmutable;
@@ -128,24 +130,25 @@ class PickupController extends Controller
         $org = $request->user()->logisticsOrganization()->with('hub')->firstOrFail();
         $data = $request->validated();
         $startsAt = isset($data['starts_at']) ? CarbonImmutable::parse($data['starts_at'])->utc() : null;
-        $endsAt = isset($data['ends_at']) ? CarbonImmutable::parse($data['ends_at'])->utc() : null;
         $schedulesByCourier = collect();
 
-        if ($startsAt && $endsAt) {
-            $dayStart = $startsAt->setTimezone('Asia/Manila')->startOfDay()->utc();
-            $dayEnd = $endsAt->setTimezone('Asia/Manila')->startOfDay()->addDay()->utc();
+        if ($startsAt) {
             $schedulesByCourier = PickupSchedule::query()
                 ->where('logistics_organization_id', $org->id)
                 ->where('logistics_hub_id', $org->hub->id)
                 ->where('status', 'scheduled')
-                ->where('starts_at', '<', $dayEnd)
-                ->where('ends_at', '>', $dayStart)
                 ->when($data['exclude_schedule_id'] ?? null, fn ($query, $id) => $query->whereKeyNot($id))
                 ->orderBy('starts_at')
                 ->orderBy('id')
                 ->get()
                 ->groupBy('courier_id');
         }
+
+        $busyCourierIds = PickupCourierWork::query()
+            ->where('logistics_organization_id', $org->id)
+            ->when($data['exclude_schedule_id'] ?? null, fn ($q, $id) => $q->where('pickup_schedule_id', '!=', $id))
+            ->pluck('courier_id')
+            ->merge(LinehaulTrip::query()->whereIn('status', ['pending_acceptance', 'scheduled', 'in_transfer', 'receiving'])->pluck('driver_id'));
 
         $couriers = CourierLogisticsAffiliation::query()
             ->where('logistics_organization_id', $org->id)
@@ -155,9 +158,9 @@ class PickupController extends Controller
             ->with('courier.courierProfile.vehicles')
             ->orderBy('created_at')
             ->get()
-            ->map(function ($affiliation) use ($schedulesByCourier, $startsAt, $endsAt): array {
+            ->map(function ($affiliation) use ($schedulesByCourier, $startsAt, $busyCourierIds): array {
                 $schedules = $schedulesByCourier->get($affiliation->courier_id, collect());
-                $hasConflict = $startsAt && $endsAt && $schedules->contains(fn (PickupSchedule $schedule): bool => $schedule->starts_at->lt($endsAt) && $schedule->ends_at->gt($startsAt));
+                $hasConflict = $schedules->isNotEmpty() || $busyCourierIds->contains($affiliation->courier_id);
 
                 return [
                     'id' => $affiliation->courier_id,
@@ -166,12 +169,12 @@ class PickupController extends Controller
                     'contact_number' => $affiliation->courier->courierProfile?->contact_number,
                     'vehicle' => CourierAssignmentVehicleResource::forProfile($affiliation->courier->courierProfile),
                     'status' => $affiliation->courier->status instanceof UserStatus ? $affiliation->courier->status->value : $affiliation->courier->status,
-                    'availability' => $startsAt && $endsAt ? ($hasConflict ? 'scheduled' : 'available') : 'not_checked',
+                    'availability' => $startsAt ? ($hasConflict ? 'scheduled' : 'available') : 'not_checked',
                     'schedules' => $schedules->map(fn (PickupSchedule $schedule): array => [
                         'id' => $schedule->id,
                         'reference' => $schedule->reference,
                         'starts_at' => $schedule->starts_at->toISOString(),
-                        'ends_at' => $schedule->ends_at->toISOString(),
+                        'ends_at' => $schedule->ends_at?->toISOString(),
                     ])->values(),
                 ];
             });
@@ -204,7 +207,7 @@ class PickupController extends Controller
 
     private function schedule(PickupSchedule $schedule): array
     {
-        return ['id' => $schedule->id, 'reference' => $schedule->reference, 'status' => $schedule->status instanceof \BackedEnum ? $schedule->status->value : $schedule->status, 'courier_id' => $schedule->courier_id, 'starts_at' => $schedule->starts_at->toISOString(), 'ends_at' => $schedule->ends_at->toISOString(), 'timezone' => 'UTC', 'revision' => $schedule->revision, 'order_ids' => $schedule->relationLoaded('orders') ? $schedule->orders->pluck('order_id')->values() : null];
+        return ['id' => $schedule->id, 'reference' => $schedule->reference, 'status' => $schedule->status instanceof \BackedEnum ? $schedule->status->value : $schedule->status, 'courier_id' => $schedule->courier_id, 'starts_at' => $schedule->starts_at->toISOString(), 'ends_at' => $schedule->ends_at?->toISOString(), 'timezone' => 'UTC', 'revision' => $schedule->revision, 'order_ids' => $schedule->relationLoaded('orders') ? $schedule->orders->pluck('order_id')->values() : null];
     }
 
     private function scheduleSummary(PickupSchedule $schedule): array

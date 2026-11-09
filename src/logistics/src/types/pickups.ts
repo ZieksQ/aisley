@@ -8,7 +8,7 @@ export type PickupSchedule = {
   status: 'scheduled' | 'completed' | 'cancelled'
   courier_id: string
   starts_at: string
-  ends_at: string
+  ends_at: string | null
   timezone: 'UTC'
   revision: number
   order_ids: string[] | null
@@ -49,7 +49,7 @@ export type Pickup = {
 export type PickupPage = { data: Pickup[]; meta: { current_page: number; last_page: number; per_page: number; total: number } }
 export type PickupSchedulePage = { data: PickupScheduleSummary[]; meta: PickupPage['meta'] }
 export type CourierOption = { id: string; name: string; email: string }
-export type CourierSchedule = { id: string; reference: string; starts_at: string; ends_at: string }
+export type CourierSchedule = { id: string; reference: string; starts_at: string; ends_at: string | null }
 export type CourierAvailabilityOption = CourierOption & {
   contact_number: string | null
   vehicle: CourierAssignmentVehicle | null

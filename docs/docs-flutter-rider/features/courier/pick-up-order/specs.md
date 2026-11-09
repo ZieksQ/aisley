@@ -228,3 +228,7 @@ Example GeoJSON geometry (first-mile manifest only):
 - Production rollout still requires PostgreSQL verification, populated and reviewed address-coordinate defaults, and Geoapify usage monitoring; current list/accept/resolve behavior remains intact.
 - Open: schedule early/late pickup grace, installed Android/localhost authenticated map acceptance, turn-by-turn navigation, offline mutation queue, and Courier push transport. MapLibre is adopted; Logistics receipt remains a separate Logistics action.
 External Geoapify, MapLibre, and scanner references are maintained in the canonical backend copy of this specification.
+
+## Pickup scheduling and availability — 2026-11-09
+
+Pickup schedules now use one future start date/time. `schedule.ends_at` and pickup notification/route-manifest `ends_at` may be null; clients must display the start without parsing a missing end. Legacy non-null ends remain readable but never free a Courier automatically. Seller collection leaves the schedule reserved until Logistics has received every linked parcel at the hub. The last hub receipt completes the schedule and frees the Courier; incomplete/expired and legacy completed-but-unreceived work blocks new pickup and linehaul assignment. Per-parcel pickup confirmations, Inventory effects, Order statuses and mobile action requests are unchanged. This backend contract change does not establish external Flutter adoption or device acceptance.

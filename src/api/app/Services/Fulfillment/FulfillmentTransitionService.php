@@ -31,6 +31,7 @@ use App\Models\LinehaulTripShipment;
 use App\Models\LogisticsHub;
 use App\Models\LogisticsOrganization;
 use App\Models\Parcel;
+use App\Models\PickupSchedule;
 use App\Models\Shipment;
 use App\Models\ShipmentEvent;
 use App\Models\ShipmentEvidence;
@@ -40,6 +41,7 @@ use App\Models\Waybill;
 use App\Services\Courier\CourierNotificationService;
 use App\Services\Finance\FinanceLifecycleService;
 use App\Services\Logistics\LogisticsNotificationService;
+use App\Services\Logistics\PickupScheduleLifecycleService;
 use App\Services\Logistics\Routing\LinehaulService;
 use App\Services\Logistics\Routing\ShipmentRouteService;
 use App\Services\Logistics\Sorting\SortingAssignmentService;
@@ -421,6 +423,9 @@ class FulfillmentTransitionService
             }
             $org = $this->logisticsOrganization($logistics);
             $waybill = $this->resolveWaybill($org, (string) $input['reference']);
+            $pickupSchedule = ($input['target_state'] ?? null) === ShipmentStatus::ReceivedAtHub->value
+                ? PickupSchedule::query()->whereHas('tasks', fn ($query) => $query->where('order_id', $waybill->order_id))->lockForUpdate()->first()
+                : null;
             $shipment = $this->ensureForWaybillInTransaction($waybill);
             $shipment = Shipment::query()->whereKey($shipment->id)->with($this->shipmentRelations())->lockForUpdate()->firstOrFail();
             if ($shipment->revision !== (int) $input['expected_revision']) {
@@ -494,6 +499,9 @@ class FulfillmentTransitionService
                     $updates['received_at_hub_at'] = now();
                 }
                 $shipment->update($updates);
+                if ($pickupSchedule !== null) {
+                    app(PickupScheduleLifecycleService::class)->completeIfReady($pickupSchedule, $logistics->id);
+                }
                 if ($target === ShipmentStatus::DispatchedFromHub->value) {
                     $task = $this->createFinalTask($shipment);
                 }
@@ -551,6 +559,9 @@ class FulfillmentTransitionService
 
             $org = $this->logisticsOrganization($logistics);
             $waybill = $this->resolveWaybill($org, $normalizedReference);
+            $schedule = PickupSchedule::query()
+                ->whereHas('tasks', fn ($query) => $query->where('order_id', $waybill->order_id))
+                ->lockForUpdate()->first();
             $shipment = $this->ensureForWaybillInTransaction($waybill);
             $shipment = Shipment::query()->whereKey($shipment->id)->with($this->shipmentRelations())->lockForUpdate()->firstOrFail();
             if ($shipment->status === ShipmentStatus::ReceivedAtHub) {
@@ -569,6 +580,9 @@ class FulfillmentTransitionService
 
             $shipment->update(['status' => ShipmentStatus::ReceivedAtHub, 'revision' => $shipment->revision + 1, 'received_at_hub_at' => now()]);
             $event = $this->event($shipment, $task, 'hub_receipt', ShipmentStatus::PickedUpFromSeller->value, ShipmentStatus::ReceivedAtHub->value, $task->courier_id, $logistics->id, null, null, ['request_hash' => $requestHash, 'captured_at' => $scannedAt], $idempotencyKey);
+            if ($schedule !== null) {
+                app(PickupScheduleLifecycleService::class)->completeIfReady($schedule, $logistics->id);
+            }
 
             return ['shipment' => $shipment->fresh($this->shipmentRelations()), 'task' => $task, 'event' => $event];
         }, 3);

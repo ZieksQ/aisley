@@ -236,7 +236,7 @@ export function PickupOrders({ token }: { token: string }) {
             <div className="task-detail">
               <dl className="task-facts">
                 <div><dt>Schedule</dt><dd>{selected.schedule.reference}</dd></div>
-                <div><dt>Window</dt><dd>{formatManila(selected.schedule.starts_at)}–{formatManila(selected.schedule.ends_at)} PHT</dd></div>
+                <div><dt>Window</dt><dd>{formatManila(selected.schedule.starts_at)}{selected.schedule.ends_at ? `–${formatManila(selected.schedule.ends_at)}` : ''} PHT</dd></div>
                 <div><dt>Seller</dt><dd>{selected.pickup?.shop_name ?? '—'}</dd></div>
                 <div><dt>Pickup address</dt><dd>{pickupAddress(selected)}</dd></div>
                 <div><dt>Order reference</dt><dd>{selected.order.reference}</dd></div>

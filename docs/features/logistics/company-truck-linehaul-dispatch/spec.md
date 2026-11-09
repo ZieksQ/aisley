@@ -90,7 +90,7 @@ The owner and home hub never change. Confirmed operational events, not GPS, dete
 - A return may reserve same-next-hub cargo up to the capacity snapshot or be explicitly empty. Empty returns create no parcel manifest.
 - B releases the return to the driver; the driver confirms actual departure (B retains an operational departure fallback), and A confirms receipt. Receipt closes the visit and restores the truck to available at its confirmed home hub.
 - Legacy immediate manifest and standalone transfer-departure entry points reject new departures with `LINEHAUL_TRIP_REQUIRED`; already-departed historical manifests remain receivable.
-- Pickup/final-mile work and active linehaul work block conflicting driver assignment. Active linehaul work also blocks reuse of the truck and removal of driver capability.
+- Pickup/final-mile work and active linehaul work block conflicting driver assignment. Pickup reservations persist past legacy end times and Seller collection until all parcels reach the Logistics hub; legacy completed-but-unreceived tasks also block assignment. Active linehaul work also blocks reuse of the truck and removal of driver capability.
 - Fleet APIs and UI allow the owning Logistics tenant to register, edit, activate/deactivate, view, and monitor trucks, capacities, confirmed locations, active driver/trip/load, remaining capacity, and trip history.
 - Courier API exposes only that Courier's linehaul trips and their scoped departure/arrival actions. Courier production UI remains external/mobile-only.
 

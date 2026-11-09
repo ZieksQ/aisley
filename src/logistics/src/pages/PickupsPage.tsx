@@ -33,7 +33,6 @@ export function PickupsPage() {
   const [selected, setSelected] = useState<SelectedParcel[]>([])
   const [courierId, setCourierId] = useState('')
   const [startDateTime, setStartDateTime] = useState('')
-  const [endDateTime, setEndDateTime] = useState('')
   const [courierLoading, setCourierLoading] = useState(false)
   const [courierError, setCourierError] = useState('')
   const [loading, setLoading] = useState(true)
@@ -90,7 +89,7 @@ export function PickupsPage() {
   }, [])
 
   const handleWindowChange = useCallback((window: ScheduleWindow) => {
-    if (!window.startDateTime || !window.endDateTime) {
+    if (!window.startDateTime) {
       courierRequest.current += 1
       setCourierLoading(false); setCourierError('')
       setCouriers((current) => current.map((courier) => ({ ...courier, availability: 'not_checked', schedules: [] })))
@@ -100,10 +99,10 @@ export function PickupsPage() {
   }, [loadCouriers])
 
   const refreshCourierAvailability = useCallback(() => {
-    const window = { startDateTime, endDateTime }
-    if (window.startDateTime && window.endDateTime) void loadCouriers(window)
+    const window = { startDateTime }
+    if (window.startDateTime) void loadCouriers(window)
     else void loadCouriers()
-  }, [endDateTime, loadCouriers, startDateTime])
+  }, [loadCouriers, startDateTime])
 
   const loadPending = useCallback(async () => {
     setPendingLoading(true); setPendingError('')
@@ -123,7 +122,7 @@ export function PickupsPage() {
   function submitFilters(event: FormEvent) { event.preventDefault(); const next = new URLSearchParams(params); next.delete('page'); if (query.trim()) next.set('search', query.trim()); else next.delete('search'); if (dateFrom) next.set('date_from', dateFrom); else next.delete('date_from'); if (dateTo) next.set('date_to', dateTo); else next.delete('date_to'); setParams(next) }
   function filter(nextStatus: string) { const next = new URLSearchParams(params); next.delete('page'); next.set('status', nextStatus); setParams(next) }
   function changeSort(nextSort: string) { const next = new URLSearchParams(params); next.delete('page'); next.set('sort', nextSort); setParams(next) }
-  function openCreate() { setSelected([]); setScheduleError(''); setCourierError(''); setPending(null); setCourierId(''); setStartDateTime(''); setEndDateTime(''); setCouriers((current) => current.map((courier) => ({ ...courier, availability: 'not_checked', schedules: [] }))); createDialog.current?.showModal(); void loadPending() }
+  function openCreate() { setSelected([]); setScheduleError(''); setCourierError(''); setPending(null); setCourierId(''); setStartDateTime(''); setCouriers((current) => current.map((courier) => ({ ...courier, availability: 'not_checked', schedules: [] }))); createDialog.current?.showModal(); void loadPending() }
   function toggleParcel(pickup: Pickup, order: PickupOrder) {
     setSelected((current) => current.some((parcel) => parcel.id === order.id)
       ? current.filter((parcel) => parcel.id !== order.id)
@@ -138,15 +137,14 @@ export function PickupsPage() {
   }
   async function createSchedule() {
     const startsAt = toUtc(startDateTime)
-    const endsAt = toUtc(endDateTime)
-    if (!selected.length || !courierId || !startsAt || !endsAt) return
+    if (!selected.length || !courierId || !startsAt) return
     setBusy(true); setScheduleError('')
     const orderIds = selected.map((parcel) => parcel.id).sort()
-    const storageKey = `logistics-pickup-schedule:${orderIds.join(':')}:${courierId}:${startsAt}:${endsAt}`
+    const storageKey = `logistics-pickup-schedule:${orderIds.join(':')}:${courierId}:${startsAt}`
     let idempotencyKey = sessionStorage.getItem(storageKey)
     if (!idempotencyKey) { idempotencyKey = crypto.randomUUID(); sessionStorage.setItem(storageKey, idempotencyKey) }
     try {
-      await csrf(); await request('/api/v1/logistics/pickup-schedules', { method: 'POST', headers: { 'Idempotency-Key': idempotencyKey }, body: JSON.stringify({ order_ids: orderIds, courier_id: courierId, starts_at: startsAt, ends_at: endsAt }) })
+      await csrf(); await request('/api/v1/logistics/pickup-schedules', { method: 'POST', headers: { 'Idempotency-Key': idempotencyKey }, body: JSON.stringify({ order_ids: orderIds, courier_id: courierId, starts_at: startsAt }) })
       sessionStorage.removeItem(storageKey); createDialog.current?.close(); setSelected([]); setNotice(`Schedule created with ${orderIds.length} parcels.`); await load()
     } catch (reason) {
       if (reason instanceof ApiError && reason.status === 409) await loadPending()
@@ -162,7 +160,7 @@ export function PickupsPage() {
     <form className="hub-pickup-filters portal-section" onSubmit={submitFilters}>
       <label className="hub-pickup-search"><span className="portal-field-label">Search schedules</span><span className="relative block"><FaMagnifyingGlass className="pointer-events-none absolute left-3 top-4 text-slate-400" aria-hidden="true" /><input className="portal-input pl-9!" onChange={(event) => setQuery(event.target.value)} placeholder="Schedule, courier email, or pickup ID" value={query} /></span></label>
       <label><span className="portal-field-label">Status</span><select aria-label="Filter by status" className="portal-input" onChange={(event) => filter(event.target.value)} value={status}><option value="scheduled">Scheduled</option><option value="completed">Completed</option><option value="cancelled">Cancelled</option><option value="all">All statuses</option></select></label>
-      <label><span className="portal-field-label">Pickup window</span><select aria-label="Sort by pickup window" className="portal-input" onChange={(event) => changeSort(event.target.value)} value={sort}><option value="asc">Earliest first</option><option value="desc">Latest first</option></select></label>
+      <label><span className="portal-field-label">Pickup time</span><select aria-label="Sort by pickup time" className="portal-input" onChange={(event) => changeSort(event.target.value)} value={sort}><option value="asc">Earliest first</option><option value="desc">Latest first</option></select></label>
       <label><span className="portal-field-label">Date from</span><FlatpickrInput aria-label="Pickup date from" className="portal-input" onChange={setDateFrom} options={{ dateFormat: 'Y-m-d', maxDate: dateTo || undefined }} placeholder="Start date" value={dateFrom} /></label>
       <label><span className="portal-field-label">Date to</span><FlatpickrInput aria-label="Pickup date to" className="portal-input" onChange={setDateTo} options={{ dateFormat: 'Y-m-d', minDate: dateFrom || undefined }} placeholder="End date" value={dateTo} /></label>
       <PortalButton type="submit">Apply</PortalButton>
@@ -170,7 +168,7 @@ export function PickupsPage() {
     {error ? <div className="mt-4"><ErrorNotice message={error} retry={() => void load()} /></div> : null}
     {notice ? <p className="mt-4 border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-200" role="status">{notice}</p> : null}
     <section className={`portal-section mt-5 overflow-hidden`} aria-busy={loading}>
-      <div className="hidden grid-cols-[minmax(10rem,1.1fr)_minmax(10rem,1fr)_minmax(8rem,.8fr)_7rem_minmax(11rem,1fr)_7rem_1.5rem] gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3 text-xs font-semibold text-slate-600 dark:border-slate-700 dark:bg-white/[0.03] dark:text-slate-400 lg:grid"><span>Schedule</span><span>Courier</span><span>Pickups</span><span>Status</span><span>Pickup window</span><span>Parcels left</span><span className="sr-only">Details</span></div>
+      <div className="hidden grid-cols-[minmax(10rem,1.1fr)_minmax(10rem,1fr)_minmax(8rem,.8fr)_7rem_minmax(11rem,1fr)_7rem_1.5rem] gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3 text-xs font-semibold text-slate-600 dark:border-slate-700 dark:bg-white/[0.03] dark:text-slate-400 lg:grid"><span>Schedule</span><span>Courier</span><span>Pickups</span><span>Status</span><span>Pickup time</span><span>Parcels left</span><span className="sr-only">Details</span></div>
       {loading && !schedules ? <PortalSkeleton label="Loading pickup schedules" /> : schedules?.data.length ? <ul className="divide-y divide-slate-200 dark:divide-white/10">{schedules.data.map((schedule) => {
         const pickup = schedule.pickup_requests[0]
         return <li key={schedule.id}>
@@ -179,7 +177,7 @@ export function PickupsPage() {
         <div className="min-w-0"><span className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400 lg:hidden">Courier</span><p className="truncate text-sm font-medium">{schedule.courier.name || 'Courier'}</p><p className="truncate text-xs text-slate-600 dark:text-slate-400">{schedule.courier.email}</p></div>
         <div><span className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400 lg:hidden">Pickups</span><p className="font-mono text-xs">{pickup.id.slice(0, 8)}</p>{schedule.pickup_requests.length > 1 ? <p className="text-xs text-slate-600 dark:text-slate-400">+{schedule.pickup_requests.length - 1} more</p> : null}</div>
         <div><span className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400 lg:hidden">Status</span><StatusLabel status={schedule.status} /></div>
-        <p className="text-sm leading-5"><span className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400 lg:hidden">Pickup window</span>{formatPhtDateTime(schedule.starts_at)}<br /><span className="text-xs text-slate-600 dark:text-slate-400">to {formatPhtDateTime(schedule.ends_at)} PHT</span></p>
+        <p className="text-sm leading-5"><span className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400 lg:hidden">Pickup time</span>{formatPhtDateTime(schedule.starts_at)}<br /><span className="text-xs text-slate-600 dark:text-slate-400">PHT · Until hub receipt</span></p>
         <p className="text-sm tabular-nums"><span className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400 lg:hidden">Parcels left</span><strong className="text-base">{schedule.remaining_parcel_count}</strong> of {schedule.parcel_count}</p>
         <FaChevronRight className="self-center justify-self-end text-xs text-slate-400" aria-hidden="true" />
         </Link>
@@ -188,7 +186,7 @@ export function PickupsPage() {
     {schedules && schedules.meta.last_page > 1 ? <nav aria-label="Schedule pagination" className="mt-4 flex items-center justify-between text-sm"><PortalButton disabled={page <= 1} onClick={() => { const next = new URLSearchParams(params); next.set('page', String(page - 1)); setParams(next) }}>Previous</PortalButton><span>Page {schedules.meta.current_page} of {schedules.meta.last_page}</span><PortalButton disabled={page >= schedules.meta.last_page} onClick={() => { const next = new URLSearchParams(params); next.set('page', String(page + 1)); setParams(next) }}>Next</PortalButton></nav> : null}
 
     <dialog ref={createDialog} className="m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-5xl overflow-hidden rounded-lg border border-slate-200 bg-white p-0 text-slate-950 backdrop:bg-black/55 dark:border-slate-600 dark:bg-slate-800 dark:text-white">
-      <div className="border-b border-slate-200 px-5 py-4 dark:border-slate-700"><h3 className="text-lg font-semibold">Create pickup schedule</h3><p className="mt-1 text-sm text-slate-600 dark:text-slate-400">Choose up to 30 pending parcels, then assign one Courier and pickup window.</p></div>
+      <div className="border-b border-slate-200 px-5 py-4 dark:border-slate-700"><h3 className="text-lg font-semibold">Create pickup schedule</h3><p className="mt-1 text-sm text-slate-600 dark:text-slate-400">Choose up to 30 pending parcels, then assign one Courier and pickup time.</p></div>
       <div className="grid max-h-[calc(90dvh-5rem)] overflow-y-auto lg:h-[calc(90dvh-5rem)] lg:grid-cols-[minmax(0,1.45fr)_minmax(19rem,.75fr)] lg:overflow-hidden">
         <section className="min-h-0 border-b border-slate-200 lg:flex lg:flex-col lg:border-b-0 lg:border-r dark:border-slate-700">
           <div className="flex items-center justify-between border-b border-slate-200 bg-white px-5 py-3 dark:border-slate-700 dark:bg-slate-800"><div><h4 className="font-semibold">Pending parcels</h4><p aria-live="polite" className="text-xs text-slate-600 dark:text-slate-400">Sorted by Shop, then oldest request · {selected.length}/30 selected</p></div><PortalButton isLoading={pendingLoading} onClick={() => void loadPending()}><FaArrowsRotate aria-hidden="true" />Reload</PortalButton></div>
@@ -203,11 +201,11 @@ export function PickupsPage() {
           })}</ul> : !pendingLoading ? <div className="p-8 text-center"><h4 className="font-medium">No pending parcels</h4><p className="mt-1 text-sm text-slate-600 dark:text-slate-400">All available Seller parcels are already scheduled.</p></div> : null}
           {pending && pending.meta.last_page > 1 ? <p className="border-t border-slate-200 px-5 py-3 text-xs text-amber-700 dark:border-slate-700 dark:text-amber-300">Showing the first 50 Shop pickup requests, ordered oldest first within each Shop.</p> : null}
         </section>
-        <aside className="min-h-0 overflow-y-auto overscroll-contain p-5"><h4 className="font-semibold">Assignment</h4><ScheduleFields couriers={couriers} courierId={courierId} setCourierId={setCourierId} startDateTime={startDateTime} setStartDateTime={setStartDateTime} endDateTime={endDateTime} setEndDateTime={setEndDateTime} courierLoading={courierLoading} courierError={courierError} onWindowChange={handleWindowChange} onRefreshCouriers={refreshCourierAvailability} idPrefix="new-schedule" />
+        <aside className="min-h-0 overflow-y-auto overscroll-contain p-5"><h4 className="font-semibold">Assignment</h4><ScheduleFields couriers={couriers} courierId={courierId} setCourierId={setCourierId} startDateTime={startDateTime} setStartDateTime={setStartDateTime} courierLoading={courierLoading} courierError={courierError} onWindowChange={handleWindowChange} onRefreshCouriers={refreshCourierAvailability} idPrefix="new-schedule" />
           <div className="mt-4 border-y border-slate-200 py-3 text-sm dark:border-slate-700"><div className="flex justify-between"><span>Selected parcels</span><strong>{selected.length} / 30</strong></div><div className="mt-2 flex justify-between"><span>Shops</span><strong>{new Set(selected.map((parcel) => parcel.shopId)).size}</strong></div></div>
           {scheduleError ? <p className="mt-4 border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-400/30 dark:bg-red-400/10 dark:text-red-200" role="alert">{scheduleError}</p> : null}
           <p className="mt-4 text-xs leading-5 text-slate-600 dark:text-slate-400">Pickup times use Philippine Time (Asia/Manila). The API rechecks parcel availability, Courier eligibility, schedule overlap, and the 30-parcel capacity before saving.</p>
-          <div className="mt-5 flex justify-end gap-2"><PortalButton onClick={() => createDialog.current?.close()} type="button">Cancel</PortalButton><PortalButton variant="primary" isLoading={busy} disabled={!selected.length || !courierId || !startDateTime || !endDateTime || courierLoading} onClick={() => void createSchedule()} type="button">Create schedule</PortalButton></div>
+          <div className="mt-5 flex justify-end gap-2"><PortalButton onClick={() => createDialog.current?.close()} type="button">Cancel</PortalButton><PortalButton variant="primary" isLoading={busy} disabled={!selected.length || !courierId || !startDateTime || courierLoading} onClick={() => void createSchedule()} type="button">Create schedule</PortalButton></div>
         </aside>
       </div>
     </dialog>

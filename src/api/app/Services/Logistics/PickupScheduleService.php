@@ -39,19 +39,19 @@ class PickupScheduleService
                 if ($previous) {
                     $same = $previous->orders->pluck('order_id')->sort()->values()->all() === collect($data['order_ids'])->sort()->values()->all()
                         && $previous->courier_id === $data['courier_id']
-                        && $previous->starts_at->equalTo(CarbonImmutable::parse($data['starts_at'])->utc())
-                        && $previous->ends_at->equalTo(CarbonImmutable::parse($data['ends_at'])->utc());
+                        && $previous->starts_at->equalTo(CarbonImmutable::parse($data['starts_at'])->utc()->startOfSecond())
+                        && $previous->ends_at?->toISOString() === (isset($data['ends_at']) ? CarbonImmutable::parse($data['ends_at'])->utc()->startOfSecond()->toISOString() : null);
                     if (! $same) {
                         throw new LogisticsPickupException('IDEMPOTENCY_KEY_REUSED', 'This Idempotency-Key was already used for another schedule.');
                     }
 
                     return $previous;
                 }
-                $starts = CarbonImmutable::parse($data['starts_at'])->utc();
-                $ends = CarbonImmutable::parse($data['ends_at'])->utc();
+                $starts = CarbonImmutable::parse($data['starts_at'])->utc()->startOfSecond();
+                $ends = isset($data['ends_at']) ? CarbonImmutable::parse($data['ends_at'])->utc()->startOfSecond() : null;
                 $this->assertWindow($starts, $ends);
                 $this->assertCourier($data['courier_id'], $org->id, $org->hub->id);
-                $this->assertNoCourierConflict($data['courier_id'], $starts, $ends);
+                $this->assertNoCourierConflict($data['courier_id']);
                 $links = SellerPickupRequestOrder::query()->whereIn('order_id', $data['order_ids'])
                     ->whereHas('sellerPickupRequest', fn ($query) => $query->where('logistics_organization_id', $org->id))
                     ->whereDoesntHave('order.firstMileTask')->with(['order.waybill', 'sellerPickupRequest'])->orderBy('order_id')->lockForUpdate()->get();
@@ -95,12 +95,12 @@ class PickupScheduleService
                 throw new LogisticsPickupException('SCHEDULE_CUSTODY_STARTED', 'An accepted or picked-up schedule can no longer be revised.');
             }
             $before = $this->state($schedule);
-            $starts = isset($data['starts_at']) ? CarbonImmutable::parse($data['starts_at'])->utc() : $schedule->starts_at->toImmutable();
-            $ends = isset($data['ends_at']) ? CarbonImmutable::parse($data['ends_at'])->utc() : $schedule->ends_at->toImmutable();
+            $starts = isset($data['starts_at']) ? CarbonImmutable::parse($data['starts_at'])->utc()->startOfSecond() : $schedule->starts_at->toImmutable();
+            $ends = isset($data['ends_at']) ? CarbonImmutable::parse($data['ends_at'])->utc()->startOfSecond() : null;
             $courierId = $data['courier_id'] ?? $schedule->courier_id;
             $this->assertWindow($starts, $ends);
             $this->assertCourier($courierId, $org->id, $org->hub->id);
-            $this->assertNoCourierConflict($courierId, $starts, $ends, $schedule->id);
+            $this->assertNoCourierConflict($courierId, $schedule->id);
             $schedule->update(['courier_id' => $courierId, 'starts_at' => $starts, 'ends_at' => $ends, 'revision' => $schedule->revision + 1]);
             $schedule->tasks()->update(['courier_id' => $courierId]);
             PickupRouteManifest::create(['pickup_schedule_id' => $schedule->id, 'schedule_revision' => $schedule->revision, 'status' => PickupRouteManifestStatus::Pending]);
@@ -151,19 +151,20 @@ class PickupScheduleService
         }
     }
 
-    private function assertWindow(CarbonImmutable $starts, CarbonImmutable $ends): void
+    private function assertWindow(CarbonImmutable $starts, ?CarbonImmutable $ends): void
     {
-        if ($starts->isPast() || ! $starts->lessThan($ends)) {
-            throw new LogisticsPickupException('PICKUP_WINDOW_INVALID', 'Pickup windows must be future UTC intervals with starts_at before ends_at.', 422);
+        if ($starts->isPast() || ($ends !== null && ! $starts->lessThan($ends))) {
+            throw new LogisticsPickupException('PICKUP_WINDOW_INVALID', 'Choose a future pickup start; any legacy end must follow the start.', 422);
         }
     }
 
-    private function assertNoCourierConflict(string $courierId, CarbonImmutable $starts, CarbonImmutable $ends, ?string $except = null): void
+    private function assertNoCourierConflict(string $courierId, ?string $except = null): void
     {
-        $conflict = PickupSchedule::query()->where('courier_id', $courierId)->where('status', PickupScheduleStatus::Scheduled)->when($except, fn ($q) => $q->whereKeyNot($except))->where('starts_at', '<', $ends)->where('ends_at', '>', $starts)->lockForUpdate()->exists();
+        $conflict = PickupSchedule::query()->where('courier_id', $courierId)->where('status', PickupScheduleStatus::Scheduled)->when($except, fn ($q) => $q->whereKeyNot($except))->lockForUpdate()->exists();
+        $conflict = $conflict || PickupCourierWork::query($courierId)->when($except, fn ($q) => $q->where('pickup_schedule_id', '!=', $except))->lockForUpdate()->exists();
         $conflict = $conflict || LinehaulTrip::query()->where('driver_id', $courierId)->whereIn('status', ['pending_acceptance', 'scheduled', 'in_transfer', 'receiving'])->lockForUpdate()->exists();
         if ($conflict) {
-            throw new LogisticsPickupException('COURIER_SCHEDULE_CONFLICT', 'The Courier already has an overlapping pickup schedule.');
+            throw new LogisticsPickupException('COURIER_SCHEDULE_CONFLICT', 'The Courier already has unfinished pickup or linehaul work.');
         }
     }
 
@@ -183,7 +184,7 @@ class PickupScheduleService
 
     private function state(PickupSchedule $schedule): array
     {
-        return ['status' => $schedule->status instanceof PickupScheduleStatus ? $schedule->status->value : $schedule->status, 'courier_id' => $schedule->courier_id, 'starts_at' => $schedule->starts_at->toISOString(), 'ends_at' => $schedule->ends_at->toISOString(), 'revision' => $schedule->revision];
+        return ['status' => $schedule->status instanceof PickupScheduleStatus ? $schedule->status->value : $schedule->status, 'courier_id' => $schedule->courier_id, 'starts_at' => $schedule->starts_at->toISOString(), 'ends_at' => $schedule->ends_at?->toISOString(), 'revision' => $schedule->revision];
     }
 
     private function reference(): string

@@ -75,3 +75,8 @@ Short, dated log of what has been implemented across the whole app. Append new e
 
 - Fixed missing Logistics role handling in Admin account list/detail and lifecycle responses, preserving profile names, email fallback and contact masking. Included Logistics profiles in eager loading/name searches and allowed the Logistics role filter; Admin account exclusion and permission boundaries remain enforced.
 - Verification: new regressions reproduced the original failures before the fix; all 15 account-management API tests (93 assertions), scoped Pint and whitespace checks passed using SQLite. Deployed/PostgreSQL verification remains open.
+
+## 2026-11-09 — Courier pickup and linehaul schedule conflicts
+
+- Pickup reservations now block linehaul regardless of elapsed end dates or legacy premature completion, and active linehaul blocks pickup availability. Pickup schedules complete and release their Courier only after all parcels reach the Logistics hub, preserving history, idempotency, Inventory and role/tenant boundaries. Removed pickup end-date controls, made API ends nullable through a new migration and updated canonical/portable Courier contracts without changing Flutter status.
+- Verification: 31 scoped SQLite API tests (628 assertions), three TypeScript/production builds, scoped lint/Pint and whitespace checks passed. Synthetic Chromium passed six responsive/theme component states plus single-start entry, reserved/available Courier selection, keyboard and overflow checks; reviewed captures. Existing bundle warnings remain. Apply the new migration at deployment; PostgreSQL/concurrent-worker, deployed and external Flutter acceptance remain open. See [verification](features/orders/logistics-pickups/verification-2026-11-09.md).

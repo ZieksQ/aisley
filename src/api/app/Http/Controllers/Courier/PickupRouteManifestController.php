@@ -154,7 +154,7 @@ class PickupRouteManifestController extends Controller
                 'id' => $schedule->id,
                 'reference' => $schedule->reference,
                 'starts_at' => $schedule->starts_at->toISOString(),
-                'ends_at' => $schedule->ends_at->toISOString(),
+                'ends_at' => $schedule->ends_at?->toISOString(),
                 'timezone' => 'UTC',
                 'order_count' => $schedule->tasks()->count(),
             ],

@@ -20,16 +20,19 @@ use App\Models\AddressCoordinateDefault;
 use App\Models\Category;
 use App\Models\CheckoutBatch;
 use App\Models\CheckoutQuote;
+use App\Models\FirstMileTask;
 use App\Models\InventoryBalance;
 use App\Models\InventoryMovement;
 use App\Models\InventorySku;
 use App\Models\Order;
 use App\Models\PickupSchedule;
 use App\Models\Product;
+use App\Models\Shipment;
 use App\Models\Shop;
 use App\Models\ShopCategory;
 use App\Models\User;
 use App\Models\Waybill;
+use App\Services\Fulfillment\FulfillmentTransitionService;
 use App\Services\Logistics\BuildPickupRouteManifest;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -261,7 +264,7 @@ class LogisticsPickupWaybillTest extends TestCase
             'ends_at' => $endsAt->copy()->addMinutes(30)->toISOString(),
         ])->assertConflict()
             ->assertJsonPath('code', 'COURIER_SCHEDULE_CONFLICT')
-            ->assertJsonPath('message', 'The Courier already has an overlapping pickup schedule.');
+            ->assertJsonPath('message', 'The Courier already has unfinished pickup or linehaul work.');
         $this->assertDatabaseCount('pickup_schedules', 1);
         $this->assertDatabaseMissing('first_mile_tasks', ['order_id' => $secondOrder->id]);
     }
@@ -432,7 +435,7 @@ class LogisticsPickupWaybillTest extends TestCase
 
     public function test_courier_confirms_qr_and_manual_pickups_idempotently_and_changes_order_status(): void
     {
-        [$seller, $shop] = $this->sellerShop();
+        [$seller, $shop] = $this->sellerShop(true);
         $manualOrder = $this->order($shop);
         $qrOrder = $this->order($shop);
         $manualOrder->update(['status' => OrderStatus::SellerProcessing]);
@@ -515,6 +518,12 @@ class LogisticsPickupWaybillTest extends TestCase
             ->assertJsonPath('data.task_status', 'picked_up_from_seller')
             ->assertJsonPath('data.order_status', 'picked_up');
 
+        $this->assertDatabaseHas('pickup_schedules', ['id' => $manualTask['schedule']['id'], 'status' => 'scheduled']);
+        foreach ([$manualOrder, $qrOrder] as $collectedOrder) {
+            $this->actingAs($logistics)->postJson('/api/v1/logistics/receiving/batches', ['receipts' => [[
+                'client_id' => (string) Str::uuid(), 'reference' => $collectedOrder->waybill->reference, 'scanned_at' => now()->toISOString(),
+            ]]])->assertOk()->assertJsonPath('summary.received', 1);
+        }
         $this->assertDatabaseHas('pickup_schedules', ['id' => $manualTask['schedule']['id'], 'status' => 'completed']);
         $this->assertDatabaseHas('pickup_schedule_reminders', ['pickup_schedule_id' => $manualTask['schedule']['id'], 'status' => 'suppressed']);
         $this->assertDatabaseCount('pickup_schedule_history', 2);
@@ -545,7 +554,7 @@ class LogisticsPickupWaybillTest extends TestCase
         $this->assertSame(0, (int) InventoryBalance::query()->sum('reserved'));
         $this->assertSame(18, (int) InventoryBalance::query()->sum('on_hand'));
         $this->assertDatabaseCount('inventory_movements', 4);
-        $this->getJson('/api/v1/courier/first-mile-tasks')->assertOk()->assertJsonCount(0, 'data');
+        $this->actingAs($courier)->getJson('/api/v1/courier/first-mile-tasks')->assertOk()->assertJsonCount(0, 'data');
         $this->actingAs($logistics)->postJson("/api/v1/logistics/pickup-schedules/{$manualTask['schedule']['id']}/cancel", [
             'expected_revision' => 1,
             'reason' => 'This must not erase recorded custody.',
@@ -554,7 +563,7 @@ class LogisticsPickupWaybillTest extends TestCase
 
     public function test_existing_all_picked_schedule_reconciles_once_without_replaying_side_effects(): void
     {
-        [$seller, $shop] = $this->sellerShop();
+        [$seller, $shop] = $this->sellerShop(true);
         $order = $this->order($shop);
         $order->update(['status' => OrderStatus::SellerProcessing]);
         [$logistics, $organization, $hub] = $this->logistics('Reconciliation Logistics', 'Manila', 'Metro Manila');
@@ -581,6 +590,13 @@ class LogisticsPickupWaybillTest extends TestCase
         ]);
         $this->assertSame('scheduled', PickupSchedule::query()->findOrFail($schedule['id'])->status->value);
 
+        $this->artisan('pickups:reconcile-schedules')->assertSuccessful()
+            ->expectsOutputToContain('parcels_not_all_received_at_hub');
+        $this->assertDatabaseHas('pickup_schedules', ['id' => $schedule['id'], 'status' => 'scheduled']);
+        $legacyTask = FirstMileTask::where('pickup_schedule_id', $schedule['id'])->sole();
+        app(FulfillmentTransitionService::class)->syncLegacyFirstMile($legacyTask);
+        Shipment::query()->whereHas('parcel', fn ($q) => $q->where('order_id', $order->id))
+            ->update(['received_at_hub_at' => now()]);
         $this->artisan('pickups:reconcile-schedules')
             ->assertSuccessful()
             ->expectsOutputToContain("Completed {$schedule['id']}.");
@@ -784,6 +800,13 @@ class LogisticsPickupWaybillTest extends TestCase
                 'ends_at' => now()->addHours(4)->toISOString(),
             ])->assertCreated()->json('data');
 
+        // Historical immutable snapshots can predate mandatory Seller address pins.
+        $snapshot = $order->waybill->snapshot;
+        $payload = $snapshot->payload;
+        $payload['pickup']['latitude'] = null;
+        $payload['pickup']['longitude'] = null;
+        $snapshot->update(['payload' => $payload]);
+
         app(BuildPickupRouteManifest::class)->handle($schedule['id'], 1);
         $this->actingAs($courier)->getJson("/api/v1/courier/pickup-schedules/{$schedule['id']}/route-manifest")
             ->assertOk()
@@ -803,7 +826,7 @@ class LogisticsPickupWaybillTest extends TestCase
             ->assertJsonPath('data.reason', 'missing_pickup_coordinates');
     }
 
-    private function sellerShop(bool $coordinates = false): array
+    private function sellerShop(bool $coordinates = true): array
     {
         $seller = User::factory()->create(['role' => UserRole::Seller, 'status' => UserStatus::Active]);
         $category = ShopCategory::create(['name' => 'General '.Str::random(5), 'slug' => 'general-'.Str::lower(Str::random(8)), 'status' => CategoryStatus::Active]);

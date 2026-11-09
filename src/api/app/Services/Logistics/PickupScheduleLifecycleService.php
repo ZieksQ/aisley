@@ -13,10 +13,10 @@ use Illuminate\Support\Facades\DB;
 class PickupScheduleLifecycleService
 {
     /**
-     * Complete a schedule when every linked first-mile task has been picked up.
+     * Complete a schedule after every linked parcel has been received at the hub.
      *
      * The schedule row, membership rows, and task rows are locked in that order
-     * so this can safely be called from the Courier confirmation transaction or
+     * so this can safely be called from the Logistics hub-receipt transaction or
      * independently by the reconciliation command.
      */
     public function completeIfReady(PickupSchedule $schedule, string $actorId): bool
@@ -24,7 +24,7 @@ class PickupScheduleLifecycleService
         return DB::transaction(function () use ($schedule, $actorId): bool {
             $locked = $this->lockSchedule($schedule->id);
 
-            return $this->completeLocked($locked, $actorId, 'All linked first-mile tasks were picked up from sellers.');
+            return $this->completeLocked($locked, $actorId, 'All linked parcels were received at the Logistics hub.');
         }, 3);
     }
 
@@ -47,9 +47,9 @@ class PickupScheduleLifecycleService
                 return ['status' => 'inconsistent', 'reason' => $assessment['reason']];
             }
 
-            $this->completeLocked($schedule, $schedule->courier_id, 'Reconciled from existing picked-up first-mile tasks.');
+            $this->completeLocked($schedule, $schedule->courier_id, 'Reconciled from existing pickup and hub receipt evidence.');
 
-            return ['status' => 'completed', 'reason' => 'all_tasks_picked_up'];
+            return ['status' => 'completed', 'reason' => 'all_parcels_received_at_hub'];
         }, 3);
     }
 
@@ -91,16 +91,16 @@ class PickupScheduleLifecycleService
         $orderLinks = PickupScheduleOrder::query()
             ->where('pickup_schedule_id', $schedule->id)
             ->lockForUpdate()
-            ->get(['id']);
+            ->get(['id', 'order_id']);
         $tasks = FirstMileTask::query()
             ->where('pickup_schedule_id', $schedule->id)
             ->lockForUpdate()
-            ->get(['id', 'status']);
+            ->get(['id', 'order_id', 'status']);
 
         if ($orderLinks->isEmpty() || $tasks->isEmpty()) {
             return ['ready' => false, 'reason' => 'empty_schedule'];
         }
-        if ($tasks->count() !== $orderLinks->count()) {
+        if ($tasks->pluck('order_id')->sort()->values()->all() !== $orderLinks->pluck('order_id')->sort()->values()->all()) {
             return ['ready' => false, 'reason' => 'task_membership_mismatch'];
         }
         if ($tasks->contains(fn (FirstMileTask $task): bool => $task->status === FirstMileTaskStatus::Cancelled)) {
@@ -110,7 +110,12 @@ class PickupScheduleLifecycleService
             return ['ready' => false, 'reason' => 'tasks_not_all_picked_up'];
         }
 
-        return ['ready' => true, 'reason' => 'all_tasks_picked_up'];
+        $receivedCount = $schedule->tasks()->whereHas('order.parcel.shipment', fn ($query) => $query->whereNotNull('received_at_hub_at'))->count();
+        if ($receivedCount !== $tasks->count()) {
+            return ['ready' => false, 'reason' => 'parcels_not_all_received_at_hub'];
+        }
+
+        return ['ready' => true, 'reason' => 'all_parcels_received_at_hub'];
     }
 
     private function lockSchedule(string $scheduleId): PickupSchedule
@@ -125,7 +130,7 @@ class PickupScheduleLifecycleService
             'status' => $schedule->status instanceof PickupScheduleStatus ? $schedule->status->value : $schedule->status,
             'courier_id' => $schedule->courier_id,
             'starts_at' => $schedule->starts_at->toISOString(),
-            'ends_at' => $schedule->ends_at->toISOString(),
+            'ends_at' => $schedule->ends_at?->toISOString(),
             'revision' => $schedule->revision,
         ];
     }

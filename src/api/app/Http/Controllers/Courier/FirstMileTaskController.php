@@ -126,7 +126,7 @@ class FirstMileTaskController extends Controller
                 'longitude' => $pickup['longitude'] ?? null,
             ] : null,
             'destination_area' => $destination ? ['city_municipality' => $destination->city_municipality, 'province' => $destination->province, 'region' => $destination->region] : null,
-            'schedule' => ['id' => $task->schedule->id, 'reference' => $task->schedule->reference, 'starts_at' => $task->schedule->starts_at->toISOString(), 'ends_at' => $task->schedule->ends_at->toISOString(), 'timezone' => 'UTC'],
+            'schedule' => ['id' => $task->schedule->id, 'reference' => $task->schedule->reference, 'starts_at' => $task->schedule->starts_at->toISOString(), 'ends_at' => $task->schedule->ends_at?->toISOString(), 'timezone' => 'UTC'],
         ];
     }
 }

@@ -20,7 +20,7 @@ class CreatePickupScheduleRequest extends FormRequest
             'order_ids.*' => ['required', 'uuid', 'distinct'],
             'courier_id' => ['required', 'uuid'],
             'starts_at' => ['required', 'date', 'after:now'],
-            'ends_at' => ['required', 'date', 'after:starts_at'],
+            'ends_at' => ['sometimes', 'nullable', 'date', 'after:starts_at'],
             'organization_id' => ['prohibited'], 'hub_id' => ['prohibited'], 'status' => ['prohibited'],
         ];
     }

@@ -428,9 +428,9 @@ class CourierNotificationService
     private function window(PickupSchedule $schedule): string
     {
         $starts = $schedule->starts_at->timezone('Asia/Manila');
-        $ends = $schedule->ends_at->timezone('Asia/Manila');
+        $ends = $schedule->ends_at?->timezone('Asia/Manila');
 
-        return $starts->format('M j, Y g:i A').'–'.$ends->format('g:i A').' PHT';
+        return $starts->format('M j, Y g:i A').($ends ? '–'.$ends->format('g:i A') : '').' PHT';
     }
 
     private function text(mixed $value, string $fallback, int $limit): string
