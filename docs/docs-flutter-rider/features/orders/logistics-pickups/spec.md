@@ -80,7 +80,7 @@ Seller enables providers for its Shop; Customer selects/freezes one per Order. P
 - Logistics may select 1–30 unscheduled Orders from its own pending requests and create one first-mile pickup schedule.
 - All selected Orders must belong to the authenticated Logistics organization; a schedule may span multiple Seller Shops and requests when its single pickup window is operationally valid.
 - Courier must have an active account and current approved affiliation to that same organization/hub; never trust a submitted foreign Courier ID.
-- Store `starts_at` and `ends_at` in UTC, require `starts_at < ends_at`, reject past windows, and display in Asia/Manila unless the account later gains a timezone setting.
+- Schedule a single future `starts_at` in UTC and display it in Asia/Manila. New web scheduling has no end-date field. `ends_at` is nullable in API responses; legacy clients may still send a later end, but it never releases an unfinished Courier reservation. Pickup and active linehaul assignments mutually block new work until their physical completion.
 - Lock selected Orders/request links and recheck schedule capacity and Courier conflicts before commit; return `409` for stale or competing assignment.
 - Create a first-mile task per Order under one schedule; assignment does not imply `seller_pickup_accepted` or `picked_up_from_seller`.
 - The assigned Courier must explicitly accept before physical pickup. First-mile acceptance does not imply Seller handoff or hub receipt.
@@ -92,11 +92,11 @@ Seller enables providers for its Shop; Customer selects/freezes one per Order. P
 ### PickupSchedule lifecycle
 
 - A new `PickupSchedule` starts as `scheduled`; `remaining_parcel_count` counts only its linked first-mile tasks in `assigned` or `accepted`, not Orders awaiting final delivery.
-- When every linked task in a still-`scheduled` schedule reaches `picked_up_from_seller`, complete that schedule as `completed` within the final pickup transaction, with concurrency/retry safety. One task still represents one Order; one schedule may group many Orders.
-- A partial schedule remains `scheduled` while any task is `assigned` or `accepted`. Zero remaining is a reconciliation candidate, not sufficient proof of completion if tasks are missing, cancelled, or inconsistent.
-- Completed schedules remain historical but are excluded from Courier overlap/availability checks, cannot be revised/cancelled, and suppress pending reminders; claimed/retried reminder work must recheck schedule eligibility before delivery.
-- Schedule completion means first-mile Seller collection is finished, not hub receipt or final-mile `delivered`; it must not repeat Inventory fulfillment or change final-mile assignments/statuses.
-- `PickupScheduleLifecycleService` completes the parent in the final pickup transaction, suppresses pending or claimed reminders, and exposes a bounded `pickups:reconcile-schedules` command for existing zero-remaining candidates. Reconciliation only completes schedules whose membership is complete and every linked task is already `picked_up_from_seller`; empty, missing, cancelled, or partial task sets are reported without replaying pickup or Inventory effects.
+- Complete a still-`scheduled` schedule only when every linked task is `picked_up_from_seller` and every linked parcel has authoritative `received_at_hub_at` evidence. The last Logistics hub receipt completes the schedule atomically and frees its Courier for new work. One task still represents one Order; one schedule may group many Orders.
+- A schedule remains `scheduled` while any task is `assigned` or `accepted`, or any collected parcel is awaiting hub receipt. Zero remaining means Seller collection is finished; it does not free the Courier. Missing, cancelled, or inconsistent membership cannot complete a schedule.
+- Completed schedules remain historical, cannot be revised/cancelled, and suppress pending reminders; claimed/retried reminder work must recheck eligibility. Legacy completed schedules with unreceived parcels still block Courier reuse through their task/custody evidence. Elapsed end dates never establish availability.
+- Schedule completion means Seller collection and return to the Logistics hub are finished. It does not imply final-mile `delivered`, repeat Inventory fulfillment, or change final-mile assignments/statuses.
+- `PickupScheduleLifecycleService` completes the parent in the final hub-receipt transaction, suppresses pending or claimed reminders, and exposes a bounded `pickups:reconcile-schedules` command for existing zero-remaining candidates. Reconciliation only completes schedules whose membership is complete and every linked task is already `picked_up_from_seller` and every parcel has hub receipt evidence; empty, missing, cancelled, or partial task sets are reported without replaying pickup or Inventory effects.
 
 ### Notifications and cron
 
@@ -115,13 +115,13 @@ Seller enables providers for its Shop; Customer selects/freezes one per Order. P
 - [x] A schedule can combine solo or bulk handoffs from multiple Sellers, contains no more than 30 Orders and one Courier, visibly leaves excess Orders unscheduled, and prevents concurrent assignment of an Order.
 - [x] The Logistics Pickups page is schedule-first, and schedule creation presents pending parcels ordered by Shop and request creation time before Courier/window confirmation.
 - [x] The schedule list defaults to scheduled work and supports ascending or descending pickup-window sorting.
-- [x] Schedule creation uses combined Philippine date/time controls for separate start and end window endpoints, and Courier selection is a searchable popup showing active status, schedules affecting the requested dates, and overlapping-window availability.
-- [x] Logistics schedule endpoints use Flatpickr combined date/time controls for start and end, while schedule filters, account birthday fields, and registration birthday fields use date-only Flatpickr controls; the mobile fallback is disabled.
+- [x] Schedule creation uses one combined Philippine pickup date/time control and no end date; Courier selection shows account status and unfinished pickup/linehaul reservations, including expired legacy windows.
+- [x] Logistics pickup scheduling uses one Flatpickr combined date/time control, while schedule filters, account birthday fields, and registration birthday fields use date-only Flatpickr controls; the mobile fallback is disabled.
 - [x] Scheduling leaves the Order at `ready_for_pickup` and does not claim custody or alter Inventory.
 - [x] Pickup-time waybill creation persists the explicit tracking ID and Buyer postal-code/sort-plan routing hint without giving Seller authority over hub lanes.
-- [x] Partial pickup preserves `scheduled` and the exact assigned/accepted remaining count; the last successful pickup completes the parent schedule exactly once under concurrent/retried confirmation.
-- [x] Completed schedules remain readable history, do not block Courier overlap/availability, reject revision/cancellation, and leave no active pending/retried reminders.
-- [x] Existing zero-remaining `scheduled` rows reconcile safely only after confirming all linked tasks were picked up; no Inventory, pickup, or final-mile effects are replayed.
+- [x] Partial pickup preserves `scheduled` and the exact assigned/accepted remaining count; the last successful hub receipt completes the parent schedule exactly once under concurrent/retried receipt.
+- [x] Completed and fully received schedules remain readable history, free the Courier, reject revision/cancellation, and leave no active pending/retried reminders.
+- [x] Existing zero-remaining `scheduled` rows reconcile safely only after confirming all linked tasks were picked up and their parcels received at the hub; no Inventory, pickup, or final-mile effects are replayed.
 - [ ] Seller and Courier receive one assignment notification and at most one due reminder per schedule revision.
 - [x] Provider, API, scheduler, and notification failures have truthful fallbacks without cross-tenant or duplicate effects.
 
@@ -146,17 +146,17 @@ Seller enables providers for its Shop; Customer selects/freezes one per Order. P
 ### Interfaces and UI
 
 - Seller: `GET /api/v1/seller/logistics-options`, `POST /api/v1/seller/orders/pickup-requests`.
-- Logistics: `GET /api/v1/logistics/pickups`, `GET /pickups/{pickup}`, `GET /pickup-couriers` (optionally with `starts_at`, `ends_at`, and `exclude_schedule_id` for server-calculated availability), `GET /pickup-schedules`, `POST /pickup-schedules`, and revision/cancel endpoints.
+- Logistics: `GET /api/v1/logistics/pickups`, `GET /pickups/{pickup}`, `GET /pickup-couriers` (optionally with `starts_at` and `exclude_schedule_id` (legacy `ends_at` remains accepted) for server-calculated availability), `GET /pickup-schedules`, `POST /pickup-schedules`, and revision/cancel endpoints.
 - Courier API: read assigned first-mile tasks and acknowledge/accept under the existing mobile-only boundary.
 - Add Seller checkout-selected provider states and packing handoff; add a schedule-first Logistics `/pickups` screen plus pickup-request detail with `@aisley/ui`, responsive tables/cards, keyboard controls, and loading/empty/error/conflict states. Schedule creation supports a cross-Seller selection capped at 30 parcels and summarizes parcel/Shop counts before assignment.
 - API resources expose server-calculated capabilities; frontends never infer assignability, availability, distance validity, or tenant ownership.
 - Keep list selections across a recoverable refetch only while each Order remains eligible; announce selection counts and validation errors to assistive technology.
-- Show all schedule timestamps with an explicit timezone and provide a confirmation summary before the Logistics mutation. Schedule endpoints use combined Flatpickr date/time widgets with the mobile fallback disabled; the Courier picker shows contact information, account status, schedules affecting the requested dates, and whether the requested window is open.
+- Show all schedule timestamps with an explicit timezone and provide a confirmation summary before the Logistics mutation. Pickup scheduling uses a single combined Flatpickr date/time widget with the mobile fallback disabled; the Courier picker shows contact information, account status and outstanding work. `starts_at` alone triggers the authoritative availability check.
 
 ### Verification and rollout
 
-- Reconcile existing data in place with the bounded, rerunnable `pickups:reconcile-schedules` command: identify zero-remaining `scheduled` candidates, lock/recheck the schedule and complete task membership, require every linked task to be `picked_up_from_seller`, then complete and suppress pending reminders atomically. Report inconsistent/empty/cancelled-task candidates without marking them complete; preserve historical references, confirmations, and Inventory movements. Fresh migration or reseeding is not the solution.
-- Verify all-picked versus partial/cancelled/missing-task cases, repeat backfill runs, last-pickup/reminder races, completed overlap exclusion and edit/cancel rejection on SQLite/PostgreSQL before production rollout. Focused SQLite lifecycle coverage is implemented; PostgreSQL remains a release gate.
+- Reconcile existing data in place with the bounded, rerunnable `pickups:reconcile-schedules` command: identify zero-remaining `scheduled` candidates, lock/recheck the schedule and complete task membership, require every linked task to be `picked_up_from_seller` and every linked parcel to have hub receipt evidence, then complete and suppress pending reminders atomically. Report inconsistent/empty/cancelled-task candidates without marking them complete; preserve historical references, confirmations, and Inventory movements. Fresh migration or reseeding is not the solution.
+- Verify all-picked versus partial/cancelled/missing-task cases, repeat backfill runs, last-receipt/reminder races, fully received completion exclusion and edit/cancel rejection on SQLite/PostgreSQL before production rollout. Focused SQLite lifecycle coverage is implemented; PostgreSQL remains a release gate.
 - Test role/status/Shop/organization IDOR, eligibility tiers, Geoapify success/timeout/quota fallback, deterministic ranks, and absent coordinates.
 - Test 30-Order bounds, idempotency, request/schedule races, Courier affiliation, overlap checks, UTC conversion, revisions, cancellation, and no Inventory effect.
 - Test explicit acceptance gating, task-level rejection/re-offer, preserved offer history, stale display, and notification failure without Order or custody mutation.

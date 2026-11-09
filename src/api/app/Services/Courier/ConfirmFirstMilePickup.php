@@ -13,7 +13,6 @@ use App\Models\PickupSchedule;
 use App\Models\User;
 use App\Services\Fulfillment\FulfillmentTransitionService;
 use App\Services\Inventory\FulfillOrderReservation;
-use App\Services\Logistics\PickupScheduleLifecycleService;
 use App\Services\OrderTransitionService;
 use App\Services\Waybills\CreateWaybill;
 use Illuminate\Support\Facades\DB;
@@ -26,7 +25,6 @@ class ConfirmFirstMilePickup
         private readonly FulfillOrderReservation $inventory,
         private readonly OrderTransitionService $transitions,
         private readonly FulfillmentTransitionService $fulfillment,
-        private readonly PickupScheduleLifecycleService $scheduleLifecycle,
     ) {}
 
     /** @return array{task: FirstMileTask, confirmation: CourierPickupConfirmation, idempotent: bool} */
@@ -108,7 +106,6 @@ class ConfirmFirstMilePickup
             // Bridge the legacy first-mile confirmation into the shared physical
             // shipment projection without replaying the inventory effect.
             $this->fulfillment->syncLegacyFirstMile($task);
-            $this->scheduleLifecycle->completeIfReady($task->schedule, $courier->id);
 
             return ['task' => $task->fresh($this->relations()), 'confirmation' => $confirmation, 'idempotent' => false];
         }, 3);

@@ -14,8 +14,6 @@ type ScheduleFieldsProps = {
   setCourierId: (value: string) => void
   startDateTime: string
   setStartDateTime: (value: string) => void
-  endDateTime: string
-  setEndDateTime: (value: string) => void
   courierLoading?: boolean
   courierError?: string
   onWindowChange?: (window: ScheduleWindow) => void
@@ -29,8 +27,6 @@ export function ScheduleFields({
   setCourierId,
   startDateTime,
   setStartDateTime,
-  endDateTime,
-  setEndDateTime,
   courierLoading = false,
   courierError = '',
   onWindowChange,
@@ -39,25 +35,20 @@ export function ScheduleFields({
 }: ScheduleFieldsProps) {
   const earliest = localParts(new Date(Date.now() + 60_000).toISOString())
   const earliestDateTime = `${earliest.date} ${earliest.time}`
-  const minimumEndDateTime = startDateTime || earliestDateTime
 
   function updateWindow(next: Partial<ScheduleWindow>) {
-    const window = { startDateTime, endDateTime, ...next }
+    const window = { startDateTime, ...next }
     onWindowChange?.(window)
   }
 
   return <div className="mt-4 grid gap-3 sm:grid-cols-2">
     <label className="text-sm font-medium" htmlFor={`${idPrefix}-start`}>
-      Start date &amp; time (PHT)
+      Pickup date &amp; time (PHT)
       <FlatpickrInput className={`portal-input mt-1`} id={`${idPrefix}-start`} placeholder="Select start date and time" required value={startDateTime} onChange={(value) => { setStartDateTime(value); updateWindow({ startDateTime: value }) }} options={{ dateFormat: 'Y-m-d H:i', enableTime: true, minDate: earliestDateTime, minuteIncrement: 1, time_24hr: true }} />
     </label>
-    <label className="text-sm font-medium" htmlFor={`${idPrefix}-end`}>
-      End date &amp; time (PHT)
-      <FlatpickrInput className={`portal-input mt-1`} id={`${idPrefix}-end`} placeholder="Select end date and time" required value={endDateTime} onChange={(value) => { setEndDateTime(value); updateWindow({ endDateTime: value }) }} options={{ dateFormat: 'Y-m-d H:i', enableTime: true, minDate: minimumEndDateTime, minuteIncrement: 1, time_24hr: true }} />
-    </label>
-    <p className="text-xs leading-5 text-slate-600 dark:text-slate-400 sm:col-span-2">Choose the start and end of the pickup window. All times use Philippine time (PHT).</p>
+    <p className="text-xs leading-5 text-slate-600 dark:text-slate-400 sm:col-span-2">The Courier remains reserved until every parcel is received at the Logistics hub. All times use Philippine time (PHT).</p>
     <div className="sm:col-span-2">
-      <CourierPicker couriers={couriers} courierError={courierError} courierId={courierId} courierLoading={courierLoading} endDateTime={endDateTime} idPrefix={idPrefix} onRefreshCouriers={onRefreshCouriers} setCourierId={setCourierId} startDateTime={startDateTime} />
+      <CourierPicker couriers={couriers} courierError={courierError} courierId={courierId} courierLoading={courierLoading} endDateTime="" idPrefix={idPrefix} onRefreshCouriers={onRefreshCouriers} setCourierId={setCourierId} startDateTime={startDateTime} />
     </div>
   </div>
 }
@@ -142,8 +133,8 @@ function CourierPickerModal({ couriers, courierId, courierLoading, courierError,
     if (!needle) return couriers
     return couriers.filter((courier) => `${courier.name} ${courier.email} ${courier.contact_number ?? ''} ${courier.vehicle ? courierVehicleLabel(courier.vehicle) : ''}`.toLowerCase().includes(needle))
   }, [couriers, search])
-  const checkedWindow = Boolean(startDateTime && endDateTime)
-  const windowLabel = checkedWindow ? `${formatPhtDateTime(startDateTime)}–${formatPhtDateTime(endDateTime)} PHT` : ''
+  const checkedWindow = Boolean(startDateTime)
+  const windowLabel = checkedWindow ? `${formatPhtDateTime(startDateTime)}${endDateTime ? `–${formatPhtDateTime(endDateTime)}` : ''} PHT` : ''
 
   return <div aria-labelledby={`${id}-courier-picker-title`} aria-modal="true" className="fixed inset-0 z-50 overflow-y-auto bg-black/55 p-3 sm:grid sm:place-items-center sm:p-4" id={`${id}-courier-picker`} onMouseDown={(event) => { if (event.currentTarget === event.target) onClose() }} role="dialog">
     <div className="my-3 flex max-h-[calc(100dvh-1.5rem)] w-full max-w-2xl flex-col rounded-lg border border-slate-200 bg-white shadow-lg sm:my-0 sm:max-h-[90dvh] dark:border-slate-700 dark:bg-slate-800">
@@ -155,7 +146,7 @@ function CourierPickerModal({ couriers, courierId, courierLoading, courierError,
         <button aria-label="Close Courier picker" className="grid size-11 shrink-0 place-items-center rounded-md hover:bg-slate-100 dark:hover:bg-white/10" onClick={onClose} type="button"><FaXmark aria-hidden="true" /></button>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
-        <p className="text-xs leading-5 text-slate-600 dark:text-slate-400">{checkedWindow ? `Requested window: ${windowLabel}. Availability is checked against it.` : uncheckedAvailabilityText ?? 'Choose a date and both times to check availability.'} Attendance tracking is not enabled yet, so account status is shown as active for now.</p>
+        <p className="text-xs leading-5 text-slate-600 dark:text-slate-400">{checkedWindow ? `Scheduled time: ${windowLabel}. Unfinished work blocks a new assignment.` : uncheckedAvailabilityText ?? 'Choose a pickup date and time to check availability.'} Attendance tracking is not enabled yet, so account status is shown as active for now.</p>
         {courierError ? <p className="mt-3 border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-400/30 dark:bg-red-400/10 dark:text-red-200" role="alert">{courierError}</p> : null}
         <div className="mt-3 flex items-center gap-2">
           <label className="relative min-w-0 flex-1">
@@ -176,27 +167,27 @@ function CourierPickerModal({ couriers, courierId, courierLoading, courierError,
                   <span className="mt-1 block break-words text-sm font-medium text-slate-700 dark:text-slate-300">{courierVehicleLabel(courier.vehicle)}</span>
                   <span className="mt-1 block text-sm text-slate-600 dark:text-slate-300">{courier.email}{courier.contact_number ? ` · ${courier.contact_number}` : ''}</span>
                   <span className={`mt-2 block text-xs font-medium ${courier.availability === 'available' ? 'text-emerald-700 dark:text-emerald-300' : courier.availability === 'scheduled' ? 'text-amber-700 dark:text-amber-300' : 'text-slate-600 dark:text-slate-400'}`}>{availabilityLabel(courier.availability)}</span>
-                  {courier.schedules.length > 0 ? <span className="mt-2 block text-xs leading-5 text-slate-600 dark:text-slate-400"><span className="font-medium text-slate-700 dark:text-slate-300">Schedules affecting these dates:</span> {courier.schedules.map((schedule) => `${formatPhtDateTime(schedule.starts_at)}–${formatPhtDateTime(schedule.ends_at)} PHT`).join(' · ')}</span> : null}
+                  {courier.schedules.length > 0 ? <span className="mt-2 block text-xs leading-5 text-slate-600 dark:text-slate-400"><span className="font-medium text-slate-700 dark:text-slate-300">Unfinished pickup schedules:</span> {courier.schedules.map((schedule) => `${formatPhtDateTime(schedule.starts_at)} PHT · Until hub receipt`).join(' · ')}</span> : null}
                 </span>
               </div>
             </button>
           })}
           {filtered.length === 0 ? <p className="p-4 text-sm text-slate-600 dark:text-slate-400">No Couriers match your search.</p> : null}
         </div>}
-        <p className="mt-2 pb-1 text-[11px] text-slate-600 dark:text-slate-400">{modalFootnote ?? `All times use ${PICKUP_TIME_ZONE}. The API rechecks Courier status and overlapping schedules before assigning work.`}</p>
+        <p className="mt-2 pb-1 text-[11px] text-slate-600 dark:text-slate-400">{modalFootnote ?? `All times use ${PICKUP_TIME_ZONE}. The API rechecks Courier status and unfinished work before assigning a Courier.`}</p>
       </div>
     </div>
   </div>
 }
 
 function availabilityLabel(value: CourierAvailabilityOption['availability']): string {
-  if (value === 'available') return 'Open for this date and time'
-  if (value === 'scheduled') return 'Has an overlapping pickup schedule'
+  if (value === 'available') return 'Available for new work'
+  if (value === 'scheduled') return 'Has unfinished scheduled work'
   return 'Date and time not checked'
 }
 
 export function ScheduleDialog({ dialog, busy, error, title, description, submitLabel, submit, ...fields }: ScheduleFieldsProps & { dialog: RefObject<HTMLDialogElement | null>; busy: boolean; error: string; title: string; description: string; submitLabel: string; submit: () => void }) {
-  const canSubmit = Boolean(fields.courierId && fields.startDateTime && fields.endDateTime) && !fields.courierLoading
+  const canSubmit = Boolean(fields.courierId && fields.startDateTime) && !fields.courierLoading
 
   return <dialog ref={dialog} className="m-auto w-[calc(100%-2rem)] max-w-lg rounded-lg border border-slate-200 bg-white p-5 text-slate-950 backdrop:bg-black/55 dark:border-slate-600 dark:bg-slate-800 dark:text-white">
     <h3 className="text-lg font-semibold">{title}</h3><p className="mt-2 text-sm text-slate-600 dark:text-slate-400">{description}</p><ScheduleFields {...fields} />

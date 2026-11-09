@@ -2,7 +2,6 @@ export const PICKUP_TIME_ZONE = 'Asia/Manila'
 
 export type ScheduleWindow = {
   startDateTime: string
-  endDateTime: string
 }
 
 export function toUtc(date: string, time: string): string

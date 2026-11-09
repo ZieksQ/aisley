@@ -40,7 +40,7 @@ class PickupScheduleNotification extends Notification implements ShouldQueue
         $pickup = $pickupIds->count() === 1 ? $pickupIds->first() : null;
         $address = $firstOrder?->order?->waybill?->snapshot?->payload['pickup'] ?? null;
         $startsAt = Carbon::parse($this->schedule->starts_at)->timezone('Asia/Manila');
-        $endsAt = Carbon::parse($this->schedule->ends_at)->timezone('Asia/Manila');
+        $endsAt = $this->schedule->ends_at?->copy()->timezone('Asia/Manila');
         $orderCount = $visibleOrders->count();
         $pickupStopCount = $visibleOrders
             ->map(fn ($scheduleOrder) => $scheduleOrder->order?->waybill?->snapshot?->payload['pickup'] ?? null)
@@ -54,7 +54,7 @@ class PickupScheduleNotification extends Notification implements ShouldQueue
                 $pickupAddress['longitude'] ?? '',
             ]))
             ->count();
-        $window = sprintf('%s–%s PHT', $startsAt->format('M j, Y g:i A'), $endsAt->format('g:i A'));
+        $window = $startsAt->format('M j, Y g:i A').($endsAt ? '–'.$endsAt->format('g:i A') : '').' PHT';
         $labels = [
             'assigned' => ['Pickup scheduled', "Pickup schedule {$this->schedule->reference} is set for {$window}"],
             'revised' => ['Pickup schedule updated', "Pickup schedule {$this->schedule->reference} was moved to {$window}"],
@@ -70,7 +70,7 @@ class PickupScheduleNotification extends Notification implements ShouldQueue
             'reference' => $this->schedule->reference,
             'revision' => $this->schedule->revision,
             'starts_at' => $this->schedule->starts_at->toISOString(),
-            'ends_at' => $this->schedule->ends_at->toISOString(),
+            'ends_at' => $this->schedule->ends_at?->toISOString(),
             'timezone' => 'Asia/Manila',
             'order_count' => $orderCount,
             'pickup_stop_count' => $pickupStopCount,

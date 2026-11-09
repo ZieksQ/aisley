@@ -96,3 +96,7 @@ Laravel and the development mockup now use individual parcel accept/reject. Reje
 ## Direct accepted-parcel delivery revision — 2026-10-23
 
 Backend contract `courier-direct-delivery-v2` permits private photo POD, failed-attempt reporting and matching completion intent directly from `delivery_accepted` and existing later delivery states. Logistics Delivery confirmations reviews these without a required hub-pickup/transit sequence. Submission preserves physical/payment state; approval may commit Order `assigned` → `delivered`. Existing endpoint fields, authentication and optional legacy movement routes remain supported. See [Complete Delivery](features/courier/complete-delivery/specs.md). External Flutter adoption and device/live acceptance of this revision remain open.
+
+## Pickup schedule contract — 2026-11-09
+
+Pickup task, route-manifest and notification `ends_at` can now be null. Render the scheduled start independently. Pickup reservations end only after all parcels reach the Logistics hub; see the [pickup contract](features/courier/pick-up-order/specs.md#pickup-scheduling-and-availability--2026-11-09). External Flutter adoption and device status remain unchanged.

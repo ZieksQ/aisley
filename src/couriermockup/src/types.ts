@@ -169,7 +169,7 @@ export interface FirstMileTask {
     id: string
     reference: string
     starts_at: string
-    ends_at: string
+    ends_at: string | null
     timezone: 'UTC'
   }
 }
@@ -231,7 +231,7 @@ export interface PickupRouteManifest {
     id: string
     reference: string
     starts_at: string
-    ends_at: string
+    ends_at: string | null
     timezone: 'UTC'
     order_count: number
   }

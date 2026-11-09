@@ -19,7 +19,7 @@ class RevisePickupScheduleRequest extends FormRequest
             'reason' => ['required', 'string', 'max:1000'],
             'courier_id' => ['sometimes', 'uuid'],
             'starts_at' => ['sometimes', 'date', 'after:now'],
-            'ends_at' => ['sometimes', 'date'],
+            'ends_at' => ['sometimes', 'nullable', 'date'],
             'organization_id' => ['prohibited'], 'hub_id' => ['prohibited'], 'status' => ['prohibited'],
         ];
     }

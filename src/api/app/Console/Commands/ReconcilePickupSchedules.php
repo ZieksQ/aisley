@@ -11,7 +11,7 @@ class ReconcilePickupSchedules extends Command
 {
     protected $signature = 'pickups:reconcile-schedules {--limit=50}';
 
-    protected $description = 'Reconcile scheduled pickup schedules whose first-mile tasks are already picked up';
+    protected $description = 'Reconcile scheduled pickup schedules whose parcels are picked up and received at the hub';
 
     public function handle(PickupScheduleLifecycleService $lifecycle): int
     {

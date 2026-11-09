@@ -405,7 +405,8 @@ class LinehaulTripService
         if ($query->lockForUpdate()->exists()) {
             throw FulfillmentException::conflict('LINEHAUL_RESOURCE_CONFLICT', 'The selected truck or driver already has active linehaul work.');
         }
-        if (PickupSchedule::query()->where('courier_id', $driverId)->where('status', 'scheduled')->where('ends_at', '>=', now())->lockForUpdate()->exists()
+        if (PickupCourierWork::query($driverId)->lockForUpdate()->exists()
+            || PickupSchedule::query()->where('courier_id', $driverId)->where('status', 'scheduled')->lockForUpdate()->exists()
             || DispatchSchedule::query()->where('courier_id', $driverId)->where('status', 'scheduled')->lockForUpdate()->exists()
             || DeliveryTask::query()->where('courier_id', $driverId)->whereIn('status', ['offered', 'delivery_assigned', 'accepted', 'picked_up_from_hub', 'out_for_delivery'])->lockForUpdate()->exists()) {
             throw FulfillmentException::conflict('LINEHAUL_DRIVER_WORK_CONFLICT', 'The selected driver has outstanding pickup or final-mile work.');

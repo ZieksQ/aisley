@@ -46,7 +46,7 @@ export type SellerOrder = {
   pickup: null | {
     request_id: string; status: string; pickup_date: string | null; logistics_organization_id: string | null
     pickup_address: null | { id: string; label: string | null; address_line_1: string; barangay: string; city_municipality: string; province: string }
-    schedule: null | { id: string; reference: string; status: string; starts_at: string; ends_at: string; timezone: string }
+    schedule: null | { id: string; reference: string; status: string; starts_at: string; ends_at: string | null; timezone: string }
   }
   waybill: null | { id: string; reference: string; tracking_id: string; created_at: string; pdf_url: string }
   notification: null | { id: string; read_at: string | null }
