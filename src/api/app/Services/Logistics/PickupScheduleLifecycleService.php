@@ -95,13 +95,17 @@ class PickupScheduleLifecycleService
         $tasks = FirstMileTask::query()
             ->where('pickup_schedule_id', $schedule->id)
             ->lockForUpdate()
-            ->get(['id', 'order_id', 'status']);
+            ->get(['id', 'order_id', 'status', 'released_at']);
 
         if ($orderLinks->isEmpty() || $tasks->isEmpty()) {
             return ['ready' => false, 'reason' => 'empty_schedule'];
         }
         if ($tasks->pluck('order_id')->sort()->values()->all() !== $orderLinks->pluck('order_id')->sort()->values()->all()) {
             return ['ready' => false, 'reason' => 'task_membership_mismatch'];
+        }
+        $tasks = $tasks->reject(fn (FirstMileTask $task): bool => $task->status === FirstMileTaskStatus::Cancelled && $task->released_at !== null);
+        if ($tasks->isEmpty()) {
+            return ['ready' => false, 'reason' => 'no_retained_parcels'];
         }
         if ($tasks->contains(fn (FirstMileTask $task): bool => $task->status === FirstMileTaskStatus::Cancelled)) {
             return ['ready' => false, 'reason' => 'cancelled_task_present'];
@@ -110,7 +114,7 @@ class PickupScheduleLifecycleService
             return ['ready' => false, 'reason' => 'tasks_not_all_picked_up'];
         }
 
-        $receivedCount = $schedule->tasks()->whereHas('order.parcel.shipment', fn ($query) => $query->whereNotNull('received_at_hub_at'))->count();
+        $receivedCount = $schedule->tasks()->where('status', FirstMileTaskStatus::PickedUp)->whereHas('order.parcel.shipment', fn ($query) => $query->whereNotNull('received_at_hub_at'))->count();
         if ($receivedCount !== $tasks->count()) {
             return ['ready' => false, 'reason' => 'parcels_not_all_received_at_hub'];
         }

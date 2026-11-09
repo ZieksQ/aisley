@@ -67,6 +67,7 @@ class ConfirmFirstMilePickup
             if (
                 $task->status !== FirstMileTaskStatus::Accepted
                 || $task->schedule->status !== PickupScheduleStatus::Scheduled
+                || $task->schedule->retryDeadline()->lte(now())
                 || $task->waybill->status !== WaybillStatus::Active
             ) {
                 throw CourierPickupException::conflict('PICKUP_TRANSITION_CONFLICT', 'This task can no longer be confirmed as picked up.');

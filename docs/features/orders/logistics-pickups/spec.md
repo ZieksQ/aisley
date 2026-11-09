@@ -3,7 +3,7 @@ feature: seller-logistics-pickup-scheduling
 title: Seller-to-Logistics Pickup Scheduling
 system: AISLEY
 type: Feature Specification
-version: 2.1
+version: 2.2
 status: Implemented (scheduling, schedule lifecycle, and bounded reconciliation)
 roles: Seller, Logistics, Courier API
 scope: Seller SPA, Logistics SPA, Courier API, Laravel API, scheduler
@@ -34,8 +34,8 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - One request belongs to one Shop and one Logistics organization; a Seller request may contain up to 50 Orders, while one pickup schedule may combine Orders from multiple Shops/requests addressed to that Logistics tenant and may contain at most 30 Orders for one Courier.
 - Logistics must split a request over 30 Orders into multiple schedules; Orders, waybills, custody, status, and idempotency remain independent.
 - Courier acceptance is required before physical handoff. Assignment creates an offered/assigned task; it does not mean `seller_pickup_accepted` or `picked_up_from_seller`.
-- First-mile rejection/re-offer remains target policy; no Courier first-mile rejection endpoint is deployed. Do not expose a working Reject control. The implemented final-mile rejection/re-offer contract is owned by Accept Delivery Requests and does not change the Order.
-- An unfinished task may be displayed as informationally `stale`; the MVP does not automatically cancel or reassign it.
+- Courier may reject a wholly unaccepted first-mile schedule; its uncollected parcels return to Logistics scheduling with append-only decisions and no Order or Inventory change. Final-mile decisions retain their separate contract.
+- Uncollected first-mile work has a 72-hour retry deadline from the scheduled start. The minute scheduler releases outstanding assigned/accepted parcels after that deadline; Logistics explicitly creates a new schedule.
 - **Non-goals:** parcel weight/dimension capacity, route optimization across stops, automatic Courier assignment, fixed Courier shifts, hub receipt/sorting, final-mile assignment, delivery completion, or Courier web UI.
 
 ## MUST
@@ -79,28 +79,28 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - Logistics may select 1–30 unscheduled Orders from its own pending requests and create one first-mile pickup schedule.
 - All selected Orders must belong to the authenticated Logistics organization; a schedule may span multiple Seller Shops and requests when its single pickup window is operationally valid.
 - Courier must have an active account and current approved affiliation to that same organization/hub; never trust a submitted foreign Courier ID.
-- Schedule a single future `starts_at` in UTC and display it in Asia/Manila. New web scheduling has no end-date field. `ends_at` is nullable in API responses; legacy clients may still send a later end, but it never releases an unfinished Courier reservation. Pickup and active linehaul assignments mutually block new work until their physical completion.
+- Schedule a single future `starts_at` in UTC and display it in Asia/Manila. New web scheduling has no end-date field. `ends_at` is nullable in API responses; legacy clients may still send a later end, but it never releases an unfinished Courier reservation. Pickup and active linehaul assignments mutually block new work until physical completion or explicit release of all uncollected pickup assignments.
 - Lock selected Orders/request links and recheck schedule capacity and Courier conflicts before commit; return `409` for stale or competing assignment.
 - Create a first-mile task per Order under one schedule; assignment does not imply `seller_pickup_accepted` or `picked_up_from_seller`.
 - The assigned Courier must explicitly accept before physical pickup. First-mile acceptance does not imply Seller handoff or hub receipt.
-- Future first-mile rejection/re-offer requires an approved endpoint and append-only decision history without changing the Order or duplicating its task/waybill; it is unavailable in this scheduling foundation.
-- Informational `stale` is a display/freshness outcome for unfinished work only; it is not an Order status and does not trigger automatic cancellation or reassignment.
+- First-mile rejection uses the implemented Courier schedule decision endpoint below; Logistics creates a new schedule/task for released parcels while retaining their existing waybill and original assignment history.
+- Informational `stale` remains a display outcome, separate from the implemented first-mile 72-hour release policy; neither writes an Order status.
 - Retrying the same Logistics idempotency key returns the committed schedule; it must not duplicate tasks or notifications.
 - Editing or cancelling a future schedule requires an expected revision, reason, append-only history, and fresh notifications; it cannot silently overwrite custody history.
 
 ### PickupSchedule lifecycle
 
 - A new `PickupSchedule` starts as `scheduled`; `remaining_parcel_count` counts only its linked first-mile tasks in `assigned` or `accepted`, not Orders awaiting final delivery.
-- Complete a still-`scheduled` schedule only when every linked task is `picked_up_from_seller` and every linked parcel has authoritative `received_at_hub_at` evidence. The last Logistics hub receipt completes the schedule atomically and frees its Courier for new work. One task still represents one Order; one schedule may group many Orders.
-- A schedule remains `scheduled` while any task is `assigned` or `accepted`, or any collected parcel is awaiting hub receipt. Zero remaining means Seller collection is finished; it does not free the Courier. Missing, cancelled, or inconsistent membership cannot complete a schedule.
+- Complete a still-`scheduled` schedule only when every retained task is `picked_up_from_seller` and every retained parcel has authoritative `received_at_hub_at` evidence. The last Logistics hub receipt completes the schedule atomically and frees its Courier for new work. One task still represents one Order; one schedule may group many Orders.
+- A schedule remains `scheduled` while any task is `assigned` or `accepted`, or any collected parcel is awaiting hub receipt. Zero remaining means Seller collection is finished; it does not free the Courier. Missing or inconsistent membership cannot complete a schedule. Cancelled tasks with explicit `released_at` evidence remain historical members and are excluded from retained custody obligations; other cancelled tasks remain inconsistent.
 - Completed schedules remain historical, cannot be revised/cancelled, and suppress pending reminders; claimed/retried reminder work must recheck eligibility. Legacy completed schedules with unreceived parcels still block Courier reuse through their task/custody evidence. Elapsed end dates never establish availability.
 - Schedule completion means Seller collection and return to the Logistics hub are finished. It does not imply final-mile `delivered`, repeat Inventory fulfillment, or change final-mile assignments/statuses.
-- `PickupScheduleLifecycleService` completes the parent in the final hub-receipt transaction, suppresses pending or claimed reminders, and exposes a bounded `pickups:reconcile-schedules` command for existing zero-remaining candidates. Reconciliation only completes schedules whose membership is complete and every linked task is already `picked_up_from_seller` and every parcel has hub receipt evidence; empty, missing, cancelled, or partial task sets are reported without replaying pickup or Inventory effects.
+- `PickupScheduleLifecycleService` completes the parent in the final hub-receipt transaction, suppresses pending or claimed reminders, and exposes a bounded `pickups:reconcile-schedules` command for existing zero-remaining candidates. Reconciliation only completes schedules whose membership is complete and every retained task is already `picked_up_from_seller` and every retained parcel has hub receipt evidence; empty, missing, unexpectedly cancelled, or partial task sets are reported without replaying pickup or Inventory effects.
 
 ### Notifications and cron
 
 - After schedule commit, queue database notifications to the Seller and assigned Courier with schedule reference, pickup date/window, safe location summary, Order count, and deep-link/API reference.
-- When rejection/re-offer is implemented, queue the task decision after commit with the safe reason, prior offer history, and new offer state. Notification failure never restores a rejected offer or duplicates a re-offer.
+- Parcel release notifies the affected Sellers and owning Logistics after commit; the immutable decision/history retains the reason and released membership. Notification failure never restores an assignment or duplicates a release.
 - Create durable reminder rows for one hour before `starts_at`; if scheduled inside one hour, the assignment notification is the only pre-pickup notice.
 - Run a Laravel scheduled command every minute to claim due reminders, dispatch them after commit, and mark success/failure idempotently.
 - Use `withoutOverlapping()` and `onOneServer()` in multi-instance production; the existing scheduler service remains the single cron entry point.
@@ -179,3 +179,15 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 
 - `GET /api/v1/logistics/pickup-couriers` adds `vehicle: { vehicle_type, plate_number } | null` for the Courier's sole registered personal vehicle. Supported types are `motorcycle`, `car`, `van`, and `truck`. Missing profiles, missing vehicles, or ambiguous vehicle cardinality yield `null`; the response excludes evidence and storage fields. Eager-loading preserves bounded query counts and existing organization/hub, active-account and approval scope.
 - Pickup creation and rescheduling show the vehicle type and plate alongside Courier identity, both in the selection list and selected summary. Search includes type and plate; unavailable data displays **Vehicle information unavailable**. Vehicle information is advisory and does not change eligibility, availability checks or parcel limits.
+
+## Failed pickups, retry deadline and rejection — 2026-11-09
+
+- The scheduled pickup is due by the end of its start date in Asia/Manila (`pickup_due_at`). There is no selectable end date. A failed attempt is explicitly reported; the passage of midnight does not invent an attempt.
+- `retry_deadline_at = starts_at + 72 hours` gives three full days from the scheduled start, independent of acceptance time and legacy ends. Failed reports never extend this deadline.
+- `POST /api/v1/courier/first-mile-tasks/{task}/failed-pickup` requires an accepted, uncollected task, the scheduled start to have arrived, JSON `{ "reason": "..." }` (nonblank, at most 500 characters) and a UUID `Idempotency-Key`. Failure 1 or 2 retains `accepted` so the Courier can retry physical pickup with the existing confirmation endpoint. Failure 3 releases that parcel immediately. Counts belong to an assignment; a new schedule starts at zero.
+- `POST /api/v1/courier/pickup-schedules/{schedule}/reject` uses the same reason/header contract and rejects the entire offer only before any parcel has been accepted or collected. All assigned parcels immediately become eligible for a new Logistics schedule.
+- Both actions return HTTP 200 `{data:{schedule_id,task_id,action,failed_pickup_count,available_for_scheduling,retry_deadline_at}}`. Rejection returns null task/count. Matching retries return the original acknowledgment without repeating effects; refetch current tasks afterward. Changed key payload returns `409 IDEMPOTENCY_KEY_REUSED`; invalid input/header is `422`, foreign resources `404`, incompatible states `409`. Existing Courier bearer, RBAC, approval, affiliation and policy gates apply.
+- `pickups:expire-schedules --limit=200` runs every minute, with overlapping/single-server guards, to release assigned/accepted parcels at or after 72 hours. The scheduled start is authoritative even when no failure was reported or the offer was never accepted. Pickup acceptance/confirmation and new failure/rejection actions reject expired work immediately, including before the next sweep.
+- Release marks old first-mile tasks `cancelled` with typed `release_reason` and `released_at`, retaining memberships, waybills and append-only decisions/history. Orders remain `ready_for_pickup`, stock stays reserved, and Seller requests regain pending/partially-scheduled status. Re-offer is an explicit new Logistics schedule using the existing waybill; only one active assignment may exist.
+- A schedule with no retained assignments becomes `cancelled` and frees the Courier. Mixed schedules keep collected parcels until hub receipt; expiry never releases physical custody. Released members are excluded from regenerated routes, and receipt targets the current collected assignment. Existing shared first-mile projections are cleared on release and bind to the performing replacement Courier on pickup.
+- Apply `2026_11_09_000002_add_pickup_attempt_decisions.php` before deploying API/scheduler code. External Flutter adoption and deployed PostgreSQL/concurrent-worker acceptance remain separate gates.

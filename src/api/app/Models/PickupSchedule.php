@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
 class PickupSchedule extends Model
 {
@@ -17,6 +18,16 @@ class PickupSchedule extends Model
     protected function casts(): array
     {
         return ['status' => PickupScheduleStatus::class, 'starts_at' => 'datetime', 'ends_at' => 'datetime', 'revision' => 'integer'];
+    }
+
+    public function pickupDueAt(): Carbon
+    {
+        return $this->starts_at->copy()->timezone('Asia/Manila')->endOfDay()->utc();
+    }
+
+    public function retryDeadline(): Carbon
+    {
+        return $this->starts_at->copy()->addHours(72);
     }
 
     public function organization(): BelongsTo
