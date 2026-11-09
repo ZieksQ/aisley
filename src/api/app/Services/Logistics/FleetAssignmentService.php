@@ -66,7 +66,7 @@ class FleetAssignmentService
         $models = [];
         $relations = [
             'first_mile' => ['courier.courierProfile', 'schedule.hub.address', 'waybill.snapshot'],
-            'linehaul' => ['driver.courierProfile', 'truck', 'fromHub.address', 'toHub.address'],
+            'linehaul' => ['driver.courierProfile', 'truck.lastConfirmedHub.address', 'fromHub.address', 'fromHub.organization:id,business_name', 'toHub.address', 'toHub.organization:id,business_name'],
             'linehaul_truck' => ['lastConfirmedHub.address'],
             'final_mile' => ['courier.courierProfile', 'shipment.currentHub.address', 'shipment.parcel.order.address'],
         ];

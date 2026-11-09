@@ -93,7 +93,10 @@ class FleetAssignmentProjection
                 'departed_at' => $trip->departed_at?->toISOString(), 'courier_arrived_at' => $trip->courier_arrived_at?->toISOString(),
                 'arrived_at' => $trip->arrived_at?->toISOString(),
             ],
-            'stops' => [$this->hubStop('origin', $trip->fromHub), $this->hubStop('destination', $trip->toHub)],
+            'stops' => [$this->hubStop('origin', $trip->fromHub), $this->hubStop('destination', $trip->toHub),
+                $this->hubStop('last_confirmed_hub', $trip->truck?->lastConfirmedHub)],
+            'outbound_logistics' => $trip->fromHub?->organization?->business_name,
+            'inbound_logistics' => $trip->toHub?->organization?->business_name,
         ];
     }
 

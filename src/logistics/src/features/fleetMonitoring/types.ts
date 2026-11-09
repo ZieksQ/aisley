@@ -3,9 +3,10 @@ export const availabilityLabels = {
   unloading: 'Unloading', visiting: 'Visiting', inactive: 'Inactive',
 } as const
 export type Availability = keyof typeof availabilityLabels
-export type Hub = { id: string; name: string | null }
+export type Hub = { id: string; name: string | null; logistics?: { id: string; name: string } | null; latitude?: number | null; longitude?: number | null }
 export type MonitoringTrip = {
   id: string
+  manifest_id?: string | null
   direction: 'outbound' | 'return'
   status: 'pending_acceptance' | 'scheduled' | 'in_transfer' | 'receiving' | 'received' | 'rejected' | 'cancelled'
   from_hub: Hub | null
@@ -34,7 +35,6 @@ export type Meta = { server_time: string }
 export type PageMeta = Meta & { current_page: number; last_page: number; per_page: number; total: number }
 export type MonitoringList = { data: MonitoringTruck[]; meta: PageMeta & { summary: Record<Availability, number> } }
 export type MonitoringHistory = { data: MonitoringTrip[]; meta: PageMeta }
-export type MonitoringDetail = { data: MonitoringTruck; meta: Meta; history: MonitoringHistory }
 export const tripLabels: Record<MonitoringTrip['status'], string> = {
   pending_acceptance: 'Awaiting approval', scheduled: 'Scheduled', in_transfer: 'In transit',
   receiving: 'Receiving', received: 'Unloading closed', rejected: 'Rejected', cancelled: 'Cancelled',

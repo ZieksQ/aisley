@@ -134,7 +134,7 @@ class FleetMonitoringTest extends TestCase
         ]);
         $policy->update(['current_version_id' => $version->id]);
         $this->actingAs($a[0]);
-        foreach ([self::URL, self::URL.'/assignments', self::URL.'/'.$truck->id, self::URL.'/'.$truck->id.'/trips'] as $url) {
+        foreach ([self::URL, self::URL.'/assignments', self::URL.'/'.$truck->id, self::URL.'/'.$truck->id.'/trips', self::URL.'/'.$truck->id.'/trips/'.Str::uuid()] as $url) {
             $this->getJson($url)->assertForbidden()->assertJsonPath('code', 'POLICY_CONSENT_REQUIRED');
         }
     }
@@ -156,6 +156,38 @@ class FleetMonitoringTest extends TestCase
         }
         $this->getJson(self::URL.'/'.$truck->id)->assertOk()->assertJsonPath('data.active_trip', null)
             ->assertJsonPath('data.availability', 'visiting');
+    }
+
+    public function test_past_transfer_details_are_scoped_to_the_owned_truck_and_terminal_trips(): void
+    {
+        $a = $this->logistics();
+        $b = $this->logistics();
+        $truck = $this->truck($a);
+        $otherTruck = $this->truck($a);
+        $a[2]->address->update(['latitude' => 14.5, 'longitude' => 121.1]);
+        $b[2]->address->update(['latitude' => 91, 'longitude' => 121.2]);
+        $past = $this->trip($a, $b, $truck, ['status' => 'received']);
+        $active = $this->trip($a, $b, $truck);
+        $other = $this->trip($a, $b, $otherTruck, ['status' => 'cancelled']);
+        $this->actingAs($a[0])->getJson(self::URL.'/'.$truck->id.'/trips?past=1')->assertOk()
+            ->assertJsonCount(1, 'data')->assertJsonPath('data.0.id', $past->id);
+        $this->getJson(self::URL.'/'.$truck->id.'/trips/'.$past->id)->assertOk()
+            ->assertHeader('Cache-Control', 'no-store, private')
+            ->assertJsonPath('data.from_hub.logistics.id', $a[1]->id)
+            ->assertJsonPath('data.to_hub.logistics.id', $b[1]->id)
+            ->assertJsonPath('data.manifest_id', null)
+            ->assertJsonPath('data.from_hub.latitude', 14.5)
+            ->assertJsonPath('data.from_hub.longitude', 121.1)
+            ->assertJsonPath('data.to_hub.latitude', null)
+            ->assertJsonPath('data.to_hub.longitude', null)
+            ->assertJsonMissingPath('data.from_hub.address');
+        foreach ([$active->id, $other->id, (string) Str::uuid()] as $id) {
+            $this->getJson(self::URL.'/'.$truck->id.'/trips/'.$id)->assertNotFound();
+        }
+        $this->getJson(self::URL.'/'.$truck->id.'/trips?past=invalid')->assertUnprocessable();
+        $this->actingAs($b[0])->getJson(self::URL.'/'.$truck->id.'/trips/'.$past->id)->assertNotFound();
+        $this->actingAs(User::factory()->create(['role' => UserRole::Customer, 'status' => UserStatus::Active]))
+            ->getJson(self::URL.'/'.$truck->id.'/trips/'.$past->id)->assertForbidden();
     }
 
     private function truck(array $context, array $overrides = []): CompanyTruck

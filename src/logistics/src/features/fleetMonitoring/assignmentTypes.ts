@@ -25,6 +25,8 @@ export type FleetAssignment = {
   truck: { id: string; plate_number: string } | null
   direction: 'outbound' | 'return' | null
   events: Record<string, string | null>
+  outbound_logistics?: string | null
+  inbound_logistics?: string | null
   stops: AssignmentStop[]
 }
 export type AssignmentList = { data: FleetAssignment[]; meta: PageMeta }
@@ -36,6 +38,7 @@ export function hasPin(stop: AssignmentStop): stop is AssignmentStop & { latitud
 }
 
 const statuses: Record<string, string> = {
+  received: 'Unloading closed', cancelled: 'Cancelled', rejected: 'Rejected',
   no_active_trip: 'No active trip', assigned: 'Pickup assigned', accepted: 'Pickup accepted', picked_up_from_seller: 'Returning to hub',
   pending_acceptance: 'Awaiting destination approval', scheduled: 'Scheduled', in_transfer: 'In transit', receiving: 'Receiving at hub',
   delivery_assigned: 'Delivery assigned', delivery_accepted: 'Delivery accepted', picked_up_from_hub: 'Collected from hub',
@@ -44,5 +47,11 @@ const statuses: Record<string, string> = {
 export const assignmentStatus = (work: FleetAssignment) => statuses[work.status] ?? 'Status unavailable'
 
 export function assignmentDestination(work: FleetAssignment) {
-  return work.stops.map((stop) => stop.area || stop.label).join(' → ')
+  return work.stops.filter((stop) => stop.kind !== 'last_confirmed_hub' || work.status === 'no_active_trip').map((stop) => stop.area || stop.label).join(' → ')
+}
+
+export function truckLocation(work: FleetAssignment) {
+  const hub = work.stops.find((stop) => stop.kind === 'last_confirmed_hub')
+  const location = hub && hub.label !== 'Hub unavailable' ? hub.label : 'Unavailable'
+  return `${work.status === 'in_transfer' ? 'In transit · ' : ''}Last confirmed: ${location}`
 }
