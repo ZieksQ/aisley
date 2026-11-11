@@ -7,6 +7,7 @@ import { FlatpickrInput } from './FlatpickrInput'
 import { LinehaulOptionPicker } from './LinehaulOptionPicker'
 import { ErrorNotice, field, manilaDate, panel } from './PickupUi'
 import { ApiError, csrf, requestWithTimeout } from '../lib/api'
+import { linehaulDriverOption } from '../lib/linehaulDriverOptions'
 import { defaultLinehaulTime } from '../types/linehaulTrips'
 import type { LinehaulLaneGroup, LinehaulOverview, LinehaulReadyParcel, LinehaulTrip } from '../types/linehaulTrips'
 
@@ -42,7 +43,7 @@ export function LinehaulDispatch() {
       const availableIds = new Set(response.data.ready_groups.flatMap((destination) => destination.lane_groups.flatMap((lane) => lane.parcels.map((parcel) => parcel.shipment_id))))
       setSelected((current) => current.filter((id) => availableIds.has(id)))
       setTruckId((current) => response.data.trucks.some((item) => item.id === current) ? current : '')
-      setDriverId((current) => response.data.drivers.some((item) => item.id === current) ? current : '')
+      setDriverId((current) => response.data.drivers.some((item) => item.id === current && item.available) ? current : '')
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Linehaul dispatch could not be loaded.')
     } finally {
@@ -68,7 +69,7 @@ export function LinehaulDispatch() {
   const capacityExceeded = selected.length > capacity
   const active = useMemo(() => overview?.outbound.filter((trip) => ['pending_acceptance', 'scheduled', 'in_transfer'].includes(trip.status)) ?? [], [overview])
   const truckOptions = overview?.trucks.map((item) => ({ id: item.id, title: item.plate_number, description: [item.make, item.model].filter(Boolean).join(' ') || 'Company truck', detail: `${item.max_parcels} parcel capacity` })) ?? []
-  const driverOptions = overview?.drivers.map((item) => ({ id: item.id, title: item.name, description: 'Approved company-truck driver' })) ?? []
+  const driverOptions = overview?.drivers.map(linehaulDriverOption) ?? []
 
   function canSelect(group: DispatchLaneGroup): boolean {
     return !selectedDestination || selectedDestination.nextHubId === group.nextHubId
@@ -106,7 +107,7 @@ export function LinehaulDispatch() {
   }
 
   async function schedule() {
-    if (!selectedDestination || !truckId || !driverId || !scheduledFor || capacityExceeded) return
+    if (!selectedDestination || !truckId || !overview?.drivers.some((driver) => driver.id === driverId && driver.available) || !scheduledFor || capacityExceeded) return
     const body = JSON.stringify({
       next_hub_id: selectedDestination.nextHubId,
       company_truck_id: truckId,
@@ -186,7 +187,7 @@ export function LinehaulDispatch() {
         <h3 className="font-semibold">Create linehaul request</h3>
         <p className="mt-1 text-xs leading-5 text-zinc-500">The destination must approve this request before physical departure.</p>
         <div className="mt-3"><LinehaulOptionPicker disabled={busy || loading} emptyLabel="Choose an available truck" id="linehaul-truck" label="Company truck" modalDescription="Active company-owned trucks currently available at this hub." modalTitle="Choose a company truck" onChange={setTruckId} options={truckOptions} value={truckId} /></div>
-        <div className="mt-3"><LinehaulOptionPicker disabled={busy || loading} emptyLabel="Choose a qualified driver" id="linehaul-driver" label="Qualified driver" modalDescription="Active, approved Couriers authorized to drive a company truck for this Logistics organization." modalTitle="Choose a qualified driver" onChange={setDriverId} options={driverOptions} value={driverId} /></div>
+        <div className="mt-3"><LinehaulOptionPicker disabled={busy || loading} emptyLabel="Choose a qualified driver" id="linehaul-driver" label="Qualified driver" modalDescription="Qualified drivers and their current assignments. Busy drivers cannot be selected. Locations reflect operational records, not live GPS." modalTitle="Choose a qualified driver" onChange={setDriverId} options={driverOptions} value={driverId} /></div>
         <label className="mt-3 block text-sm font-medium">Departure schedule<FlatpickrInput className={`${field} mt-1`} value={scheduledFor} onChange={setScheduledFor} options={{ enableTime: true, time_24hr: true, dateFormat: 'Y-m-d H:i', minDate: 'today', minuteIncrement: 15 }} /></label>
         <dl className="mt-3 grid grid-cols-3 gap-2 border-y border-zinc-200 py-3 text-sm dark:border-white/10"><div><dt className="text-xs text-zinc-500">Capacity</dt><dd className="mt-1 font-semibold">{truck?.max_parcels ?? '—'}</dd></div><div><dt className="text-xs text-zinc-500">Selected</dt><dd className="mt-1 font-semibold">{selected.length}</dd></div><div><dt className="text-xs text-zinc-500">Remaining</dt><dd className="mt-1 font-semibold">{truck ? Math.max(0, truck.max_parcels - selected.length) : '—'}</dd></div></dl>
         {capacityExceeded ? <p className="mt-2 text-xs text-red-700 dark:text-red-300">Remove {selected.length - capacity} parcel{selected.length - capacity === 1 ? '' : 's'} or choose a larger truck.</p> : null}

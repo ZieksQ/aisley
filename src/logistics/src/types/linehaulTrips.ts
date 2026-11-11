@@ -53,11 +53,26 @@ export type LinehaulReadyGroup = {
   lane_groups: LinehaulLaneGroup[]
 }
 
+export type LinehaulDriver = {
+  id: string
+  name: string
+  available: boolean
+  operational_location: string | null
+  work: Array<{
+    type: 'linehaul' | 'pickup' | 'delivery' | 'other'
+    reference: string | null
+    status: string
+    scheduled_for: string | null
+    route: string | null
+    location: string | null
+  }>
+}
+
 export type LinehaulOverview = {
   enabled: boolean
   ready_groups: LinehaulReadyGroup[]
   trucks: Array<{ id: string; plate_number: string; make: string | null; model: string | null; max_parcels: number; revision: number }>
-  drivers: Array<{ id: string; name: string }>
+  drivers: LinehaulDriver[]
   outbound: LinehaulTrip[]
   inbound: LinehaulTrip[]
   visitors: LinehaulTrip[]

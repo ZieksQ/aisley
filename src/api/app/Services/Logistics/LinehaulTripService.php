@@ -14,13 +14,10 @@ use App\Enums\UserStatus;
 use App\Exceptions\Fulfillment\FulfillmentException;
 use App\Models\CompanyTruck;
 use App\Models\CourierLogisticsAffiliation;
-use App\Models\DeliveryTask;
-use App\Models\DispatchSchedule;
 use App\Models\HubConnection;
 use App\Models\LinehaulTrip;
 use App\Models\LinehaulTripShipment;
 use App\Models\LogisticsHub;
-use App\Models\PickupSchedule;
 use App\Models\Shipment;
 use App\Models\User;
 use App\Services\Courier\CourierNotificationService;
@@ -44,7 +41,7 @@ class LinehaulTripService
             'enabled' => LinehaulService::enabled(),
             'ready_groups' => app(LinehaulService::class)->readyGroups($actor),
             'trucks' => CompanyTruck::query()->where('logistics_organization_id', $org->id)->where('is_active', true)->where('availability', CompanyTruckAvailability::Available)->orderBy('plate_number')->get()->map(fn (CompanyTruck $truck): array => $this->truckOption($truck))->values(),
-            'drivers' => $this->eligibleDrivers($org->id, $org->hub->id),
+            'drivers' => app(LinehaulDriverAvailability::class)->enrich($this->eligibleDrivers($org->id, $org->hub->id), $org->id, $org->hub->id),
             'outbound' => LinehaulTrip::query()->where(fn ($query) => $query->where('owner_logistics_organization_id', $org->id)->orWhere('from_hub_id', $org->hub->id))->with($load)->latest()->limit(50)->get()->map(fn (LinehaulTrip $trip): array => $this->projection($trip, $org->hub->id))->values(),
             'inbound' => LinehaulTrip::query()->where('to_hub_id', $org->hub->id)->with($load)->latest()->limit(50)->get()->map(fn (LinehaulTrip $trip): array => $this->projection($trip, $org->hub->id))->values(),
             'visitors' => LinehaulTrip::query()->where('to_hub_id', $org->hub->id)->where('direction', LinehaulTripDirection::Outbound)->where('status', LinehaulTripStatus::Received)
@@ -405,11 +402,10 @@ class LinehaulTripService
         if ($query->lockForUpdate()->exists()) {
             throw FulfillmentException::conflict('LINEHAUL_RESOURCE_CONFLICT', 'The selected truck or driver already has active linehaul work.');
         }
-        if (PickupCourierWork::query($driverId)->lockForUpdate()->exists()
-            || PickupSchedule::query()->where('courier_id', $driverId)->where('status', 'scheduled')->lockForUpdate()->exists()
-            || DispatchSchedule::query()->where('courier_id', $driverId)->where('status', 'scheduled')->lockForUpdate()->exists()
-            || DeliveryTask::query()->where('courier_id', $driverId)->whereIn('status', ['offered', 'delivery_assigned', 'accepted', 'picked_up_from_hub', 'out_for_delivery'])->lockForUpdate()->exists()) {
-            throw FulfillmentException::conflict('LINEHAUL_DRIVER_WORK_CONFLICT', 'The selected driver has outstanding pickup or final-mile work.');
+        foreach (LinehaulDriverAvailability::workQueries([$driverId]) as $kind => $work) {
+            if ($kind !== 'linehaul' && $work->lockForUpdate()->exists()) {
+                throw FulfillmentException::conflict('LINEHAUL_DRIVER_WORK_CONFLICT', 'The selected driver has outstanding pickup or final-mile work.');
+            }
         }
     }
 
