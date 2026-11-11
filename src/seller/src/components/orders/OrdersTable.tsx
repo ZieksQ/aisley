@@ -1,4 +1,4 @@
-import { PortalPagination, PortalTable } from '@aisley/ui/portal'
+import { PortalPagination, PortalTable, ProductThumbnail } from '@aisley/ui/portal'
 import { FaArrowRight } from 'react-icons/fa6'
 import { Link, useLocation } from 'react-router-dom'
 import { pickingSheetLimit } from '../../lib/useOrderPickingSheet'
@@ -66,8 +66,13 @@ export function OrdersTable({ orders, empty, approval = false, selection }: {
                 <time className="portal-table-meta" dateTime={order.placed_at}>{orderDate(order.placed_at)}</time>
               </th>
               <td className="order-cell-items">
-                <span title={itemSummary}>{itemSummary || 'Snapshot unavailable'}</span>
-                <span className="portal-table-meta">{quantity} {quantity === 1 ? 'item' : 'items'}</span>
+                <div className="flex items-center gap-3">
+                  <ProductThumbnail src={order.items[0]?.image_url} alt={order.items[0]?.product_name ?? 'Product'} />
+                  <div className="min-w-0">
+                    <span className="block truncate" title={itemSummary}>{itemSummary || 'Snapshot unavailable'}</span>
+                    <span className="portal-table-meta">{quantity} {quantity === 1 ? 'item' : 'items'}</span>
+                  </div>
+                </div>
               </td>
               <td><OrderStatus status={order.status} /></td>
               <td className="whitespace-nowrap">

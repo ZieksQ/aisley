@@ -210,6 +210,37 @@ class PickupDecisionTest extends TestCase
         $this->postJson($this->taskUrl($retained).'/accept')->assertOk();
     }
 
+    public function test_seller_request_collection_status_tracks_partial_and_complete_pickup(): void
+    {
+        [, $courier, $schedule, $tasks] = $this->scheduled(2);
+        $seller = $tasks->first()->order->shop->seller;
+        $pickupId = $tasks->first()->order->pickupRequestOrder->seller_pickup_request_id;
+        $url = '/api/v1/seller/pickup-requests/'.$pickupId;
+        $this->actingAs($seller)->getJson($url)->assertOk()
+            ->assertJsonPath('data.status', 'scheduled')
+            ->assertJsonPath('data.collection_status', null);
+
+        foreach ($tasks as $index => $task) {
+            $this->actingAs($courier)->postJson($this->taskUrl($task).'/accept')->assertOk();
+            $this->withHeader('Idempotency-Key', (string) Str::uuid())
+                ->postJson($this->taskUrl($task).'/pickup', [
+                    'identifier_type' => 'tracking_id', 'identifier' => $task->waybill->reference,
+                ])->assertOk();
+            $expected = $index === 0 ? 'partially_picked_up' : 'picked_up';
+            $this->actingAs($seller)->getJson($url)->assertOk()
+                ->assertJsonPath('data.status', 'scheduled')
+                ->assertJsonPath('data.collection_status', $expected);
+            $this->getJson('/api/v1/seller/pickup-requests')->assertOk()
+                ->assertJsonPath('data.0.collection_status', $expected);
+        }
+
+        // Seller collection completes before return-to-hub schedule completion.
+        $this->assertSame('scheduled', $schedule->fresh()->status->value);
+        [$foreignSeller] = $this->sellerShop();
+        $this->actingAs($foreignSeller)->getJson($url)->assertNotFound();
+        $this->getJson('/api/v1/seller/pickup-requests')->assertOk()->assertJsonCount(0, 'data');
+    }
+
     private function scheduled(int $count = 1): array
     {
         Queue::fake();

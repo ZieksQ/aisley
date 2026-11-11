@@ -2,6 +2,7 @@
 
 namespace App\Services\Seller;
 
+use App\Enums\FirstMileTaskStatus;
 use App\Models\SellerPickupRequest;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -11,7 +12,7 @@ class SellerPickupRequestService
     public function __construct(private readonly SellerShopService $shops) {}
 
     /** @param array<string, mixed> $filters
-     *  @return LengthAwarePaginator<int, SellerPickupRequest>
+     * @return LengthAwarePaginator<int, SellerPickupRequest>
      */
     public function list(User $seller, array $filters): LengthAwarePaginator
     {
@@ -22,7 +23,13 @@ class SellerPickupRequestService
             ->where('seller_id', $seller->id)
             ->where('shop_id', $shop->id)
             ->with('organization:id,business_name')
-            ->withCount('orders as orders_count')
+            ->withCount([
+                'orders as orders_count',
+                'orders as picked_up_order_count' => fn ($query) => $query->whereHas(
+                    'order.firstMileTask',
+                    fn ($tasks) => $tasks->where('status', FirstMileTaskStatus::PickedUp)->whereNotNull('picked_up_at'),
+                ),
+            ])
             ->when($sort === 'requested_desc', fn ($query) => $query->orderByDesc('created_at'))
             ->when($sort === 'requested_asc', fn ($query) => $query->orderBy('created_at'))
             ->when($sort === 'orders_desc', fn ($query) => $query->orderByDesc('orders_count'))
@@ -41,7 +48,13 @@ class SellerPickupRequestService
             ->where('seller_id', $seller->id)
             ->where('shop_id', $shop->id)
             ->with('organization:id,business_name')
-            ->withCount('orders as orders_count')
+            ->withCount([
+                'orders as orders_count',
+                'orders as picked_up_order_count' => fn ($query) => $query->whereHas(
+                    'order.firstMileTask',
+                    fn ($tasks) => $tasks->where('status', FirstMileTaskStatus::PickedUp)->whereNotNull('picked_up_at'),
+                ),
+            ])
             ->whereKey($pickupId)
             ->firstOrFail();
     }

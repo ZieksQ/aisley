@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Seller;
 
+use App\Support\ProductImageUrl;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -29,6 +30,7 @@ class SellerOrderResource extends JsonResource
                 'product_id' => $item->product_id,
                 'variant_id' => $item->product_variant_id,
                 'product_name' => $item->product_name,
+                'image_url' => ProductImageUrl::from($item->product, $item->variant),
                 'variant_name' => $item->variant_name,
                 'sku' => $item->sku,
                 'selected_options' => $item->selected_options ?? [],

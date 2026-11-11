@@ -1,6 +1,7 @@
 export type SellerPickupRequest = {
   id: string
   status: 'pending_logistics' | 'partially_scheduled' | 'scheduled' | string
+  collection_status?: 'partially_picked_up' | 'picked_up' | null
   requested_at: string
   pickup_date: string | null
   order_count: number

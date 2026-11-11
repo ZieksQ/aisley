@@ -25,6 +25,7 @@ export type SellerOrder = {
   shipping_provider: null | { id: string; business_name: string }
   items: Array<{
     id: string; product_id: string | null; variant_id: string | null
+    image_url?: string | null
     product_name: string; variant_name: string | null; sku: string | null
     selected_options: Array<{ group: string; value: string }>
     unit_price: string; quantity: number; line_subtotal: string; currency: string

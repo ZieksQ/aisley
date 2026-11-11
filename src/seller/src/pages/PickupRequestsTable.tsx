@@ -75,9 +75,9 @@ export function PickupRequestsTable({ refreshRevision }: { refreshRevision: numb
                     <span>{pickup.provider?.business_name ?? 'Provider unavailable'}</span>
                   </td>
                   <td className="portal-number font-semibold!">{pickup.order_count}</td>
-                  <td><PickupStatus status={pickup.status} /></td>
+                  <td><PickupStatus status={pickup.collection_status ?? pickup.status} /></td>
                   <td className="whitespace-nowrap">
-                    {pickup.status === 'scheduled' ? pickupDate(pickup.pickup_date) : '—'}
+                    {pickup.pickup_date ? pickupDate(pickup.pickup_date) : '—'}
                   </td>
                   <td className="whitespace-nowrap">
                     <time className="portal-secondary text-xs" dateTime={pickup.requested_at}>
