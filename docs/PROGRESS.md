@@ -100,3 +100,8 @@ Short, dated log of what has been implemented across the whole app. Append new e
 
 - Fixed schedule rows opening only their first Seller pickup request. Each row now opens a schedule-specific view showing every assigned parcel grouped by request, with tracking IDs and links to existing request actions. Added a private organization/hub-scoped detail endpoint that preserves historical membership and excludes other parcels when requests are split across schedules; updated the canonical pickup spec.
 - Verification: 15 SQLite pickup API tests (319 assertions), Logistics TypeScript/production build, scoped Oxlint/Pint and whitespace checks passed. Synthetic Chromium passed 51 checks covering 7 parcels across 3 requests, schedule navigation/direct links, 320/390/768/1440px light/dark views, overflow, refresh recovery, empty and missing states; reviewed captures. Existing bundle-size warning remains; deployed/PostgreSQL acceptance remains open.
+
+## 2026-11-11 — Sorting reconciliation spacing
+
+- Tightened Logistics Session reconciliation rows to 8px vertical padding, bounded reference/lane/status columns and top-aligned details. Preserved mobile stacking, filters and lane actions, with safe wrapping for long parcel details; no API or workflow changes.
+- Verification: Logistics TypeScript/production build, scoped Oxlint and whitespace checks passed. Synthetic Chromium passed eight 320/390/768/1440px light/dark combinations with search, status filtering, empty results, long-content overflow and Move lane checks; reviewed mobile/desktop captures. Existing bundle-size warning remains; deployed acceptance was not run.
