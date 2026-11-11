@@ -1,7 +1,8 @@
-import { useCallback, useEffect } from 'react'
-import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { useCallback, useEffect, useRef } from 'react'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { ApiError } from '../lib/api'
 import { PortalSkeleton, PortalState } from '@aisley/ui/portal'
-import { loadTruck } from '../features/fleetMonitoring/api'
+import { loadPastTransfer, loadTruck } from '../features/fleetMonitoring/api'
 import { MonitoringRefresh } from '../features/fleetMonitoring/MonitoringRefresh'
 import { TripRouteDetails } from '../features/fleetMonitoring/TripRouteDetails'
 import { TripStatus, TripTimeline } from '../features/fleetMonitoring/TripDetails'
@@ -11,12 +12,41 @@ import { useFleetMonitoring } from '../features/fleetMonitoring/useFleetMonitori
 export function FleetMonitoringDetailPage() {
   const { truckId = '' } = useParams()
   const [params] = useSearchParams()
-  const load = useCallback(() => loadTruck(truckId), [truckId])
-  const { data, loading, error, missing, refresh } = useFleetMonitoring(truckId, load)
+  const requestedTrip = params.get('trip_id') ?? ''
+  const navigate = useNavigate()
+  const tripSection = useRef<HTMLElement>(null)
+  const load = useCallback(async () => {
+    const response = await loadTruck(truckId)
+    if (!requestedTrip || response.data.active_trip?.id === requestedTrip) {
+      return { ...response, pastTripId: '', selectedTripMissing: false }
+    }
+    try {
+      const past = await loadPastTransfer(truckId, requestedTrip)
+      return { ...response, pastTripId: past.data.id === requestedTrip ? requestedTrip : '', selectedTripMissing: past.data.id !== requestedTrip }
+    } catch (caught) {
+      if (!(caught instanceof ApiError) || caught.status !== 404) throw caught
+      return { ...response, pastTripId: '', selectedTripMissing: true }
+    }
+  }, [truckId, requestedTrip])
+  const { data, loading, error, missing, refresh } = useFleetMonitoring(`${truckId}:trip:${requestedTrip}`, load)
   const back = new URLSearchParams(params)
+  back.delete('trip_id')
+  const onward = back.toString()
   back.delete('history_page')
   const truck = data?.data
-  const trip = truck?.active_trip
+  const trip = requestedTrip && truck?.active_trip?.id !== requestedTrip ? null : truck?.active_trip
+  const pastTripId = data?.pastTripId
+
+  useEffect(() => {
+    if (!pastTripId) return
+    navigate(`/fleet-monitoring/${encodeURIComponent(truckId)}/history/${encodeURIComponent(pastTripId)}${onward ? `?${onward}` : ''}`, { replace: true })
+  }, [pastTripId, truckId, onward, navigate])
+
+  useEffect(() => {
+    if (!requestedTrip || trip?.id !== requestedTrip) return
+    tripSection.current?.scrollIntoView({ block: 'start' })
+    tripSection.current?.focus({ preventScroll: true })
+  }, [requestedTrip, trip?.id])
 
   useEffect(() => { document.title = `${truck?.plate_number ?? 'Truck'} monitoring | Aisley Logistics` }, [truck?.plate_number])
 
@@ -34,7 +64,7 @@ export function FleetMonitoringDetailPage() {
           <p className="portal-page-description">Operational location and recorded trip history. All times are in Manila.</p>
         </div>
         <div className="portal-inline-actions">
-          <Link className="portal-button" to={`/fleet-monitoring/${truckId}/history?${params}`}>Past transfers</Link>
+          <Link className="portal-button" to={`/fleet-monitoring/${truckId}/history${onward ? `?${onward}` : ''}`}>Past transfers</Link>
           <Link className="portal-button" to="/fleet">Manage company fleet</Link>
         </div>
       </header>
@@ -72,9 +102,17 @@ export function FleetMonitoringDetailPage() {
               Locations are based on confirmed events. Parcel counts reflect committed assignments, not measured physical occupancy.
             </p>
           </section>
-          <section className="portal-panel space-y-4 p-4 sm:p-6" aria-labelledby="active-trip-title">
+          <section ref={tripSection} id="active-trip" tabIndex={-1} className="portal-panel space-y-4 p-4 sm:p-6 scroll-mt-20" aria-labelledby="active-trip-title">
             <h3 id="active-trip-title" className="text-lg font-semibold">Active trip</h3>
-            {trip ? (
+            {data.selectedTripMissing ? (
+              <>
+                <PortalState title="Selected trip unavailable" description="The selected trip could not be found for this truck in your company fleet. Its current assignment may have changed." />
+                <div className="portal-inline-actions">
+                  <Link className="portal-button" to={`/fleet-monitoring/${truckId}${onward ? `?${onward}` : ''}`}>View current truck monitoring</Link>
+                  <Link className="portal-button" to={`/fleet-monitoring/${truckId}/history${onward ? `?${onward}` : ''}`}>Past transfers</Link>
+                </div>
+              </>
+            ) : pastTripId ? <PortalSkeleton label="Opening selected past transfer" /> : trip ? (
               <>
                 <div className="flex flex-wrap justify-between gap-4">
                   <div>

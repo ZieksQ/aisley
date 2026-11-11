@@ -101,3 +101,11 @@ ROUND 2
 - Idea/live thing: unchanged; existing Logistics blue/slate tokens and shared portal controls identify the product.
 - Scores: design 8 · usability 8 · creativity 7 · content 8 → overall 7.8 (subjective review).
 - Caps applied: none. Final desktop/mobile light/dark screenshots and all inspector captures reviewed; no further feature-specific visual defect identified. Tablet review also identified compressed table columns; a 960px table minimum now preserves readable columns inside labelled scroll regions, verified by explicit browser assertions. Long history is paginated.
+
+
+## Outbound trip monitoring navigation — 2026-11-12
+
+- Active outbound dispatch trips use separate Status and Actions columns, aligned 16px horizontal/8px vertical cell insets and a fixed-width vertical action stack. Preserve existing release/depart/cancel availability, blocked-lane messages, both themes and contained table scrolling on small screens.
+- Clicking a non-interactive portion of a trip row or its keyboard-accessible route link opens `/fleet-monitoring/:truckId?trip_id=:tripId#active-trip`. Operational action buttons never trigger navigation; native links retain browser navigation affordances.
+- The truck monitoring page checks the selected trip ID before displaying its Active trip section, then scrolls and focuses that section. If the trip became terminal, resolve it through the existing owned-truck past-transfer endpoint and replace the selection URL with its existing history-detail route. A missing/mismatched trip shows an explicit selected-trip-unavailable state with current-monitoring and history links, never another assignment's schedule.
+- Preserve refresh, stale/error recovery, session disposal and organization access rules. Remove `trip_id` from onward links while retaining existing fleet/assignment filters and applicable history pagination. No API, database or external mobile contract changes.

@@ -37,3 +37,8 @@ On 2026-11-05 the broader CompanyTruckLinehaulTest/LinehaulTripActionTest run re
 Run `node src/logistics/tests/fleet-transfers-browser.smoke.mjs` against the preview/CDP above. Run browser suites sequentially so foreground-tab visibility does not interfere with animation frames and polling checks.
 
 Covers current schedule preservation; separate terminal-history table and per-transfer details; Manila schedules; inbound/outbound Logistics labels; direct links, filters and history page retention; schematic past-hub connection; confirmed truck plate/location labels; current versus past map semantics; refresh recovery; empty/missing states; session disposal; and overflow at 320/768/1440px in both themes. Fixtures use synthetic API records and current saved hub pins. Screenshots, a rendered snapshot and results live under `src/logistics/node_modules/.cache/fleet-transfers-browser/`. Tile-provider availability is separate from marker/route verification.
+
+
+## Outbound dispatch trip links
+
+Run `node src/logistics/tests/linehaul-outbound-browser.smoke.mjs` with the same preview/CDP variables. This combines the existing transport and monitoring fixtures to cover separate status/actions, aligned compact cell insets, contained scrolling at 390/768/1440px in both themes, blocked release, action/navigation isolation, row/keyboard links, selected-section focus, Back, terminal-history fallback, missing selections, refresh recovery and changed truck assignments. No real accounts or operational mutations are used. Captures and results live under `src/logistics/node_modules/.cache/linehaul-outbound/after/`. The optional `--before` flag records layout evidence only and is intended for the original source before changes.
