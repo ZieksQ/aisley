@@ -1,0 +1,96 @@
+.fleet-monitoring-company {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+  min-width: 0;
+}
+
+.fleet-monitoring-filters.portal-filter-bar {
+  margin-bottom: 0;
+}
+
+.fleet-monitoring-filters.portal-filter-bar > label {
+  margin-bottom: 0;
+}
+
+.fleet-monitoring-filters .fleet-monitoring-overdue {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+}
+
+.fleet-monitoring-filters .portal-button {
+  white-space: nowrap;
+}
+
+.fleet-monitoring-table .portal-table {
+  table-layout: fixed;
+  min-width: 70rem;
+}
+
+.fleet-monitoring-table .portal-table :is(th, td) {
+  padding: 0.75rem 1rem;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+.fleet-monitoring-table .portal-table th {
+  white-space: normal;
+}
+
+.fleet-monitoring-table .portal-table .fleet-monitoring-actions {
+  text-align: right;
+}
+
+.fleet-monitoring-actions .portal-button {
+  white-space: nowrap;
+}
+
+.fleet-monitoring-trucks col:nth-child(1) {
+  width: 8.5rem;
+}
+.fleet-monitoring-trucks col:nth-child(2) {
+  width: 12rem;
+}
+.fleet-monitoring-trucks col:nth-child(4) {
+  width: 14rem;
+}
+.fleet-monitoring-trucks col:nth-child(5) {
+  width: 8rem;
+}
+.fleet-monitoring-trucks col:nth-child(6) {
+  width: 10rem;
+}
+
+.fleet-monitoring-history .portal-table {
+  min-width: 64rem;
+}
+
+.fleet-monitoring-history col:nth-child(2) {
+  width: 9rem;
+}
+.fleet-monitoring-history col:nth-child(3) {
+  width: 14rem;
+}
+.fleet-monitoring-history col:nth-child(4) {
+  width: 12rem;
+}
+.fleet-monitoring-history col:nth-child(5) {
+  width: 9rem;
+}
+.fleet-monitoring-history col:nth-child(6) {
+  width: 10rem;
+}
+
+@media (min-width: 640px) {
+  .fleet-monitoring-filters.portal-filter-bar {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+@media (min-width: 1280px) {
+  .fleet-monitoring-filters.portal-filter-bar {
+    grid-template-columns: minmax(14rem, 1fr) minmax(10rem, 0.5fr) auto auto;
+  }
+}

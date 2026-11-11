@@ -47,7 +47,7 @@ export function AssignmentsWorkspace() {
         <h3 id="courier-work-title" className="text-lg font-semibold">Pickup & delivery monitoring</h3>
         <p className="portal-secondary text-sm">Active work and owned trucks · Manila time</p>
       </div>
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="assignment-toolbar">
         <div className="flex flex-wrap gap-1" aria-label="Assignment stage filters">
           <PortalButton variant={stage === '' ? 'primary' : 'ghost'} aria-pressed={stage === ''} onClick={() => filter('')}>All stages</PortalButton>
           {Object.entries(stageLabels).map(([value, label]) => (
@@ -56,7 +56,7 @@ export function AssignmentsWorkspace() {
             </PortalButton>
           ))}
         </div>
-        <form key={search} className="flex min-w-0 flex-wrap items-end gap-2" onSubmit={(event) => {
+        <form key={search} className="assignment-search" onSubmit={(event) => {
           event.preventDefault()
           const next = new URLSearchParams(params)
           const term = String(new FormData(event.currentTarget).get('assignment_search') ?? '').trim()
@@ -78,7 +78,7 @@ export function AssignmentsWorkspace() {
       </div>
       <MonitoringRefresh loading={loading} error={error} updatedAt={data?.meta.server_time} refresh={refresh} label="Refresh assignments" />
       {loading && !data ? <PortalSkeleton label="Loading courier assignments" /> : data ? (
-        <div className="portal-panel overflow-hidden">
+        <div className="portal-panel assignment-panel overflow-hidden">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--portal-border)] px-4 py-3">
             <p className="text-sm"><strong className="tabular-nums">{data.meta.total}</strong> matching record{data.meta.total === 1 ? '' : 's'} · Map shows {data.data.length} on page {data.meta.current_page}</p>
             <ul className="flex flex-wrap gap-x-4 gap-y-2 text-sm" aria-label="Map legend">

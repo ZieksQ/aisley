@@ -105,3 +105,8 @@ Short, dated log of what has been implemented across the whole app. Append new e
 
 - Tightened Logistics Session reconciliation rows to 8px vertical padding, bounded reference/lane/status columns and top-aligned details. Preserved mobile stacking, filters and lane actions, with safe wrapping for long parcel details; no API or workflow changes.
 - Verification: Logistics TypeScript/production build, scoped Oxlint and whitespace checks passed. Synthetic Chromium passed eight 320/390/768/1440px light/dark combinations with search, status filtering, empty results, long-content overflow and Move lane checks; reviewed mobile/desktop captures. Existing bundle-size warning remains; deployed acceptance was not run.
+
+## 2026-11-11 — Fleet Monitoring alignment polish
+
+- Aligned assignment/company filters, moved Past transfers into a dedicated action column, tightened truck/history table spacing and removed duplicated map-panel padding. Preserved themes, responsive table scrolling, navigation, API and mobile contracts.
+- Verification: Logistics TypeScript/production build, scoped application Oxlint and whitespace checks passed; 213 synthetic Chromium monitoring/assignment/transfer checks passed. Subagent reviewed responsive light/dark captures and scored UI/UX 6.9 → 7.6/10; final Taste inspection had zero failures and one existing below-fold warning. Existing bundle-size/test-helper warnings, intermittent map tiles and deployed acceptance remain documented in [verification](features/logistics/fleet-monitoring/verification-2026-11-11.md).
