@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Enums\Logistics\HubRouteStatus;
 use App\Enums\ShipmentStatus;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -26,6 +28,15 @@ class Shipment extends Model
     public function route(): HasOne
     {
         return $this->hasOne(ShipmentRoute::class);
+    }
+
+    public function scopeReadyForFinalMile(Builder $query): Builder
+    {
+        return $query->where('condition_hold', false)
+            ->where(fn (Builder $routing) => $routing->whereDoesntHave('route')
+                ->orWhereHas('route', fn (Builder $route) => $route
+                    ->whereColumn('shipment_routes.destination_hub_id', 'shipments.current_hub_id')
+                    ->whereIn('status', [HubRouteStatus::Local->value, HubRouteStatus::Completed->value])));
     }
 
     public function currentHub(): BelongsTo

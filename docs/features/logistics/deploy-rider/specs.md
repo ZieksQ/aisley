@@ -124,6 +124,10 @@ The accepted batch route is calculated with Geoapify Matrix and Routing from con
 
 `docs/features/logistics/hub-to-hub-routing/specs.md` extends the API with separate hub transfer custody. Final-mile schedules/offers remain restricted to a completed destination-hub route or same-hub/legacy flow. Final-mile Courier affiliation, task access, hub pickup context, and evidence/completion notifications use the current organization/hub; the immutable Seller-selected provider remains the origin. Transfers do not assign a final-mile Courier or change Order status. No dispatch UI or linehaul Courier automation is introduced by this extension.
 
+### Last-mile queue isolation (2026-11-11)
+
+Last-mile dispatch requests `final_mile=1` on `GET /api/v1/logistics/dashboard/queue` for ready parcels and rejected-offer recovery. The optional boolean filter excludes condition holds and requires either a historical route-less parcel or a `local`/`completed` route whose destination is the current hub. Planned transfers, intermediate hubs and unresolved/unavailable routes stay out of Last-mile dispatch. Apply this filter before pagination, status totals and source-lane counts; ordinary Dashboard/Parcel search queues retain their existing visibility. Schedule creation continues to revalidate eligibility transactionally.
+
 ## HOW
 
 ### Implementation boundary

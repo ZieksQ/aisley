@@ -46,12 +46,12 @@ export function DispatchPage() {
     setLoading(true)
     setError('')
     try {
-      const filters = new URLSearchParams({ status: 'sorted_at_hub', per_page: '25', page: String(page) })
+      const filters = new URLSearchParams({ status: 'sorted_at_hub', final_mile: '1', per_page: '25', page: String(page) })
       if (!combineLanes && laneId) filters.set('lane_id', laneId)
       if (search.trim()) filters.set('search', search.trim())
       const [ready, rejectedResponse, courierResponse, scheduleResponse, sortingResponse] = await Promise.all([
         requestWithTimeout<FulfillmentQueueResponse>(`/api/v1/logistics/dashboard/queue?${filters}`),
-        requestWithTimeout<FulfillmentQueueResponse>('/api/v1/logistics/dashboard/queue?status=delivery_assigned&per_page=25'),
+        requestWithTimeout<FulfillmentQueueResponse>('/api/v1/logistics/dashboard/queue?status=delivery_assigned&final_mile=1&per_page=25'),
         requestWithTimeout<{ data: DispatchCourier[] }>('/api/v1/logistics/dispatch/couriers'),
         requestWithTimeout<{ data: DispatchSchedule[] }>('/api/v1/logistics/dispatch/schedules'),
         requestWithTimeout<{ data: SortingOverview }>('/api/v1/logistics/sorting'),
