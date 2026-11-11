@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { installRatesFleetFixtures } from './rates-fleet-browser.fixtures.mjs'
+import { checkRateRuleModal } from './rate-rule-modal.checks.mjs'
 
 const origin = process.env.LOGISTICS_UI_ORIGIN ?? 'http://127.0.0.1:5187'
 const browser = process.env.LOGISTICS_UI_CDP ?? 'http://127.0.0.1:19359'
@@ -156,6 +157,9 @@ try {
   assert.equal(await js("getComputedStyle(document.querySelector('dialog')).getPropertyValue('--brand-primary').trim()"), '#2563eb', 'Rule modal inherits Logistics theme')
   await key('Escape', 'Escape', 27)
   await until(`!document.querySelector('dialog[open]')`)
+  await click('Add rate rule')
+  await until("document.querySelector('dialog[open]')")
+  await checkRateRuleModal({ cdp, js, until, click, fill, key, directory })
   await js("window.ratesFleetFixture.mode = 'error'")
   await click('Refresh')
   await until(`document.querySelector('[role=alert]')`)
@@ -221,8 +225,8 @@ try {
     await until(`!document.querySelector('.portal-skeleton') && !document.querySelector('[role=alert]') && document.body.innerText.includes(${JSON.stringify(emptyTitle)})`)
   }
   assert.deepEqual(errors, [])
-  await writeFile(`${directory}/verification.json`, JSON.stringify({ viewportThemeRoutes: 60, errors, checks: ['deep links', 'legacy rules', 'future-effective state', 'unknown version', 'tabs keyboard', 'list back filters', 'truck create/edit and validation preservation', 'revision payloads', 'discard confirmation', 'Escape and focus restoration', 'driver capability', 'error/empty recovery'] }, null, 2))
-  console.log('Rates/fleet browser checks passed: 60 viewport/theme/route combinations and workflow/state checks.')
+  await writeFile(`${directory}/verification.json`, JSON.stringify({ viewportThemeRoutes: 60, rateRuleModalStates: 12, errors, checks: ['rate-rule layout, tooltips, action states, add/edit and validation', 'deep links', 'legacy rules', 'future-effective state', 'unknown version', 'tabs keyboard', 'list back filters', 'truck create/edit and validation preservation', 'revision payloads', 'discard confirmation', 'Escape and focus restoration', 'driver capability', 'error/empty recovery'] }, null, 2))
+  console.log('Rates/fleet browser checks passed: 60 viewport/theme/route combinations, 12 rate-rule modal states and workflow/state checks.')
 } finally {
   await cdp('Page.close').catch(() => undefined)
   socket.close()
