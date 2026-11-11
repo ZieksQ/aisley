@@ -93,6 +93,7 @@ use App\Http\Controllers\Logistics\LinehaulReceivingController;
 use App\Http\Controllers\Logistics\LinehaulTripController;
 use App\Http\Controllers\Logistics\NotificationController as LogisticsNotificationController;
 use App\Http\Controllers\Logistics\PickupController as LogisticsPickupController;
+use App\Http\Controllers\Logistics\PickupScheduleDetailController;
 use App\Http\Controllers\Logistics\RateCardController;
 use App\Http\Controllers\Logistics\ReceivingController;
 use App\Http\Controllers\Logistics\ShippingRateController;
@@ -675,6 +676,7 @@ Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', '
     Route::get('/pickup-couriers', [LogisticsPickupController::class, 'couriers'])->name('pickup-couriers.index');
     Route::get('/waybills/{waybill}.pdf', [LogisticsPickupController::class, 'waybillPdf'])->whereUuid('waybill')->name('waybills.pdf');
     Route::get('/pickup-schedules', [LogisticsPickupController::class, 'schedules'])->name('pickup-schedules.index');
+    Route::get('/pickup-schedules/{schedule}', PickupScheduleDetailController::class)->whereUuid('schedule')->name('pickup-schedules.show');
     Route::post('/pickup-schedules', [LogisticsPickupController::class, 'createSchedule'])->name('pickup-schedules.store');
     Route::patch('/pickup-schedules/{schedule}', [LogisticsPickupController::class, 'reviseSchedule'])->whereUuid('schedule')->name('pickup-schedules.update');
     Route::post('/pickup-schedules/{schedule}/cancel', [LogisticsPickupController::class, 'cancelSchedule'])->whereUuid('schedule')->name('pickup-schedules.cancel');
