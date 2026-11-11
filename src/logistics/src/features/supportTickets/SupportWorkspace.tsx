@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '@aisley/ui'
 import { TicketViewport, TicketSummaryButton } from '@aisley/ui/chat'
-import { NewTicketForm, TicketDetailView, type TicketClient, type TicketDraftState } from '@aisley/support-tickets'
+import { NewTicketForm, TicketDetailView, type TicketDraftState } from '@aisley/support-tickets'
 import { FaArrowLeft, FaPlus, FaRotate } from 'react-icons/fa6'
 import { useBlocker } from 'react-router-dom'
 import { useSupportTickets } from './useSupportTickets'
+import { TicketDetailsPanel } from './TicketDetailsPanel'
+import type { LogisticsTicketClient } from './useSupportTicketClient'
 import './support.css'
+import './ticket-details.css'
 
 const emptyDraft: TicketDraftState = { dirty: false, busy: false, uncertain: false }
 
@@ -14,13 +17,25 @@ export function SupportWorkspace({
   initialTicketId = null,
   onSelectedTicketIdChange,
 }: {
-  client: TicketClient
+  client: LogisticsTicketClient
   initialTicketId?: string | null
   onSelectedTicketIdChange?: (id: string | null) => void
 }) {
   const tickets = useSupportTickets(client)
   const [creating, setCreating] = useState(false)
-  const [draft, setDraft] = useState(emptyDraft)
+  const [replyDraft, setReplyDraft] = useState(emptyDraft)
+  const [statusDraft, setStatusDraft] = useState(emptyDraft)
+  const [detailsOpen, setDetailsOpen] = useState(false)
+  const draft = {
+    dirty: replyDraft.dirty || statusDraft.dirty,
+    busy: replyDraft.busy || statusDraft.busy,
+    uncertain: replyDraft.uncertain || statusDraft.uncertain,
+  }
+  function clearDrafts() {
+    setReplyDraft(emptyDraft)
+    setStatusDraft(emptyDraft)
+    setDetailsOpen(false)
+  }
   const newButton = useRef<HTMLDivElement>(null)
   const content = useRef<HTMLDivElement>(null)
   const lastInitialTicketId = useRef<string | null>(null)
@@ -31,8 +46,8 @@ export function SupportWorkspace({
   useEffect(() => {
     if (lastInitialTicketId.current === initialTicketId) return
     lastInitialTicketId.current = initialTicketId
-    if (!initialTicketId) return
-    setDraft(emptyDraft)
+    if (!initialTicketId || initialTicketId === tickets.selectedId) return
+    clearDrafts()
     setCreating(false)
     tickets.setSelectedId(initialTicketId)
   }, [initialTicketId, tickets.setSelectedId])
@@ -68,7 +83,7 @@ export function SupportWorkspace({
   function select(id: string | null) {
     if (id === tickets.selectedId && !creating) return
     if (!canLeave()) return
-    setDraft(emptyDraft)
+    clearDrafts()
     setCreating(false)
     tickets.setSelectedId(id)
     onSelectedTicketIdChange?.(id)
@@ -90,7 +105,7 @@ export function SupportWorkspace({
           disabled={creating || draft.busy || draft.uncertain || tickets.olderBusy}
           onClick={() => {
             if (!canLeave()) return
-            setDraft(emptyDraft)
+            clearDrafts()
             tickets.setSelectedId(null)
             setCreating(true)
             onSelectedTicketIdChange?.(null)
@@ -131,27 +146,36 @@ export function SupportWorkspace({
           client={client}
           onCancel={() => select(null)}
           onCreated={(id) => {
-            setDraft(emptyDraft)
+            clearDrafts()
             setCreating(false)
             tickets.setSelectedId(id)
             onSelectedTicketIdChange?.(id)
             tickets.refresh()
           }}
-          onDraftChange={setDraft}
+          onDraftChange={setReplyDraft}
         /> : tickets.selectedId ? <>
           {tickets.detailError && <div className="support-ticket-error" role="alert">
             {tickets.detailError}<button onClick={tickets.refresh} type="button">Retry</button>
           </div>}
           {tickets.detailLoading && !tickets.detail && <p className="support-state" role="status">Loading conversation…</p>}
-          {tickets.detail?.data.id === tickets.selectedId && <TicketDetailView
-            client={client}
-            detail={tickets.detail}
-            key={tickets.selectedId}
-            olderBusy={tickets.olderBusy}
-            onChanged={tickets.refresh}
-            onDraftChange={setDraft}
-            onLoadOlder={() => void tickets.loadOlder()}
-          />}
+          {tickets.detail?.data.id === tickets.selectedId && <div className={`support-conversation-layout ${detailsOpen ? 'support-details-open' : ''}`}>
+            <TicketDetailView
+              client={client}
+              interactionDisabled={statusDraft.dirty || statusDraft.busy || statusDraft.uncertain}
+              headerActions={<button type="button" className="support-ticket-secondary support-details-toggle"
+                aria-expanded={detailsOpen} aria-controls="support-ticket-details"
+                onClick={() => setDetailsOpen(open => !open)}>{detailsOpen ? 'Conversation' : 'Details / status'}</button>}
+              detail={tickets.detail}
+              key={tickets.selectedId}
+              olderBusy={tickets.olderBusy}
+              onChanged={tickets.refresh}
+              onDraftChange={setReplyDraft}
+              onLoadOlder={() => void tickets.loadOlder()}
+            />
+            <TicketDetailsPanel key={`status-${tickets.selectedId}`} client={client} ticket={tickets.detail.data}
+              disabled={replyDraft.dirty || replyDraft.busy || replyDraft.uncertain}
+              onChanged={tickets.refresh} onDraftChange={setStatusDraft} />
+          </div>}
         </> : <div className="support-state support-placeholder">
           <h3>Select a ticket</h3><p>View the conversation or create a new request.</p>
         </div>}

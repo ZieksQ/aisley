@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Support;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Support\ChangeLogisticsTicketStatusRequest;
 use App\Http\Requests\Support\CreateSupportTicketRequest;
 use App\Http\Requests\Support\ListSupportTicketsRequest;
 use App\Http\Requests\Support\ReplySupportTicketRequest;
@@ -45,6 +46,11 @@ class RequesterSupportTicketController extends Controller
         $input = $request->validate(['last_read_sequence' => ['required', 'integer', 'min:0']]);
 
         return $this->respond($this->reader->markRead($request->user(), $ticket, (int) $input['last_read_sequence']));
+    }
+
+    public function logisticsStatus(ChangeLogisticsTicketStatusRequest $request, string $ticket): JsonResponse
+    {
+        return $this->written($this->writer->logisticsStatus($request->user(), $ticket, $request->validated(), $request->idempotencyKey()));
     }
 
     private function written(array $result): JsonResponse

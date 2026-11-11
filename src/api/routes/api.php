@@ -559,6 +559,7 @@ Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', '
         Route::get('/{ticket}', [RequesterSupportTicketController::class, 'show'])->whereUuid('ticket')->name('show');
         Route::post('/{ticket}/replies', [RequesterSupportTicketController::class, 'reply'])->middleware('throttle:support-ticket-reply')->whereUuid('ticket')->name('replies.store');
         Route::post('/{ticket}/read', [RequesterSupportTicketController::class, 'read'])->whereUuid('ticket')->name('read');
+        Route::post('/{ticket}/status', [RequesterSupportTicketController::class, 'logisticsStatus'])->middleware('throttle:support-ticket-reply')->whereUuid('ticket')->name('status');
     });
     Route::prefix('chat-attachments')->group(function () {
         Route::get('/', [ChatAttachmentController::class, 'capabilities']);

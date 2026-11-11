@@ -81,7 +81,13 @@ class SupportTicketReader
 
         if ($actor->role === UserRole::Admin) {
             $query->where('actor_user_id', $ticket->requester_user_id)
-                ->where('type', SupportTicketEventType::Reply->value);
+                ->where(function (Builder $events): void {
+                    $events->where('type', SupportTicketEventType::Reply->value)
+                        ->orWhere(fn (Builder $status) => $status
+                            ->where('type', SupportTicketEventType::Status->value)
+                            ->where('actor_role', UserRole::Logistics->value)
+                            ->whereNotNull('body'));
+                });
         } else {
             $query->where('actor_role', UserRole::Admin->value)
                 ->whereIn('type', [SupportTicketEventType::Reply->value, SupportTicketEventType::Status->value]);

@@ -121,6 +121,27 @@ class SupportTicketWriter
         });
     }
 
+    public function logisticsStatus(User $actor, string $id, array $input, string $key): array
+    {
+        abort_unless($actor->role === UserRole::Logistics, 403);
+
+        return $this->mutate($actor, 'logistics-status:'.$id, $key, $input, function () use ($actor, $id, $input): array {
+            $ticket = $this->locked($actor, $id);
+            $this->checkRevision($ticket, (int) $input['expected_revision']);
+            $target = SupportTicketStatus::from($input['status']);
+            $allowed = $ticket->status === SupportTicketStatus::Resolved
+                ? SupportTicketStatus::Open
+                : SupportTicketStatus::Resolved;
+            abort_unless($target === $allowed, 422, 'You may resolve an active ticket or reopen a resolved ticket.');
+            abort_if(trim($input['reason'] ?? '') === '', 422, 'A visible reason is required for this transition.');
+
+            $event = $this->changeStatus($ticket, $actor, $target, $input['reason']);
+            $this->notifications->queue($ticket, $event, 'support-ticket.status-changed');
+
+            return $this->result($ticket, $event, $actor);
+        });
+    }
+
     private function assignLocked(SupportTicket $ticket, User $actor, ?string $assigneeId): array
     {
         if ($ticket->assignee_user_id === $assigneeId) {
