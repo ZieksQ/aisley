@@ -92,3 +92,5 @@ Buyer implements same-benefit replacement and applied/frozen Batch names with hi
 ## Buyer Shop context — G32/F08, 2026-10-15
 
 Buyer adopts read-only Shop context discovery and business availability, reusing an existing scoped thread while preserving Product/Order context and exact uncertain sends. [G32 verification](references/shop-context-verification.md) records local checks; deployed API, counterpart exchange and installed Android/TalkBack acceptance remain open.
+
+Preparation deadlines and the one-time Buyer extension are defined in [order-preparation-v1](api/order-preparation.md); local client verification is recorded separately from deployed/device acceptance.

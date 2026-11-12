@@ -779,6 +779,7 @@ Use [operation contracts](operations.md) for envelopes and [machine-readable def
 | Wire field | Type | Null / omission |
 | --- | --- | --- |
 | `canCancel` | `bool` | non-null; required |
+| `canExtendPreparation` | `bool` | additive; absent means unavailable |
 | `canModify` | `bool` | non-null; required |
 | `canReview` | `bool` | non-null; required |
 | `modifiableFields` | `string[]` | non-null; required |
@@ -1338,3 +1339,7 @@ The complete [CustomerVoucher fields](voucher-collection.md#customervoucher-dto)
 ## Order address quote — 2026-11-04
 
 `OrderAddressQuote` adds `quoteId:UUID`, `expiresAt:ISO8601`, `expectedRevision:int`, `address:Address`, `shippingProvider:{id:UUID,businessName:string}`, and `previous`/`proposed` totals (`shippingFee`, `shippingDiscount`, `payable`: decimal strings; `currency`: string). All are required. See [quote/confirmation contract](order-address-change.md); new Flutter adoption remains pending.
+
+## Preparation deadline revision — 2026-11-12
+
+[order-preparation-v1](order-preparation.md) defines `POST /api/v1/customer/orders/{order}/preparation-extension`, UUID replay keys and empty JSON body, `200 {data:Order}`, added `preparation` fields/`actions.canExtendPreparation`, overdue-processing cancellation, authorization/errors and client adoption boundaries.

@@ -4,6 +4,8 @@ namespace App\Services\Customer;
 
 use App\Enums\Customer\CustomerOrderGroup;
 use App\Enums\OrderStatus;
+use App\Models\Order;
+use App\Services\OrderPreparationPolicy;
 
 class CustomerOrderStatusMapper
 {
@@ -77,13 +79,14 @@ class CustomerOrderStatusMapper
         };
     }
 
-    /** @return array{canCancel: bool, canModify: bool, canReview: bool, modifiableFields: list<string>} */
-    public function actions(OrderStatus $status): array
+    /** @return array{canCancel: bool, canExtendPreparation: bool, canModify: bool, canReview: bool, modifiableFields: list<string>} */
+    public function actions(OrderStatus $status, ?Order $order = null): array
     {
         $editable = $status === OrderStatus::Placed;
 
         return [
-            'canCancel' => $editable,
+            'canCancel' => $editable || ($order !== null && app(OrderPreparationPolicy::class)->canCancelOverdue($order)),
+            'canExtendPreparation' => $order !== null && app(OrderPreparationPolicy::class)->canExtend($order),
             'canModify' => $editable,
             'canReview' => $status === OrderStatus::Delivered,
             'modifiableFields' => $editable ? ['delivery_address'] : [],

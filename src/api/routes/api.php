@@ -85,6 +85,7 @@ use App\Http\Controllers\Logistics\DeliveryProofPhotoController;
 use App\Http\Controllers\Logistics\DeployRiderController;
 use App\Http\Controllers\Logistics\DispatchScheduleController;
 use App\Http\Controllers\Logistics\FinanceController as LogisticsFinanceController;
+use App\Http\Controllers\Logistics\FleetAssignmentController;
 use App\Http\Controllers\Logistics\FleetMonitoringController;
 use App\Http\Controllers\Logistics\FulfillmentStatusController;
 use App\Http\Controllers\Logistics\HubRoutingController;
@@ -610,7 +611,7 @@ Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', '
     Route::post('/rate-cards', [RateCardController::class, 'store'])->name('rate-cards.store');
     Route::post('/rate-cards/{card}/publish', [RateCardController::class, 'publish'])->whereUuid('card')->name('rate-cards.publish');
     Route::get('/fleet/monitoring', [FleetMonitoringController::class, 'index']);
-    Route::get('/fleet/monitoring/assignments', [\App\Http\Controllers\Logistics\FleetAssignmentController::class, 'index']);
+    Route::get('/fleet/monitoring/assignments', [FleetAssignmentController::class, 'index']);
     Route::get('/fleet/monitoring/{truck}', [FleetMonitoringController::class, 'show'])->whereUuid('truck');
     Route::get('/fleet/monitoring/{truck}/trips/{trip}', [FleetMonitoringController::class, 'trip'])->whereUuid('truck')->whereUuid('trip');
     Route::get('/fleet/monitoring/{truck}/trips', [FleetMonitoringController::class, 'trips'])->whereUuid('truck');
@@ -973,6 +974,8 @@ Route::prefix('v1/customer')->name('customer.')->middleware('throttle:120,1')->g
         Route::get('/orders/{order}/tracking', [OrderController::class, 'tracking'])
             ->whereUuid('order')
             ->name('orders.tracking');
+        Route::post('/orders/{order}/preparation-extension', [OrderController::class, 'extendPreparation'])
+            ->whereUuid('order')->name('orders.preparation-extension');
         Route::post('/orders/{order}/cancel', [OrderController::class, 'cancel'])
             ->whereUuid('order')
             ->name('orders.cancel');

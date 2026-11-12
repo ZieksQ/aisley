@@ -24,6 +24,7 @@ export type CustomerOrderStatus =
 
 export type OrderActions = {
   canCancel: boolean;
+  canExtendPreparation?: boolean;
   canModify: boolean;
   canReview: boolean;
   modifiableFields: string[];
@@ -109,7 +110,19 @@ export type OrderMap = {
   capturedAt: string | null;
 };
 
+export type OrderPreparation = {
+  acceptedAt: string | null;
+  initialDeadlineAt: string | null;
+  deadlineAt: string | null;
+  extendedAt: string | null;
+  extensionUsed: boolean;
+  overdue: boolean;
+  active: boolean;
+  serverTime: string;
+};
+
 export type OrderDetail = {
+  preparation?: OrderPreparation;
   id: string;
   reference: string;
   checkoutBatchId: string;

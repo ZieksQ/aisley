@@ -386,7 +386,7 @@ Named types define all nested fields locally. Status201 replay semantics vary: S
 `POST /api/v1/customer/orders/{order}/cancel`
 
 - Access: Active Customer + consent.
-- Request: reason optional nullable string≤500; UUID header; placed COD only.
+- Request: reason optional nullable string≤500; UUID header; eligible placed or overdue processing COD only.
 - Response: HTTP 200; `{data:Order}`.
 - Retry: UUID Idempotency-Key required. Freeze payload/key; exact retry only after uncertain outcome. Changed intent uses a new key after reconciliation.
 - Notes: Legacy contact-only behavior is unchanged. Reviewed saved-address repricing is additive through quote_id; see [quote and confirmation contract](order-address-change.md).
@@ -1230,3 +1230,7 @@ Stable `voucher-collection-001` through `voucher-collection-007` in [operation i
 ## Order address quotation — 2026-11-04
 
 `POST /api/v1/customer/orders/{order}/modification/quote` requires active Customer + consent, owned eligible Order, `address_id` and integer `expected_revision >= 1`. HTTP 200 `{data:OrderAddressQuote}` carries a ten-minute review; it has no Order effects. Explicit PATCH confirmation adds `quote_id` and UUID key. See [complete operation/DTO/retry rules](order-address-change.md). External Flutter adoption remains pending.
+
+## Preparation deadline revision — 2026-11-12
+
+[order-preparation-v1](order-preparation.md) defines `POST /api/v1/customer/orders/{order}/preparation-extension`, UUID replay keys and empty JSON body, `200 {data:Order}`, added `preparation` fields/`actions.canExtendPreparation`, overdue-processing cancellation, authorization/errors and client adoption boundaries.

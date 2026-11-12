@@ -49,7 +49,7 @@ Quote candidates contain voucher `id,name,code,issuerType,benefitType,valueType,
 | Wishlist save/remove | UUID route, no owner/pricing payload; PUT/DELETE are naturally idempotent |
 | Guest resolver | `productIds:[UUID]`, at most 12; public read through POST, no private history |
 | History merge | `items:[{productId,viewedAt?}]`, at most 12 by current config; timestamps not future and within configured age; malformed/duplicate input is validation, unavailable Products omitted |
-| Cancel | optional `reason` ≤500; UUID key; owned eligible `placed` Order |
+| Cancel | optional `reason` ≤500; UUID key; owned eligible placed or overdue processing Order |
 | Reviewed address change | `POST .../modification/quote` with saved `address_id` + required `expected_revision`; explicit PATCH confirmation adds `quote_id` and UUID key. See [full contract](order-address-change.md); legacy PATCH without quote remains contact-only. |
 | Legacy address correction | `address_id`, optional nullable integer `expected_revision` ≥1; UUID key; server state lock; recipient/contact only at identical trimmed location and seven-decimal pin, otherwise `422 ADDRESS_LOCATION_CHANGE_NOT_ALLOWED` |
 | Q&A create | `question`, UUID key; visible Product; current maximum 1,000 characters |
@@ -114,3 +114,7 @@ Address Book CRUD continues to accept nullable paired coordinates. Shipping opti
 ### Homepage main groups — 2026-11-05
 
 `GET /api/v1/customer/home` now returns active main `ShopCategory` groups in `categories`, rather than product-category roots. The DTO remains `{id,slug,name,imageUrl}` with `imageUrl: null`; IDs/slugs identify main groups. Consumers must tolerate null images. This backend contract update does not establish Flutter client adoption or change its implementation status. Homepage Save removal and category icons are web presentation changes.
+
+## Preparation deadline revision — 2026-11-12
+
+[order-preparation-v1](order-preparation.md) defines `POST /api/v1/customer/orders/{order}/preparation-extension`, UUID replay keys and empty JSON body, `200 {data:Order}`, added `preparation` fields/`actions.canExtendPreparation`, overdue-processing cancellation, authorization/errors and client adoption boundaries.

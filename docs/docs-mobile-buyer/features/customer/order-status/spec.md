@@ -120,10 +120,10 @@ actions.
 
 | DTO | Wire fields and types |
 | --- | --- |
-| `Order` | `id: UUID`, `reference: string`, `checkoutBatchId: UUID?`, `placedAt: timestamp`, `latestTrackingAt: timestamp`, `status: string`, `statusLabel: string`, `group: string`, `groupLabel: string`, `shop: OrderShop`, `shippingProvider: ShippingProvider?`, `items: ReviewableItem[]`, `deliveryAddress: DeliveryAddress`, `payment: Payment`, `vouchers: OrderVoucher[]`, `totals: Totals`, `timeline: Tracking[]`, `timelineCount: int`, `timelineHasMore: bool`, `trackingUrl: URL`, `delivery: Delivery?`, `map: UnavailableMap`, `actions: OrderActions` |
-| `OrderSummary` | `id: UUID`, `reference: string`, `shop: OrderShop`, `shippingProvider: ShippingProvider?`, `itemPreview: ItemPreview?`, `lineCount: int`, `itemCount: int`, `status: string`, `statusLabel: string`, `group: string`, `groupLabel: string`, `latestTrackingAt: timestamp`, `totals: Totals`, `actions: OrderActions`, `detailUrl: URL` |
+| `Order` | `id: UUID`, `reference: string`, `checkoutBatchId: UUID?`, `placedAt: timestamp`, `latestTrackingAt: timestamp`, `status: string`, `statusLabel: string`, `group: string`, `groupLabel: string`, `shop: OrderShop`, `shippingProvider: ShippingProvider?`, `items: ReviewableItem[]`, `deliveryAddress: DeliveryAddress`, `payment: Payment`, `vouchers: OrderVoucher[]`, `totals: Totals`, `timeline: Tracking[]`, `timelineCount: int`, `timelineHasMore: bool`, `trackingUrl: URL`, `delivery: Delivery?`, `map: UnavailableMap`, `preparation: OrderPreparation~`, `actions: OrderActions` |
+| `OrderSummary` | `id: UUID`, `reference: string`, `shop: OrderShop`, `shippingProvider: ShippingProvider?`, `itemPreview: ItemPreview?`, `lineCount: int`, `itemCount: int`, `status: string`, `statusLabel: string`, `group: string`, `groupLabel: string`, `latestTrackingAt: timestamp`, `totals: Totals`, `preparation: OrderPreparation~`, `actions: OrderActions`, `detailUrl: URL` |
 | `Tracking` | `id: UUID`, `status: string`, `label: string`, `eventType: string?`, `location: TrackingLocation`, `occurredAt: timestamp` |
-| `OrderActions` | `canCancel: bool`, `canModify: bool`, `canReview: bool`, `modifiableFields: string[]` |
+| `OrderActions` | `canCancel: bool`, `canExtendPreparation: bool~`, `canModify: bool`, `canReview: bool`, `modifiableFields: string[]` |
 
 ### Errors, ownership and recovery
 
@@ -225,3 +225,5 @@ Follow [architecture](../../../architecture.md), [setup](../../../setup.md) and
 
 Shipping adoption 2026-10-09: [G25 evidence](../../../references/shipping-selection-verification.md) records current client checks.
 Live/device commerce and deployment configuration remain open under G25.
+
+- Preparation revision (2026-11-12): [order-preparation-v1](../../../api/order-preparation.md) adds original-acceptance 72-hour deadlines, one Buyer-approved 72-hour extension, overdue cancellation, server capabilities, timeline history and exact retries. Address changes remain placed-only; no automatic cancellation. Buyer implementation is locally verified separately; deployed/device gates stay open.

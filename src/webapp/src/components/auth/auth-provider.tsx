@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { createPasswordChangeSession, type PasswordChangeSession } from "@aisley/ui/password-change";
 import { Button } from "@aisley/ui";
+import { clearOrderDecisions } from "@/lib/orders/pending-mutations";
 import { clearCheckoutPlacement } from "@/lib/checkout/placement";
 import { clearChatPrivateState } from "@aisley/ui/chat";
 import { ApiError, apiRequest, initializeCsrf } from "@/lib/api";
@@ -39,10 +40,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (auth.status === "guest") {
       clearChatPrivateState();
       clearCheckoutPlacement();
+      clearOrderDecisions();
       checkoutCustomer.current = null;
     } else if (auth.status === "authenticated") {
       if (checkoutCustomer.current && checkoutCustomer.current !== auth.customer.id) {
         clearCheckoutPlacement();
+        clearOrderDecisions();
       }
       checkoutCustomer.current = auth.customer.id;
     }
@@ -95,6 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (current.status === "authenticated" && current.customer.id !== customer.id) {
       clearChatPrivateState();
       clearCheckoutPlacement();
+      clearOrderDecisions();
     }
     passwordSession.setIdentity(customer.id, freshAuthentication);
     session.setCustomer(customer);

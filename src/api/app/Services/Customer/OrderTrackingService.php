@@ -22,6 +22,8 @@ class OrderTrackingService
                 array_map(fn ($status) => $status->value, $this->statuses->statusesFor($selected)),
             ))
             ->with([
+                'sellerAcceptanceEvent',
+                'preparationExtension',
                 'shop:id,name,slug,logo_path',
                 'selectedLogisticsOrganization:id,business_name',
                 'items:id,order_id,product_id,product_variant_id,product_name,variant_name,quantity',
@@ -29,6 +31,7 @@ class OrderTrackingService
                 'items.product.galleryMedia:id,product_id,product_variant_id,disk,path,mime_type,is_default,scan_status',
                 'items.variant.primaryMedia:id,product_id,product_variant_id,disk,path,mime_type,scan_status',
             ])
+            ->withExists(['items', 'addressVersions', 'pickupRequestOrder', 'waybill', 'parcel', 'firstMileTask'])
             ->withMax('statusEvents as latest_tracking_at', 'occurred_at')
             ->orderByDesc('latest_tracking_at')
             ->orderByDesc('placed_at')
@@ -43,6 +46,8 @@ class OrderTrackingService
             ->where('customer_id', $customer->id)
             ->whereKey($orderId)
             ->with([
+                'sellerAcceptanceEvent',
+                'preparationExtension',
                 'shop:id,name,slug,logo_path',
                 'selectedLogisticsOrganization:id,business_name',
                 'items:id,order_id,product_id,product_variant_id,product_name,variant_name,sku,selected_options,unit_price,quantity,line_subtotal,currency',
@@ -60,6 +65,7 @@ class OrderTrackingService
                 'parcel.shipment.tasks' => fn ($query) => $query->where('leg', 'final_mile')->with('courier.courierProfile'),
             ])
             ->withCount('statusEvents')
+            ->withExists(['items', 'addressVersions', 'pickupRequestOrder', 'waybill', 'parcel', 'firstMileTask'])
             ->withMax('statusEvents as latest_tracking_at', 'occurred_at')
             ->firstOrFail();
 

@@ -36,6 +36,7 @@ Seller opens Seller-scoped processing Order
 
 - Require `auth:sanctum` and active Seller middleware. Every Order and package query is scoped through the Seller's one Shop; never trust submitted Seller, Shop, Buyer, Order status, provider, or package IDs.
 - Preparation requires an Order in `seller_processing`, valid COD/payment state, immutable item/address snapshots, active Shop, intact SKU reservation, and no cancellation/rejection. Stale or unauthorized actions return `404`/`409` without repairing state.
+- Preparation is due 72 elapsed hours after Seller acceptance, with one Buyer-approved 72-hour extension starting at approval. Buyer cancellation becomes available at either deadline while still processing. Expiry does not block late pickup readiness; Order locks resolve readiness/cancellation races, and a bulk request containing a cancelled Order fails atomically. `ready_for_pickup` ends this SLA; Logistics delays do not extend Seller preparation.
 - Opening detail or preparation does not advance status. The server, not a client `status` field, decides transitions.
 - Missing/damaged items use an approved exception/cancellation flow; Seller cannot silently alter purchased quantity or current Product data.
 

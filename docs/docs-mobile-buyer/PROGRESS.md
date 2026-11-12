@@ -103,3 +103,8 @@ Short, dated implementation log. Append entries; archive complete logs after 150
 ## 2026-11-05 — Homepage main-category API contract
 
 - Documented that homepage categories now identify active main `ShopCategory` groups with the existing DTO and null image URLs. Web homepage icons and Save removal do not establish Flutter adoption; client and live/device status remain unchanged.
+
+## 2026-11-12 — Preparation deadline and one-time extension adoption
+
+- Laravel and Customer web now support the original-acceptance 72-hour deadline, one Buyer-approved 72-hour extension and overdue processing cancellation. The sibling Buyer client adopts typed projections, explicit detail confirmation, deadline/resume refresh, exact uncertain retry and identity-safe cleanup; synchronized affected contracts/examples/specs.
+- Verification: 59 Buyer order/model/controller/widget regressions, full analyzer, formatting and debug web compilation/hot-reload recompile passed (no client connected). Platform checks include 10 PostgreSQL tests with races and responsive Customer browser checks. Deploy the additive backend migration first; deployed/device gates remain open. See [local evidence](references/order-preparation-verification.md).

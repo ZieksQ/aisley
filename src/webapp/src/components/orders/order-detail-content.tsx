@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  FiAlertCircle,
   FiCheckCircle,
   FiChevronLeft,
   FiChevronRight,
@@ -16,14 +15,13 @@ import {
 
 import { useAuth } from "@/components/auth/auth-provider";
 import { DeliveryPanel } from "./delivery-panel";
-import { OrderContactCorrection } from "./order-contact-correction";
+import { OrderBuyerActions } from "./order-buyer-actions";
+import { sessionRevision } from "@/lib/auth/session-events";
 import { OrderItems } from "./order-items";
 import { ApiError } from "@/lib/api";
 import {
-  cancelOrder,
   fetchOrder,
   fetchOrderTracking,
-  orderMutationKey,
 } from "@/lib/orders/client";
 import {
   formatOrderDateTime,
@@ -37,6 +35,12 @@ import type {
 
 export function OrderDetailContent({ orderId }: { orderId: string }) {
   const { auth } = useAuth();
+  if (auth.status !== "authenticated") return <OrderDetailLoadingState />;
+  return <OrderDetailWorkspace key={`${auth.customer.id}:${sessionRevision()}:${orderId}`} orderId={orderId} />;
+}
+
+function OrderDetailWorkspace({ orderId }: { orderId: string }) {
+  const { auth } = useAuth();
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -44,13 +48,8 @@ export function OrderDetailContent({ orderId }: { orderId: string }) {
   const [connectionIssue, setConnectionIssue] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [retryKey, setRetryKey] = useState(0);
-  const [cancelOpen, setCancelOpen] = useState(false);
-  const [cancelReason, setCancelReason] = useState("");
-  const [cancelKey, setCancelKey] = useState<string | null>(null);
-  const [mutationBusy, setMutationBusy] = useState<"cancel" | "address" | null>(null);
-  const [mutationError, setMutationError] = useState<string | null>(null);
-  const [mutationFieldError, setMutationFieldError] = useState<string | null>(null);
-  const [mutationSuccess, setMutationSuccess] = useState<string | null>(null);
+  const alive = useRef(false);
+  useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
 
   useEffect(() => {
     if (auth.status !== "authenticated") return;
@@ -59,6 +58,7 @@ export function OrderDetailContent({ orderId }: { orderId: string }) {
 
     fetchOrder(orderId, controller.signal)
       .then((nextOrder) => {
+        if (controller.signal.aborted) return;
         setOrder(nextOrder);
         setConnectionIssue(null);
       })
@@ -91,71 +91,25 @@ export function OrderDetailContent({ orderId }: { orderId: string }) {
 
     setRefreshing(true);
     try {
-      setOrder(await fetchOrder(orderId));
+      const updated = await fetchOrder(orderId);
+      if (!alive.current) return;
+      setOrder(updated);
       setConnectionIssue(null);
-    } catch {
+    } catch (caught) {
+      if (!alive.current) return;
+      if (caught instanceof ApiError && [403, 404].includes(caught.status)) {
+        setOrder(null);
+        setNotFound(true);
+        return;
+      }
       setConnectionIssue(
         "We could not refresh tracking. The last available order details are still shown.",
       );
     } finally {
-      setRefreshing(false);
+      if (alive.current) setRefreshing(false);
     }
   }, [auth.status, orderId]);
 
-  function openCancellation() {
-    setCancelReason("");
-    setCancelKey(orderMutationKey());
-    setMutationError(null);
-    setMutationFieldError(null);
-    setMutationSuccess(null);
-    setCancelOpen(true);
-  }
-
-  function closeCancellation() {
-    if (mutationBusy !== null) return;
-    setCancelOpen(false);
-    setCancelKey(null);
-    setMutationFieldError(null);
-  }
-
-  async function submitCancellation() {
-    if (!order || mutationBusy !== null) return;
-    if (!navigator.onLine) {
-      setMutationError("You are offline. Reconnect before cancelling this Order.");
-      return;
-    }
-
-    setMutationBusy("cancel");
-    setMutationError(null);
-    setMutationFieldError(null);
-    try {
-      const updated = await cancelOrder(
-        order.id,
-        cancelKey ?? orderMutationKey(),
-        cancelReason.trim() || undefined,
-      );
-      setOrder(updated);
-      setCancelOpen(false);
-      setCancelKey(null);
-      setMutationSuccess("Order cancelled. Its reserved inventory was released.");
-    } catch (caught: unknown) {
-      if (caught instanceof ApiError) {
-        setMutationError(caught.message);
-        setMutationFieldError(caught.errors.reason?.[0] ?? null);
-        if (caught.status === 409) {
-          try {
-            setOrder(await fetchOrder(order.id));
-          } catch {
-            // Keep the conflict message visible if the follow-up refresh is unavailable.
-          }
-        }
-      } else {
-        setMutationError("We could not cancel this Order. Check your connection and try again.");
-      }
-    } finally {
-      setMutationBusy(null);
-    }
-  }
 
   useEffect(() => {
     if (auth.status !== "authenticated") return;
@@ -266,91 +220,13 @@ export function OrderDetailContent({ orderId }: { orderId: string }) {
         </dl>
       </header>
 
-      {mutationSuccess || mutationError ? (
-        <div
-          role={mutationError ? "alert" : "status"}
-          className={`mt-4 flex items-start gap-2 border px-4 py-3 text-sm ${
-            mutationError
-              ? "border-[#E2B9C5] bg-[#FFF5F7] text-[#8B1E3F]"
-              : "border-[#B8D8BE] bg-[#F3FAF4] text-[#2F6039]"
-          }`}
-        >
-          <FiAlertCircle aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-          <p>{mutationError ?? mutationSuccess}</p>
-        </div>
-      ) : null}
-
-      {order.actions.canCancel || order.actions.canModify ? (
-        <section aria-labelledby="order-actions-heading" className="mt-4 border border-[#DED7E1] bg-white px-4 py-4 sm:px-5">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 id="order-actions-heading" className="text-base font-semibold text-[#2D2231]">
-                Order actions
-              </h2>
-              <p className="mt-1 text-sm text-[#6B5F6F]">
-                These options are available while the seller has not started processing this COD Order.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {order.actions.canModify && order.actions.modifiableFields.includes("delivery_address") ? (
-                <OrderContactCorrection
-                  key={`${auth.customer.id}:${order.id}`}
-                  order={order}
-                  disabled={mutationBusy !== null}
-                  onBusyChange={(busy) => setMutationBusy(busy ? "address" : null)}
-                  onUpdated={(updated) => {
-                    setOrder(updated);
-                    setMutationBusy(null);
-                  }}
-                  onSuccess={(message) => {
-                    setMutationError(null);
-                    setMutationFieldError(null);
-                    setMutationSuccess(message);
-                  }}
-                />
-              ) : null}
-              {order.actions.canCancel ? (
-                <button
-                  type="button"
-                  onClick={openCancellation}
-                  disabled={mutationBusy !== null}
-                  className="min-h-10 rounded-md bg-[#9D174D] px-4 text-sm font-semibold text-white hover:bg-[#83143F] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E6007A] disabled:opacity-60"
-                >
-                  Cancel Order
-                </button>
-              ) : null}
-            </div>
-          </div>
-        </section>
-      ) : null}
-
-      {cancelOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#281E2C]/45 px-4 py-6" role="presentation">
-          <section role="dialog" aria-modal="true" aria-labelledby="cancel-order-heading" className="w-full max-w-md border border-[#DED7E1] bg-white p-5 shadow-[0_2px_8px_rgba(40,30,44,0.18)] sm:p-6">
-            <h2 id="cancel-order-heading" className="text-lg font-semibold text-[#2D2231]">Cancel Order {order.reference}?</h2>
-            <p className="mt-2 text-sm leading-6 text-[#6B5F6F]">
-              This cancels this Shop Order only. It is a COD Order, so no payment reversal is needed. Reserved inventory will be released after the cancellation commits.
-            </p>
-            <label htmlFor="cancel-reason" className="mt-5 block text-sm font-semibold text-[#3A2E3E]">
-              Reason <span className="font-normal text-[#746978]">(optional)</span>
-            </label>
-            <textarea
-              id="cancel-reason"
-              value={cancelReason}
-              onChange={(event) => setCancelReason(event.target.value)}
-              maxLength={500}
-              rows={3}
-              className="mt-2 w-full resize-y border border-[#CFC6D2] px-3 py-2 text-sm text-[#302534] outline-none focus:border-[#4C1268] focus:ring-2 focus:ring-[#E6007A]/30"
-            />
-            {mutationError ? <p role="alert" className="mt-2 text-sm text-[#9D174D]">{mutationError}</p> : null}
-            {mutationFieldError && cancelOpen ? <p className="mt-2 text-sm text-[#9D174D]">{mutationFieldError}</p> : null}
-            <div className="mt-5 flex justify-end gap-2">
-              <button type="button" onClick={closeCancellation} disabled={mutationBusy !== null} className="min-h-10 rounded-md border border-[#CFC6D2] px-4 text-sm font-semibold text-[#4C1268] hover:bg-[#F6F0F8] disabled:opacity-60">Keep Order</button>
-              <button type="button" onClick={() => void submitCancellation()} disabled={mutationBusy !== null} className="min-h-10 rounded-md bg-[#9D174D] px-4 text-sm font-semibold text-white hover:bg-[#83143F] disabled:opacity-60">{mutationBusy === "cancel" ? "Cancelling…" : "Confirm cancellation"}</button>
-            </div>
-          </section>
-        </div>
-      ) : null}
+      <OrderBuyerActions
+        key={`${auth.customer.id}:${order.id}`}
+        order={order}
+        stale={!!connectionIssue || refreshing}
+        onUpdated={setOrder}
+        onRefresh={refreshQuietly}
+      />
 
       <div className="mt-5 grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="space-y-5">
