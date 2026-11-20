@@ -8,6 +8,9 @@ export type LinehaulOption = {
   title: string
   description: string
   detail?: string
+  disabled?: boolean
+  status?: string
+  information?: string[]
 }
 
 type Props = {
@@ -47,7 +50,7 @@ export function LinehaulOptionPicker({
     const needle = search.trim().toLowerCase()
     return needle
       ? options.filter((option) =>
-          `${option.title} ${option.description} ${option.detail ?? ''}`
+          `${option.title} ${option.description} ${option.detail ?? ''} ${option.status ?? ''} ${option.information?.join(' ') ?? ''}`
             .toLowerCase()
             .includes(needle)
         )
@@ -56,9 +59,12 @@ export function LinehaulOptionPicker({
 
   return (
     <>
-      <span className="block text-sm font-medium">{label}</span>
+      <span id={`${id}-label`} className="block text-sm font-medium">
+        {label}
+      </span>
       <button
         id={id}
+        aria-labelledby={`${id}-label ${id}`}
         aria-expanded={open}
         aria-haspopup="dialog"
         className="mt-1 flex min-h-10 w-full items-center justify-between gap-3 rounded-md border border-zinc-300 bg-white px-3 py-2 text-left text-sm outline-none hover:bg-zinc-50 focus:border-[#2563EB] focus:ring-2 focus:ring-blue-600/15 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/15 dark:bg-[#111113] dark:hover:bg-white/5 dark:focus:border-blue-300"
@@ -76,6 +82,14 @@ export function LinehaulOptionPicker({
             <span className="mt-0.5 block break-words text-xs text-zinc-600 dark:text-zinc-300">
               {selected.description}
             </span>
+            {selected.status ? (
+              <span className="mt-1 block text-xs font-medium">{selected.status}</span>
+            ) : null}
+            {selected.information?.map((line, index) => (
+              <span className="mt-1 block break-words text-xs text-zinc-600 dark:text-zinc-300" key={index}>
+                {line}
+              </span>
+            ))}
             {selected.detail ? (
               <span className="mt-0.5 block break-words text-xs text-zinc-500">
                 {selected.detail}
@@ -118,7 +132,9 @@ export function LinehaulOptionPicker({
             <div className="mt-3 divide-y divide-zinc-200 border-y border-zinc-200 dark:divide-white/10 dark:border-white/10">
               {filtered.map((option) => (
                 <button
-                  className={`block w-full p-3 text-left hover:bg-zinc-50 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#2563EB] dark:hover:bg-white/5 ${value === option.id ? 'bg-blue-50/70 dark:bg-blue-400/10' : ''}`}
+                  className={`block min-h-11 w-full p-3 text-left disabled:cursor-not-allowed disabled:hover:bg-transparent hover:bg-zinc-50 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#2563EB] dark:hover:bg-white/5 ${value === option.id ? 'bg-blue-50/70 dark:bg-blue-400/10' : ''}`}
+                  disabled={option.disabled}
+                  style={option.disabled ? { opacity: 1 } : undefined}
                   key={option.id}
                   onClick={() => {
                     onChange(option.id)
@@ -134,6 +150,16 @@ export function LinehaulOptionPicker({
                       <span className="mt-1 block break-words text-sm text-zinc-600 dark:text-zinc-300">
                         {option.description}
                       </span>
+                      {option.status ? (
+                        <span className={`mt-1 block text-sm font-medium ${option.disabled ? 'text-amber-800 dark:text-amber-300' : 'text-green-800 dark:text-green-300'}`}>
+                          {option.status}
+                        </span>
+                      ) : null}
+                      {option.information?.map((line, index) => (
+                        <span className="mt-1 block break-words text-xs text-zinc-600 dark:text-zinc-300" key={index}>
+                          {line}
+                        </span>
+                      ))}
                       {option.detail ? (
                         <span className="mt-1 block break-words text-xs text-zinc-500">
                           {option.detail}

@@ -4,6 +4,7 @@ namespace App\Http\Resources\Customer;
 
 use App\Enums\OrderStatus;
 use App\Services\Customer\CustomerOrderStatusMapper;
+use App\Services\OrderPreparationPolicy;
 use App\Support\MediaUrl;
 use App\Support\ProductImageUrl;
 use Illuminate\Http\Request;
@@ -117,7 +118,8 @@ class OrderResource extends JsonResource
                 'route' => null,
                 'capturedAt' => null,
             ],
-            'actions' => $statuses->actions($this->status),
+            'preparation' => app(OrderPreparationPolicy::class)->projection($this->resource),
+            'actions' => $statuses->actions($this->status, $this->resource),
         ];
     }
 }

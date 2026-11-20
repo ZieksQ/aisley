@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { TripStatus } from './TripDetails'
 import { availabilityLabels, manilaTime } from './types'
 import type { MonitoringTrip, MonitoringTruck } from './types'
+import './monitoring.css'
 
 export function MonitoringTrucks({ trucks, query }: { trucks: MonitoringTruck[]; query: string }) {
   if (!trucks.length) {
@@ -10,8 +11,11 @@ export function MonitoringTrucks({ trucks, query }: { trucks: MonitoringTruck[];
   }
 
   return (
-    <div className="[&_table]:min-w-[960px]">
+    <div className="fleet-monitoring-table fleet-monitoring-trucks">
       <PortalTable label="Fleet monitoring trucks">
+        <colgroup>
+          <col /><col /><col /><col /><col /><col />
+        </colgroup>
         <thead>
           <tr>
             <th scope="col">Truck</th>
@@ -19,6 +23,7 @@ export function MonitoringTrucks({ trucks, query }: { trucks: MonitoringTruck[];
             <th scope="col">Assignment</th>
             <th scope="col">Scheduled departure · Manila</th>
             <th scope="col" className="text-right">Parcel capacity</th>
+            <th scope="col" className="fleet-monitoring-actions">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -31,9 +36,6 @@ export function MonitoringTrucks({ trucks, query }: { trucks: MonitoringTruck[];
                 >
                   {truck.plate_number}
                 </Link>
-                <div>
-                  <Link className="portal-button" to={`/fleet-monitoring/${truck.id}/history?${query}`}>Past transfers</Link>
-                </div>
                 <span className="portal-table-meta">
                   {[truck.make, truck.model].filter(Boolean).join(' ') || 'Make/model not set'}
                 </span>
@@ -74,6 +76,11 @@ export function MonitoringTrucks({ trucks, query }: { trucks: MonitoringTruck[];
                 <p className="font-medium">{truck.reserved_or_onboard_parcels} / {truck.max_parcels}</p>
                 <span className="portal-table-meta">{truck.remaining_capacity} remaining</span>
               </td>
+              <td className="fleet-monitoring-actions">
+                <Link className="portal-button" to={`/fleet-monitoring/${truck.id}/history?${query}`}>
+                  Past transfers<span className="sr-only"> for {truck.plate_number}</span>
+                </Link>
+              </td>
             </tr>
           ))}
         </tbody>
@@ -88,8 +95,11 @@ export function MonitoringHistoryTable({ trips, truckId, query }: { trips: Monit
   }
 
   return (
-    <div className="[&_table]:min-w-[960px]">
+    <div className="fleet-monitoring-table fleet-monitoring-history">
       <PortalTable label="Truck trip history">
+        <colgroup>
+          <col /><col /><col /><col /><col /><col />
+        </colgroup>
         <thead>
           <tr>
             <th scope="col">Route</th>
@@ -97,7 +107,7 @@ export function MonitoringHistoryTable({ trips, truckId, query }: { trips: Monit
             <th scope="col">Scheduled departure · Manila</th>
             <th scope="col">Trip status</th>
             <th scope="col" className="text-right">Parcels / capacity</th>
-            <th scope="col">Action</th>
+            <th scope="col" className="fleet-monitoring-actions">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -115,7 +125,7 @@ export function MonitoringHistoryTable({ trips, truckId, query }: { trips: Monit
               <td>{manilaTime(trip.scheduled_for)}</td>
               <td><TripStatus trip={trip} /></td>
               <td className="text-right tabular-nums">{trip.parcel_count} / {trip.capacity_snapshot}</td>
-              <td>
+              <td className="fleet-monitoring-actions">
                 <Link className="portal-button" to={`/fleet-monitoring/${truckId}/history/${trip.id}?${query}`}>
                   View transfer<span className="sr-only"> {trip.id}</span>
                 </Link>

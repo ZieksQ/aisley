@@ -13,6 +13,7 @@ use App\Models\Order;
 use App\Models\OrderStatusEvent;
 use App\Models\User;
 use App\Services\Logistics\Sorting\SortingLocks;
+use App\Services\OrderPreparationPolicy;
 use Illuminate\Support\Facades\DB;
 
 class CustomerOrderMutationService
@@ -57,7 +58,9 @@ class CustomerOrderMutationService
                 return $previous->order_id;
             }
 
-            $this->assertEligible($order, 'ORDER_NOT_CANCELLABLE', 'This Order is no longer available for cancellation.');
+            if (! app(OrderPreparationPolicy::class)->canCancelOverdue($order)) {
+                $this->assertEligible($order, 'ORDER_NOT_CANCELLABLE', 'This Order is no longer available for cancellation.');
+            }
             [$requirements, $skus, $balances] = $this->inventory->lockReservation($order);
 
             $event = $this->transition($order, OrderStatus::Cancelled, 'customer_order_cancellation');
@@ -221,7 +224,7 @@ class CustomerOrderMutationService
     private function transition(Order $order, OrderStatus $to, string $source): OrderStatusEvent
     {
         $from = $order->status;
-        if ($from !== OrderStatus::Placed) {
+        if ($from !== OrderStatus::Placed && ! ($from === OrderStatus::SellerProcessing && $to === OrderStatus::Cancelled)) {
             throw CheckoutException::conflict('ORDER_TRANSITION_CONFLICT', 'This Order is no longer available for that action.');
         }
 

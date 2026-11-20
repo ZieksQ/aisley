@@ -5,6 +5,7 @@
     <div id="root"></div>
     <script type="module">
       import React from 'react'
+      import { BrowserRouter } from 'react-router-dom'
       import { createRoot } from 'react-dom/client'
       import { LinehaulDispatch } from '/src/components/LinehaulDispatch.tsx'
       import '/src/index.css'
@@ -12,7 +13,7 @@
       const trip = {
         id: 'synthetic-trip', direction: 'return', status: 'scheduled', revision: 1,
         from_hub: { name: 'Calamba hub' }, to_hub: { name: 'Manila hub' },
-        truck: { plate_number: 'TEST-001' }, driver: { name: 'Test driver' },
+        truck: { id: 'synthetic-truck', plate_number: 'TEST-001' }, driver: { name: 'Test driver' },
         scheduled_for: '2026-10-22T09:00:00+08:00', parcel_count: 0, capacity_snapshot: 100,
         parcels: [], can_release: true, can_depart: true, lane_blocked: false,
         released_for_departure_at: null, courier_arrived_at: null,
@@ -33,7 +34,7 @@
         if (url.pathname === '/api/v1/logistics/linehaul/trips') return json({ data: { enabled: true, ready_groups: [], trucks: [], drivers: [], outbound: [trip], inbound: [], visitors: [] } })
         throw new Error(`Unexpected fixture request: ${url.pathname}`)
       }
-      createRoot(document.getElementById('root')).render(React.createElement(LinehaulDispatch))
+      createRoot(document.getElementById('root')).render(React.createElement(BrowserRouter, null, React.createElement(LinehaulDispatch)))
     </script>
   </body>
 </html>

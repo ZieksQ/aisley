@@ -99,6 +99,8 @@ class SellerOrderService
         return [
             'selectedLogisticsOrganization:id,business_name',
             'items:id,order_id,product_id,product_variant_id,product_name,variant_name,sku,selected_options,unit_price,quantity,line_subtotal,currency',
+            'items.product.galleryMedia',
+            'items.variant.primaryMedia',
             'address',
             'statusEvents' => fn ($query) => $query->orderBy('occurred_at')->orderBy('id'),
             'pickupRequestOrder.sellerPickupRequest',

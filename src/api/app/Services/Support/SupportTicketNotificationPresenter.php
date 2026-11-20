@@ -88,7 +88,7 @@ class SupportTicketNotificationPresenter
             'support-ticket.created' => ['New support ticket', "{$ticket} was created and is waiting for review."],
             'support-ticket.requester-replied' => ['New requester reply', "{$ticket} received a new requester reply."],
             'support-ticket.admin-replied' => ['Support ticket reply', "Support replied to {$ticket}."],
-            'support-ticket.status-changed' => ['Support ticket status updated', "{$ticket} has a status update from support."],
+            'support-ticket.status-changed' => ['Support ticket status updated', "{$ticket} has a status update."],
             default => ['Notification', 'An update is available.'],
         };
     }

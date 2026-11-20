@@ -391,6 +391,57 @@ class LogisticsPickupWaybillTest extends TestCase
             ->assertJsonValidationErrors('order_ids');
     }
 
+    public function test_schedule_detail_shows_all_seven_parcels_across_requests_and_only_its_members(): void
+    {
+        [$logistics, $organization, $hub] = $this->logistics('Schedule Detail Logistics', 'Manila', 'Metro Manila');
+        $courier = $this->courier($organization->id, $hub->id);
+        $selected = collect();
+        $excluded = null;
+        foreach ([1, 3, 4] as $count) {
+            [$seller, $shop] = $this->sellerShop();
+            $orders = collect(range(1, $count))->map(fn () => $this->order($shop));
+            $orders->each->update(['status' => OrderStatus::SellerProcessing]);
+            $this->actingAs($seller)->withHeader('Idempotency-Key', (string) Str::uuid())
+                ->postJson('/api/v1/seller/orders/pickup-requests', [
+                    'order_ids' => $orders->pluck('id')->all(),
+                    'pickup_address_id' => $seller->addresses()->sole()->id,
+                    'logistics_organization_id' => $organization->id,
+                ])->assertOk();
+            if ($count === 4) {
+                $excluded = $orders->pop();
+            }
+            $selected = $selected->concat($orders);
+        }
+        $schedule = $this->actingAs($logistics)->withHeader('Idempotency-Key', (string) Str::uuid())
+            ->postJson('/api/v1/logistics/pickup-schedules', [
+                'order_ids' => $selected->pluck('id')->all(),
+                'courier_id' => $courier->id,
+                'starts_at' => now()->addHours(3)->toISOString(),
+            ])->assertCreated()->json('data');
+        $url = "/api/v1/logistics/pickup-schedules/{$schedule['id']}";
+        $response = $this->getJson($url)->assertOk()
+            ->assertJsonPath('data.id', $schedule['id'])
+            ->assertJsonPath('data.parcel_count', 7)
+            ->assertJsonPath('data.courier.id', $courier->id)
+            ->assertJsonCount(3, 'data.pickup_requests');
+        $parcels = collect($response->json('data.pickup_requests'))->flatMap(fn ($pickup) => $pickup['orders']);
+        $this->assertEqualsCanonicalizing($selected->pluck('id')->all(), $parcels->pluck('id')->all());
+        $this->assertFalse($parcels->pluck('id')->contains($excluded->id));
+        $this->assertCount(7, $parcels->pluck('waybill.reference')->filter());
+        $this->assertStringContainsString('no-store', (string) $response->headers->get('Cache-Control'));
+
+        [$foreign] = $this->logistics('Foreign Detail Logistics', 'Cebu City', 'Cebu');
+        $this->actingAs($foreign)->getJson($url)->assertNotFound();
+        $this->actingAs($courier)->getJson($url)->assertForbidden();
+        $this->actingAs($seller)->getJson($url)->assertForbidden();
+        $this->actingAs($logistics)->getJson('/api/v1/logistics/pickup-schedules/'.Str::uuid())->assertNotFound();
+
+        PickupSchedule::findOrFail($schedule['id'])->update(['status' => PickupScheduleStatus::Cancelled]);
+        $this->getJson($url)->assertOk()->assertJsonPath('data.status', 'cancelled')->assertJsonPath('data.parcel_count', 7);
+        PickupSchedule::findOrFail($schedule['id'])->update(['status' => PickupScheduleStatus::Completed]);
+        $this->getJson($url)->assertOk()->assertJsonPath('data.status', 'completed')->assertJsonPath('data.parcel_count', 7);
+    }
+
     public function test_logistics_can_sort_pickup_schedules_by_pickup_window(): void
     {
         [$logistics, $organization, $hub] = $this->logistics('Sorted Pickup Logistics', 'Manila', 'Metro Manila');

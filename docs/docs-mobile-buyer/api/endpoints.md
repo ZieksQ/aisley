@@ -141,6 +141,7 @@ the role's `{key,label}` category options and each notification DTO includes `ca
 | `GET` | `/api/v1/customer/orders` | Active Customer + consent | 120,1 | `Customer\OrderController@index` |
 | `GET` | `/api/v1/customer/orders/{order}` | Active Customer + consent | 120,1 | `Customer\OrderController@show` |
 | `POST` | `/api/v1/customer/orders/{order}/cancel` | Active Customer + consent | 120,1 | `Customer\OrderController@cancel` |
+| `POST` | `/api/v1/customer/orders/{order}/preparation-extension` | Active Customer + consent | 120,1 | `Customer\\OrderController@extendPreparation` |
 | `POST` | `/api/v1/customer/orders/{order}/modification/quote` | Active Customer + consent | 120,1 | `Customer\OrderController@quoteModification` |
 | `PATCH` | `/api/v1/customer/orders/{order}/modification` | Active Customer + consent | 120,1 | `Customer\OrderController@modify` |
 | `GET` | `/api/v1/customer/orders/{order}/tracking` | Active Customer + consent | 120,1 | `Customer\OrderController@tracking` |
@@ -298,3 +299,7 @@ This operation is included in the current operation index; historical route snap
 | POST | `/api/v1/customer/auth/registration/verify-email` | Public | Five incorrect codes; IP/minute | `Auth\RegistrationEmailController@verify` |
 
 Existing registration requires `email_verification_token`; see [contract](../registration-email.md).
+
+## Preparation deadline revision — 2026-11-12
+
+[order-preparation-v1](order-preparation.md) defines `POST /api/v1/customer/orders/{order}/preparation-extension`, UUID replay keys and empty JSON body, `200 {data:Order}`, added `preparation` fields/`actions.canExtendPreparation`, overdue-processing cancellation, authorization/errors and client adoption boundaries.

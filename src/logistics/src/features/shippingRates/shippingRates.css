@@ -35,3 +35,8 @@ html.dark .flatpickr-calendar.logistics-rate-calendar .flatpickr-day.selected:fo
   background: #2563eb;
   color: #fff;
 }
+
+.rate-rule-modal .portal-button-primary:active {
+  border-color: var(--brand-active);
+  background: var(--brand-active);
+}

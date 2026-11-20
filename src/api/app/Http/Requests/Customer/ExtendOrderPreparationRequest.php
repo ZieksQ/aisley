@@ -1,0 +1,41 @@
+<?php
+
+namespace App\Http\Requests\Customer;
+
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Validator;
+
+class ExtendOrderPreparationRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    /** @return array<string, mixed> */
+    public function rules(): array
+    {
+        return [];
+    }
+
+    /** @return list<callable> */
+    public function after(): array
+    {
+        return [function (Validator $validator): void {
+            foreach (array_keys($this->all()) as $field) {
+                $validator->errors()->add($field, 'This field is not accepted for preparation extension.');
+            }
+
+            $key = $this->header('Idempotency-Key');
+            if (! is_string($key) || ! Str::isUuid($key)) {
+                $validator->errors()->add('idempotency_key', 'A UUID Idempotency-Key header is required.');
+            }
+        }];
+    }
+
+    public function idempotencyKey(): string
+    {
+        return (string) $this->header('Idempotency-Key');
+    }
+}

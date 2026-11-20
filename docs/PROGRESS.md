@@ -85,3 +85,59 @@ Short, dated log of what has been implemented across the whole app. Append new e
 
 - Added same-day Philippine pickup due time, three failed attempts per parcel assignment, a 72-hour retry period and whole-schedule rejection before acceptance. Uncollected parcels return to Logistics scheduling with their existing waybills, stock reservations and assignment/decision history; collected parcels retain custody until hub receipt. Added Courier API/prototype controls, bounded minute expiry, current-assignment receipt/projection handling and canonical/portable mobile contracts without changing Flutter status.
 - Verification: 39 scoped SQLite API tests (716 assertions), prototype TypeScript/build/lint, responsive Chromium action/retry/expiry checks, scoped Pint, PHP syntax and whitespace checks passed. One existing linehaul test fails at unchanged sorting setup (`destination_unclear`), reproduced with original tracked API code. Apply the additive migration; PostgreSQL/concurrent-worker, deployed and external Flutter acceptance remain open. See [verification](features/orders/logistics-pickups/retry-verification-2026-11-09.md).
+
+## 2026-11-11 — Flutter address pin privacy and map layering
+
+- Updated the explicitly scoped external Courier and Buyer Flutter repositories: clipped map viewports and isolated web SDK stacking; removed Buyer manual latitude/longitude entry and numeric readouts while retaining validated pins internally. Courier has no coordinate entry/readouts. Updated affected external presentation contracts and progress logs; API contracts remain unchanged.
+- Verification: both Flutter analyzers, 104 focused widget/PSGC/recovery tests, formatting and whitespace checks passed. Synthetic Chromium checked Courier map/overlay layering and controls plus Buyer semantics-enabled pin tap/Confirm/Cancel and hidden coordinates; reviewed Buyer capture. Installed Android, live GPS/API/provider and release-build acceptance remain open.
+
+## 2026-11-11 — Seller order thumbnails and pickup collection status
+
+- Added first-item Product thumbnails to Seller order tables using the existing approved-media resolver and shared missing/broken-image fallback. Pickup request list/detail now show confirmed partial/full Seller collection from current first-mile task evidence, including existing requests, while preserving scheduling status, hub-receipt lifecycle and tenant isolation. Updated the canonical Seller preparation spec; no migrations or external mobile contract changes.
+- Verification: 20 focused SQLite API tests (309 assertions), 8 existing order-action tests, Seller TypeScript/production build, scoped Oxlint/Pint and whitespace checks passed. Focused synthetic Chromium passed 8 responsive/theme states plus image fallbacks, collection refetch and detail checks; reviewed captures. The broader Orders browser suite stopped at its unrelated approval-sort pagination assertion (`page=2` versus expected `1`); existing bundle-size warning and deployed/PostgreSQL acceptance remain open.
+
+## 2026-11-11 — Logistics pickup schedule parcel details
+
+- Fixed schedule rows opening only their first Seller pickup request. Each row now opens a schedule-specific view showing every assigned parcel grouped by request, with tracking IDs and links to existing request actions. Added a private organization/hub-scoped detail endpoint that preserves historical membership and excludes other parcels when requests are split across schedules; updated the canonical pickup spec.
+- Verification: 15 SQLite pickup API tests (319 assertions), Logistics TypeScript/production build, scoped Oxlint/Pint and whitespace checks passed. Synthetic Chromium passed 51 checks covering 7 parcels across 3 requests, schedule navigation/direct links, 320/390/768/1440px light/dark views, overflow, refresh recovery, empty and missing states; reviewed captures. Existing bundle-size warning remains; deployed/PostgreSQL acceptance remains open.
+
+## 2026-11-11 — Sorting reconciliation spacing
+
+- Tightened Logistics Session reconciliation rows to 8px vertical padding, bounded reference/lane/status columns and top-aligned details. Preserved mobile stacking, filters and lane actions, with safe wrapping for long parcel details; no API or workflow changes.
+- Verification: Logistics TypeScript/production build, scoped Oxlint and whitespace checks passed. Synthetic Chromium passed eight 320/390/768/1440px light/dark combinations with search, status filtering, empty results, long-content overflow and Move lane checks; reviewed mobile/desktop captures. Existing bundle-size warning remains; deployed acceptance was not run.
+
+## 2026-11-11 — Fleet Monitoring alignment polish
+
+- Aligned assignment/company filters, moved Past transfers into a dedicated action column, tightened truck/history table spacing and removed duplicated map-panel padding. Preserved themes, responsive table scrolling, navigation, API and mobile contracts.
+- Verification: Logistics TypeScript/production build, scoped application Oxlint and whitespace checks passed; 213 synthetic Chromium monitoring/assignment/transfer checks passed. Subagent reviewed responsive light/dark captures and scored UI/UX 6.9 → 7.6/10; final Taste inspection had zero failures and one existing below-fold warning. Existing bundle-size/test-helper warnings, intermittent map tiles and deployed acceptance remain documented in [verification](features/logistics/fleet-monitoring/verification-2026-11-11.md).
+
+## 2026-11-11 — Linehaul driver availability and assignment context
+
+- Driver selection now lists Available/Busy status, blocking schedules, truck/route or planned-area context and honest operational/last-confirmed locations. Busy drivers remain readable but cannot be selected; refresh clears stale selections. Shared API/scheduling work queries include active delivery acceptance/transit, preserve pickup reservations and redact foreign-work details. Updated the canonical spec; no migration or mobile contract change.
+- Verification: 16 focused SQLite API tests (343 assertions), Logistics TypeScript/production build, scoped Oxlint/Pint and whitespace checks passed. Synthetic Chromium covered 48 route/theme/viewport states, six driver-modal states and driver search/selection/refresh/keyboard plus transport interactions; reviewed captures and passing Taste inspection with documented modal/sidebar allowances. Two older company-truck tests fail on unpinned Seller fixtures, reproduced with the original service. Existing bundle warning and deployed/PostgreSQL acceptance remain. See [verification](features/logistics/company-truck-linehaul-dispatch/driver-availability-verification-2026-11-11.md).
+
+## 2026-11-11 — Last-mile dispatch excludes linehaul parcels
+
+- Last-mile dispatch now requests a server-filtered final-mile queue, excluding pending transfers, intermediate/wrong hubs, unresolved/unavailable routes and condition holds before pagination and lane/status counts. Completed destination-hub, same-hub and historical route-less parcels remain visible; general parcel queues and transactional dispatch guards are preserved. Updated the canonical dispatch spec; no migration or external mobile contract changes.
+- Verification: the new regression failed without the fix; 11 focused SQLite API tests (487 assertions), Logistics TypeScript/production build, scoped Oxlint/Pint and whitespace checks passed. The broader hub-routing suite had 21 failures at existing unpinned Seller-address setup before routing assertions. Existing bundle warning remains; browser, deployed and PostgreSQL acceptance were not rerun.
+
+
+## 2026-11-12 — Linehaul outbound table and monitoring links
+
+- Aligned Active outbound trips with compact consistent insets, separate Status/Actions columns and fixed-width button stacks. Rows and keyboard route links open the selected truck trip in Fleet Monitoring, with terminal-history fallback and explicit unavailable handling when assignments change. Preserved operational controls, role themes, API/mobile contracts and organization boundaries; updated canonical specs.
+- Verification: Logistics TypeScript/production build, scoped Oxlint/Taste source lint and whitespace checks passed. Synthetic Chromium passed 34 new outbound checks, 79 monitoring checks, 66 past-transfer checks and existing transport interactions; reviewed responsive light/dark and destination captures. Taste inspection had zero failures and two existing shell/composition warnings. Existing bundle warning and contained phone table scrolling remain documented in [verification](features/logistics/company-truck-linehaul-dispatch/outbound-table-verification-2026-11-12.md). Deployed/real-account acceptance remains open.
+
+## 2026-11-12 — Logistics rate-rule modal layout
+
+- Aligned Shipping rates Add/Edit rule fields, shortened the title and kept the header and 44px shared action buttons visible around independently scrolling fields. Applied Logistics blue hover/pressed states and theme-aware native controls; preserved rule validation, local drafts, focus handling and API/mobile contracts. Updated the canonical spec.
+- Verification: Logistics TypeScript/production build, scoped Oxlint/Taste source lint and whitespace checks passed. Synthetic Chromium passed 60 existing rates/fleet route/theme/viewport combinations and 12 modal states plus add/edit, validation, tooltip, keyboard and close checks. Reviewed before/after captures; final light/dark Taste inspections passed with documented existing-sidebar/modal-overlay allowances. Existing bundle warning, deployed/device and actual browser-zoom acceptance remain. See [verification](features/logistics/rate-cards/modal-verification-2026-11-12.md).
+
+## 2026-11-12 — Logistics ticket chat and requester status
+
+- Reworked Logistics support into an Aqours/Stitch-inspired inbox, chat and details/status workspace with responsive themes and visible mobile reply actions. Added own-ticket resolve/reopen with public reasons, revision/idempotency checks, Admin notifications/unread history and protected private drafts; preserved Admin work states and other requester contracts.
+- Verification: 30 scoped SQLite support API tests (912 assertions), Logistics TypeScript/build, scoped lint/Pint/whitespace and 16 focused Chromium chat/details states plus status/retry/conflict/access-loss checks passed. Independent subagent Stitch review passed; Taste source scan had no failures. Existing bundle warning, unrelated stale Settings policy fixture and deployed/PostgreSQL/device limitations remain. See [verification](features/logistics/support-tickets/verification-2026-11-12.md).
+
+## 2026-11-12 — Seller preparation deadlines and Buyer extension
+
+- Added original-acceptance 72-hour preparation deadlines, one Buyer-approved 72-hour extension from approval, overdue processing cancellation and current server capabilities. Customer web and the sibling Buyer Flutter app show deadline/confirmation/retry states; late pickup readiness remains valid until cancellation wins. Preserved COD, reservations, role/tenant boundaries and downstream custody; synchronized canonical/portable contracts.
+- Verification: 24 scoped SQLite tests (351 assertions), 10 PostgreSQL deadline/concurrency tests (116 assertions), Customer TypeScript/build/scoped lint, 12 existing web unit tests and new/existing responsive Chromium checks passed. Buyer full analyzer, 59 focused tests, formatting and debug web compile/hot-reload recompile passed (no client connected). Reviewed web captures. Apply the additive extension migration before rollout; deployed/installed-device acceptance remains open. See [verification](features/customer/order-status/preparation-verification-2026-11-12.md).

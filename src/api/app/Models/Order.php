@@ -73,6 +73,19 @@ class Order extends Model
         return $this->hasMany(OrderAddress::class)->orderBy('version');
     }
 
+    public function sellerAcceptanceEvent(): HasOne
+    {
+        return $this->hasOne(OrderStatusEvent::class)
+            ->where('source', 'seller_order_acceptance')
+            ->where('to_status', OrderStatus::SellerProcessing->value)
+            ->oldest('occurred_at')->oldest('id');
+    }
+
+    public function preparationExtension(): HasOne
+    {
+        return $this->hasOne(OrderPreparationExtension::class);
+    }
+
     public function customerOrderCancellation(): HasOne
     {
         return $this->hasOne(CustomerOrderCancellation::class);

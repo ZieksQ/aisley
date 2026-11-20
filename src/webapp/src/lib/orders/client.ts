@@ -106,3 +106,16 @@ export async function quoteOrderAddress(orderId: string, addressId: string, revi
   );
   return response.data;
 }
+
+export async function extendOrderPreparation(orderId: string, idempotencyKey: string) {
+  await initializeCsrf();
+  const response = await apiRequest<DataResponse<OrderDetail>>(
+    `/api/v1/customer/orders/${encodeURIComponent(orderId)}/preparation-extension`,
+    {
+      method: "POST",
+      headers: { "Idempotency-Key": idempotencyKey },
+      body: JSON.stringify({}),
+    },
+  );
+  return response.data;
+}

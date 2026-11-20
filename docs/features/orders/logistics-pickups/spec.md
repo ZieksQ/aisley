@@ -70,7 +70,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 - Logistics Pickups is schedule-first: its primary list contains only schedules whose `logistics_organization_id` and hub match the authenticated account's server-derived organization and sole hub.
 - Support bounded schedule pagination and allow-listed status/date/search filters with deterministic schedule ordering.
 - The Logistics schedule list defaults to `scheduled`, lets the operator explicitly include completed/cancelled history, and supports allow-listed ascending or descending pickup-window ordering.
-- Each schedule row shows schedule reference/ID, assigned Courier, linked Seller pickup-request IDs, status, pickup window, total parcel count, and remaining parcels still in `assigned` or `accepted` first-mile task states.
+- Each schedule row shows schedule reference/ID, assigned Courier, linked Seller pickup-request IDs, status, pickup window, total parcel count, and remaining parcels still in `assigned` or `accepted` first-mile task states. Opening a row navigates to `/pickups/schedules/:scheduleId` and shows every linked parcel grouped by Seller pickup request, including requests from other Shops in the same run. Show only schedule membership when a request is split across runs; retain request links for waybills, Seller contact, and schedule management.
 - **Create new schedule** opens the pending-parcel selector. It lists only unscheduled Orders for the tenant, groups them by Shop/pickup request, orders Shops by name and requests oldest-first, supports whole-request or individual parcel selection, and caps the selection at 30.
 - Keep `orders.status = ready_for_pickup` when scheduled; scheduling is not physical custody and does not consume Inventory.
 
@@ -145,7 +145,7 @@ source_coverage: docs/requirements.md, docs/workspace.md, docs/schema.md, docs/d
 ### Interfaces and UI
 
 - Seller: `GET/PUT /api/v1/seller/shipping-providers`, advisory `GET /api/v1/seller/logistics-options`, and `POST /api/v1/seller/orders/pickup-requests`.
-- Logistics: `GET /api/v1/logistics/pickups`, `GET /pickups/{pickup}`, `GET /pickup-couriers` (optionally with `starts_at` and `exclude_schedule_id` (legacy `ends_at` remains accepted) for server-calculated availability), `GET /pickup-schedules`, `POST /pickup-schedules`, and revision/cancel endpoints.
+- Logistics: `GET /api/v1/logistics/pickups`, `GET /pickups/{pickup}`, `GET /pickup-couriers` (optionally with `starts_at` and `exclude_schedule_id` (legacy `ends_at` remains accepted) for server-calculated availability), `GET /pickup-schedules`, tenant/hub-scoped `GET /pickup-schedules/{schedule}` (schedule metadata and all linked parcels grouped by pickup request), `POST /pickup-schedules`, and revision/cancel endpoints.
 - Courier API: read assigned first-mile tasks and acknowledge/accept under the existing mobile-only boundary.
 - Add a dedicated Seller provider-settings page and a checkout-locked, provider-grouped packing handoff; add a schedule-first Logistics `/pickups` screen plus pickup-request detail with `@aisley/ui`, responsive tables/cards, keyboard controls, and loading/empty/error/conflict states. Schedule creation supports a cross-Seller selection capped at 30 parcels and summarizes parcel/Shop counts before assignment.
 - API resources expose server-calculated capabilities; frontends never infer assignability, availability, distance validity, or tenant ownership.

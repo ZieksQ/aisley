@@ -77,7 +77,8 @@ class DeliverSupportTicketNotification implements ShouldBeUnique, ShouldQueue
     /** @return list<User> */
     private function recipients(SupportTicket $ticket, SupportTicketEvent $event): array
     {
-        if (in_array($this->type, ['support-ticket.created', 'support-ticket.requester-replied'], true)) {
+        $requesterStatus = $this->type === 'support-ticket.status-changed' && $event->actor_role === UserRole::Logistics;
+        if ($requesterStatus || in_array($this->type, ['support-ticket.created', 'support-ticket.requester-replied'], true)) {
             $eligibleAdmins = fn () => User::query()
                 ->where('role', UserRole::Admin->value)
                 ->where('status', UserStatus::Active->value)
@@ -85,7 +86,7 @@ class DeliverSupportTicketNotification implements ShouldBeUnique, ShouldQueue
                 ->withAdminPermission('notifications.view')
                 ->withAdminPermission('support-tickets.view');
 
-            if ($this->type === 'support-ticket.requester-replied' && $ticket->assignee_user_id !== null) {
+            if (($requesterStatus || $this->type === 'support-ticket.requester-replied') && $ticket->assignee_user_id !== null) {
                 $assignee = $eligibleAdmins()->whereKey($ticket->assignee_user_id)->first();
                 if ($assignee !== null) {
                     return [$assignee];
@@ -123,7 +124,11 @@ class DeliverSupportTicketNotification implements ShouldBeUnique, ShouldQueue
             'support-ticket.admin-replied' => $event->type === SupportTicketEventType::Reply
                 && $event->actor_role === UserRole::Admin,
             'support-ticket.status-changed' => $event->type === SupportTicketEventType::Status
-                && $event->actor_role === UserRole::Admin,
+                && ($event->actor_role === UserRole::Admin
+                    || ($event->actor_role === UserRole::Logistics
+                        && $event->actor_user_id === $ticket->requester_user_id
+                        && $ticket->requester_role === UserRole::Logistics
+                        && $event->body !== null)),
             default => false,
         };
     }

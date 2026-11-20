@@ -18,6 +18,7 @@ class ListFulfillmentQueueRequest extends FormRequest
     {
         return [
             'status' => ['sometimes', Rule::enum(ShipmentStatus::class)],
+            'final_mile' => ['sometimes', 'boolean'],
             'evidence_status' => ['sometimes', Rule::enum(ShipmentEvidenceStatus::class)],
             'search' => ['sometimes', 'string', 'max:100'],
             'lane_id' => ['sometimes', 'string', 'regex:/^(unassigned|[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$/'],

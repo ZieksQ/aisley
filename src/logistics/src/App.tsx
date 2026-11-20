@@ -28,6 +28,7 @@ import { LoginPage } from './pages/LoginPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { NotificationsPage } from './pages/NotificationsPage'
 import { OperationalChatPage } from './pages/OperationalChatPage'
+import { PickupScheduleDetailPage } from './pages/PickupScheduleDetailPage'
 import { PickupDetailPage } from './pages/PickupDetailPage'
 import { PickupsPage } from './pages/PickupsPage'
 import { PolicyConsentPage } from './pages/PolicyConsentPage'
@@ -73,6 +74,7 @@ export default function App() {
           <Route element={<DispatchPage />} path="/dispatch" />
           <Route element={<PickupsPage />} path="/pickups" />
           <Route element={<PickupDetailPage />} path="/pickups/:pickupId" />
+          <Route element={<PickupScheduleDetailPage />} path="/pickups/schedules/:scheduleId" />
           <Route element={<CourierApplicationsPage />} path="/courier-applications" />
           <Route element={<CourierApplicationDetailPage />} path="/courier-applications/:affiliationId" />
           <Route element={<FleetMonitoringPage />} path="/fleet-monitoring" />

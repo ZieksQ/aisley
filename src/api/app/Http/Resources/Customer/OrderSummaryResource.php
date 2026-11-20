@@ -3,6 +3,7 @@
 namespace App\Http\Resources\Customer;
 
 use App\Services\Customer\CustomerOrderStatusMapper;
+use App\Services\OrderPreparationPolicy;
 use App\Support\MediaUrl;
 use App\Support\ProductImageUrl;
 use Illuminate\Http\Request;
@@ -55,7 +56,8 @@ class OrderSummaryResource extends JsonResource
                 'payable' => $this->payable_total,
                 'currency' => $this->currency,
             ],
-            'actions' => $statuses->actions($this->status),
+            'preparation' => app(OrderPreparationPolicy::class)->projection($this->resource),
+            'actions' => $statuses->actions($this->status, $this->resource),
             'detailUrl' => '/orders/'.$this->id,
         ];
     }

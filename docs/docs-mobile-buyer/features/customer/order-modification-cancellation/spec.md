@@ -21,7 +21,7 @@ Flutter: **implemented including current shipping selection/projections**. See [
 
 Owned eligible Order → confirm cancellation or select saved shipping row → locked action → refreshed state/history.
 
-- Only server-eligible placed COD/pending-payment Orders with required records and no pickup/waybill/task may change. Seller processing closes the window; no invented grace timer.
+- Address changes require server-eligible placed COD Orders. Cancellation also permits overdue seller_processing Orders under order-preparation-v1; all writes require pending payment, required records and no downstream handoff.
 - Cancel uses optional reason ≤500 and UUID key, releases only its reserved stock once and makes no refund/payment-reversal promise. Modification uses address_id, optional expected_revision and UUID key, validating own complete shipping row and creating new immutable version/history.
 - Legacy contact-only PATCH retains B02/B10 location/pin restrictions. The 2026-11-04 [reviewed address contract](../../../api/order-address-change.md) adds quote_id confirmation and delivery repricing; Flutter adoption of that new flow remains pending, separately from existing G21/G25 evidence.
 - On 409 refetch capabilities; freeze uncertain key/payload for exact replay. No quantity/variant/voucher/price/status changes. Address Book edits do not modify Order snapshots.
@@ -41,7 +41,7 @@ Phone/tablet padding, natural content heights and keyboard/text resizing follow 
 
 ### Feature behavior and boundaries
 
-- Only placed COD Orders are currently eligible; Seller processing closes Customer mutation window.
+- Modification remains placed COD only; server-authorized overdue processing COD Orders additionally permit cancellation and one-time preparation extension.
 - Confirmation shows current reference and cancellation reason or reviewed replacement address.
 - Cancellation reason optional nullable ≤500; never send status/payment/quantity/owner fields.
 - Cancellation uses UUID key and releases owned reserved inventory once; current vouchers do not
@@ -84,7 +84,7 @@ A path UUID or slug is encoded before use; do not submit owner, status, financia
 authority.
 
 - `POST /api/v1/customer/orders/{order}/cancel` → HTTP 200; `{data:Order}`.
-  Request: reason optional nullable string≤500; UUID header; placed COD only.
+  Request: reason optional nullable string≤500; UUID header; eligible placed or overdue processing COD only.
   Replay: UUID Idempotency-Key required. Freeze payload/key; exact retry only after uncertain outcome. Changed intent uses a new key after reconciliation.
 - `PATCH /api/v1/customer/orders/{order}/modification` → HTTP 200; `{data:Order}`.
   Request: address_id owned shipping UUID; expected_revision optional nullable int≥1 (send deliveryAddress.version); UUID header; placed COD only.
@@ -112,8 +112,8 @@ unsupported actions.
 
 | DTO | Wire fields and types |
 | --- | --- |
-| `Order` | `id: UUID`, `reference: string`, `checkoutBatchId: UUID?`, `placedAt: timestamp`, `latestTrackingAt: timestamp`, `status: string`, `statusLabel: string`, `group: string`, `groupLabel: string`, `shop: OrderShop`, `shippingProvider: ShippingProvider?`, `items: ReviewableItem[]`, `deliveryAddress: DeliveryAddress`, `payment: Payment`, `vouchers: OrderVoucher[]`, `totals: Totals`, `timeline: Tracking[]`, `timelineCount: int`, `timelineHasMore: bool`, `trackingUrl: URL`, `delivery: Delivery?`, `map: UnavailableMap`, `actions: OrderActions` |
-| `OrderActions` | `canCancel: bool`, `canModify: bool`, `canReview: bool`, `modifiableFields: string[]` |
+| `Order` | `id: UUID`, `reference: string`, `checkoutBatchId: UUID?`, `placedAt: timestamp`, `latestTrackingAt: timestamp`, `status: string`, `statusLabel: string`, `group: string`, `groupLabel: string`, `shop: OrderShop`, `shippingProvider: ShippingProvider?`, `items: ReviewableItem[]`, `deliveryAddress: DeliveryAddress`, `payment: Payment`, `vouchers: OrderVoucher[]`, `totals: Totals`, `timeline: Tracking[]`, `timelineCount: int`, `timelineHasMore: bool`, `trackingUrl: URL`, `delivery: Delivery?`, `map: UnavailableMap`, `preparation: OrderPreparation~`, `actions: OrderActions` |
+| `OrderActions` | `canCancel: bool`, `canExtendPreparation: bool~`, `canModify: bool`, `canReview: bool`, `modifiableFields: string[]` |
 | `DeliveryAddress` | `version: int`, `recipientName: string`, `contactNumber: string`, `addressLine1: string`, `addressLine2: string?`, `barangay: string`, `cityMunicipality: string`, `province: string`, `region: string`, `postalCode: string`, `country: string`, `latitude: coordinate?`, `longitude: coordinate?` |
 
 ### Errors, ownership and recovery
@@ -225,3 +225,5 @@ Live/device commerce and deployment configuration remain open under G25.
 ### Reviewed destination-change handoff — 2026-11-04
 
 - Follow [Order address change](../../../api/order-address-change.md) for exact quote/PATCH shapes, unchanged-provider coverage, capped shipping saving, effective snapshots, expiry/staleness and exact uncertain retries. Existing Flutter implementation/status above is preserved; this new flow is not certified by backend/storefront checks.
+
+- Preparation revision (2026-11-12): [order-preparation-v1](../../../api/order-preparation.md) adds original-acceptance 72-hour deadlines, one Buyer-approved 72-hour extension, overdue cancellation, server capabilities, timeline history and exact retries. Address changes remain placed-only; no automatic cancellation. Buyer implementation is locally verified separately; deployed/device gates stay open.

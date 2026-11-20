@@ -1,0 +1,41 @@
+/* Scoped to outbound dispatch; other transport tables retain their layout. */
+.linehaul-outbound-table .portal-table {
+  table-layout: fixed;
+  min-width: 64rem;
+}
+.linehaul-outbound-table col:nth-child(1) { width: 25%; }
+.linehaul-outbound-table col:nth-child(2) { width: 16%; }
+.linehaul-outbound-table col:nth-child(3) { width: 8%; }
+.linehaul-outbound-table col:nth-child(4) { width: 19%; }
+.linehaul-outbound-table col:nth-child(5) { width: 15%; }
+.linehaul-outbound-table col:nth-child(6) { width: 11rem; }
+.transport-workspace .linehaul-outbound-table .portal-table :is(th, td) {
+  padding: 0.5rem 1rem;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+.linehaul-trip-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.5rem;
+}
+.linehaul-trip-actions .portal-button {
+  width: 100%;
+  min-height: 2.75rem;
+  white-space: normal;
+}
+.transport-workspace .linehaul-outbound-table .portal-table .linehaul-trip-link {
+  display: flex;
+  align-items: flex-start;
+  width: fit-content;
+  min-height: 2.75rem;
+}
+.linehaul-trip-link:focus-visible {
+  outline: 2px solid var(--brand-focus);
+  outline-offset: 2px;
+  border-radius: 0.25rem;
+}
+.linehaul-outbound-table .transport-status {
+  white-space: normal;
+}

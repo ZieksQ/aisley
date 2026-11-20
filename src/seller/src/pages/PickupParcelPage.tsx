@@ -81,8 +81,8 @@ function PickupParcel({ pickupId }: { pickupId: string }) {
           <dl className="order-surface mb-6 grid gap-4 p-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Pickup request summary">
             <Summary label="Logistics provider" value={pickup.provider?.business_name ?? 'Provider unavailable'} />
             <Summary label="Parcels" value={String(pickup.order_count)} />
-            <div><dt className="portal-secondary text-xs">Request status</dt><dd className="mt-2"><PickupStatus status={pickup.status} /></dd></div>
-            <Summary label="Pickup date" value={pickup.status === 'scheduled' ? pickupDate(pickup.pickup_date) : 'Awaiting Logistics'} />
+            <div><dt className="portal-secondary text-xs">Request status</dt><dd className="mt-2"><PickupStatus status={pickup.collection_status ?? pickup.status} /></dd></div>
+            <Summary label="Pickup date" value={pickup.pickup_date ? pickupDate(pickup.pickup_date) : 'Awaiting Logistics'} />
           </dl>
           {pickup.order_count > 30 && <p className="order-info mb-4">Bulk printing supports 30 labels per request. Print each parcel’s waybill from its row.</p>}
           <section className="order-surface order-table-wrap overflow-hidden" aria-labelledby="pickup-parcels-title">

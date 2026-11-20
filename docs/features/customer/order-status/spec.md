@@ -3,7 +3,7 @@ feature: order-status
 title: Customer Order Monitoring and Logistics Tracking
 system: AISLEY
 type: Feature Specification
-version: 1.7
+version: 1.8
 status: Implemented read-only tracking and scheduled-delivery Courier projection; live map deferred
 role: Customer
 scope: Customer storefront and Laravel API
@@ -126,3 +126,11 @@ Account menu → Orders → paginated Customer-owned list
 - Detail and Batch show the latest committed address/pricing and effective shipping saving; historical checkout/voucher snapshots remain immutable. Item/provider selection changes remain unavailable.
 
 - The separate `customer-order.address-changed` notification is emitted only for a committed reviewed address/pricing revision. It uses safe reference-only text, Orders category and the existing Order destination; legacy contact-only requests do not add this event. The paired Seller alert stays Shop-scoped.
+
+### Seller preparation deadline — 2026-11-12
+
+- Acceptance starts a 72-hour window ending at `ready_for_pickup`. Detail and list expose `preparation.acceptedAt`, `initialDeadlineAt`, `deadlineAt`, `extendedAt`, `extensionUsed`, `active`, `overdue`, `serverTime` and `actions.canExtendPreparation`. UTC timestamps are shown locally; expiry is inclusive (`now >= deadline`).
+- Detail offers one **Extend preparation by 3 days** approval or cancellation after expiry. Extension starts at approval and suppresses cancellation for 72 hours; missing that deadline leaves cancellation only. There is no automatic cancellation; late readiness remains valid until cancellation commits. Missing acceptance history disables deadline actions. The [mutation spec](../order-modification-cancellation/spec.md) owns authorization/replay and inventory behavior.
+- Customer web and the external Buyer Flutter app implement these controls with stale-state disabling, deadline/resume refetch, confirmation and exact uncertain retry. Installed-device and deployed acceptance remain separate from local checks.
+
+Verification: [local preparation checks](preparation-verification-2026-11-12.md); deployed and installed-device acceptance remain open.

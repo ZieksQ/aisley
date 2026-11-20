@@ -57,3 +57,22 @@ export type CourierAvailabilityOption = CourierOption & {
   availability: 'available' | 'scheduled' | 'not_checked'
   schedules: CourierSchedule[]
 }
+
+export type PickupScheduleDetail = {
+  id: string
+  reference: string
+  status: PickupSchedule['status']
+  starts_at: string
+  parcel_count: number
+  courier: CourierOption
+  pickup_requests: Array<{
+    id: string
+    shop: { id: string; name: string }
+    orders: Array<{
+      id: string
+      reference: string
+      status: string
+      waybill: { id: string; reference: string } | null
+    }>
+  }>
+}

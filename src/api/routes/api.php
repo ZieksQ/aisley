@@ -85,6 +85,7 @@ use App\Http\Controllers\Logistics\DeliveryProofPhotoController;
 use App\Http\Controllers\Logistics\DeployRiderController;
 use App\Http\Controllers\Logistics\DispatchScheduleController;
 use App\Http\Controllers\Logistics\FinanceController as LogisticsFinanceController;
+use App\Http\Controllers\Logistics\FleetAssignmentController;
 use App\Http\Controllers\Logistics\FleetMonitoringController;
 use App\Http\Controllers\Logistics\FulfillmentStatusController;
 use App\Http\Controllers\Logistics\HubRoutingController;
@@ -93,6 +94,7 @@ use App\Http\Controllers\Logistics\LinehaulReceivingController;
 use App\Http\Controllers\Logistics\LinehaulTripController;
 use App\Http\Controllers\Logistics\NotificationController as LogisticsNotificationController;
 use App\Http\Controllers\Logistics\PickupController as LogisticsPickupController;
+use App\Http\Controllers\Logistics\PickupScheduleDetailController;
 use App\Http\Controllers\Logistics\RateCardController;
 use App\Http\Controllers\Logistics\ReceivingController;
 use App\Http\Controllers\Logistics\ShippingRateController;
@@ -558,6 +560,7 @@ Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', '
         Route::get('/{ticket}', [RequesterSupportTicketController::class, 'show'])->whereUuid('ticket')->name('show');
         Route::post('/{ticket}/replies', [RequesterSupportTicketController::class, 'reply'])->middleware('throttle:support-ticket-reply')->whereUuid('ticket')->name('replies.store');
         Route::post('/{ticket}/read', [RequesterSupportTicketController::class, 'read'])->whereUuid('ticket')->name('read');
+        Route::post('/{ticket}/status', [RequesterSupportTicketController::class, 'logisticsStatus'])->middleware('throttle:support-ticket-reply')->whereUuid('ticket')->name('status');
     });
     Route::prefix('chat-attachments')->group(function () {
         Route::get('/', [ChatAttachmentController::class, 'capabilities']);
@@ -608,7 +611,7 @@ Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', '
     Route::post('/rate-cards', [RateCardController::class, 'store'])->name('rate-cards.store');
     Route::post('/rate-cards/{card}/publish', [RateCardController::class, 'publish'])->whereUuid('card')->name('rate-cards.publish');
     Route::get('/fleet/monitoring', [FleetMonitoringController::class, 'index']);
-    Route::get('/fleet/monitoring/assignments', [\App\Http\Controllers\Logistics\FleetAssignmentController::class, 'index']);
+    Route::get('/fleet/monitoring/assignments', [FleetAssignmentController::class, 'index']);
     Route::get('/fleet/monitoring/{truck}', [FleetMonitoringController::class, 'show'])->whereUuid('truck');
     Route::get('/fleet/monitoring/{truck}/trips/{trip}', [FleetMonitoringController::class, 'trip'])->whereUuid('truck')->whereUuid('trip');
     Route::get('/fleet/monitoring/{truck}/trips', [FleetMonitoringController::class, 'trips'])->whereUuid('truck');
@@ -675,6 +678,7 @@ Route::prefix('v1/logistics')->name('logistics.')->middleware(['auth:sanctum', '
     Route::get('/pickup-couriers', [LogisticsPickupController::class, 'couriers'])->name('pickup-couriers.index');
     Route::get('/waybills/{waybill}.pdf', [LogisticsPickupController::class, 'waybillPdf'])->whereUuid('waybill')->name('waybills.pdf');
     Route::get('/pickup-schedules', [LogisticsPickupController::class, 'schedules'])->name('pickup-schedules.index');
+    Route::get('/pickup-schedules/{schedule}', PickupScheduleDetailController::class)->whereUuid('schedule')->name('pickup-schedules.show');
     Route::post('/pickup-schedules', [LogisticsPickupController::class, 'createSchedule'])->name('pickup-schedules.store');
     Route::patch('/pickup-schedules/{schedule}', [LogisticsPickupController::class, 'reviseSchedule'])->whereUuid('schedule')->name('pickup-schedules.update');
     Route::post('/pickup-schedules/{schedule}/cancel', [LogisticsPickupController::class, 'cancelSchedule'])->whereUuid('schedule')->name('pickup-schedules.cancel');
@@ -970,6 +974,8 @@ Route::prefix('v1/customer')->name('customer.')->middleware('throttle:120,1')->g
         Route::get('/orders/{order}/tracking', [OrderController::class, 'tracking'])
             ->whereUuid('order')
             ->name('orders.tracking');
+        Route::post('/orders/{order}/preparation-extension', [OrderController::class, 'extendPreparation'])
+            ->whereUuid('order')->name('orders.preparation-extension');
         Route::post('/orders/{order}/cancel', [OrderController::class, 'cancel'])
             ->whereUuid('order')
             ->name('orders.cancel');

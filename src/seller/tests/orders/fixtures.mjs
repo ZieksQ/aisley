@@ -15,6 +15,7 @@ export function installOrderFixtures() {
     requested_at: `2026-10-${String(15 - index % 10).padStart(2, '0')}T07:32:00Z`,
     pickup_date: index % 3 === 1 ? '2026-10-18' : null,
     order_count: 2, provider,
+    collection_status: index === 3 ? 'partially_picked_up' : index === 4 ? 'picked_up' : null,
   }))
   const orders = state.orders = Array.from({ length: 25 }, (_, index) => {
     const id = uuid('90', index + 1)
@@ -24,6 +25,7 @@ export function installOrderFixtures() {
       placed_at: '2026-10-15T04:30:00Z', latest_activity_at: '2026-10-15T07:32:00Z',
       payment: { method: 'cod', status: 'pending' }, shipping_provider: provider,
       items: [{ id: uuid('70', index + 1), product_id: uuid('60', 1), variant_id: null,
+        image_url: index === 0 ? 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2252%22 height=%2252%22%3E%3Crect width=%2252%22 height=%2252%22 fill=%22purple%22/%3E%3C/svg%3E' : null,
         product_name: index % 2 ? 'Glazed ceramic mug' : 'Cedar storage basket', variant_name: 'Natural',
         sku: `${index % 2 ? 'MUG' : 'CEDAR'}-${index + 1}`, selected_options: [], quantity: 2, unit_price: '248.50', line_subtotal: '497.00', currency: 'PHP' }],
       delivery_address: address,

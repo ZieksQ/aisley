@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { Button } from '@aisley/ui'
 import { TicketHistory, TicketStatusBadge } from '@aisley/ui/chat'
 import type { TicketClient, TicketDetail, TicketDraftState } from './types'
 
-export function TicketDetailView({ client, detail, olderBusy, onLoadOlder, onChanged, onDraftChange }: {
+export function TicketDetailView({ client, detail, olderBusy, onLoadOlder, onChanged, onDraftChange, headerActions, interactionDisabled = false }: {
+  headerActions?: ReactNode
+  interactionDisabled?: boolean
   client: TicketClient
   detail: TicketDetail
   olderBusy: boolean
@@ -22,7 +24,7 @@ export function TicketDetailView({ client, detail, olderBusy, onLoadOlder, onCha
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (busy) return
+    if (busy || interactionDisabled) return
     const requestKey = key ?? crypto.randomUUID()
     setKey(requestKey)
     setBusy(true)
@@ -57,12 +59,13 @@ export function TicketDetailView({ client, detail, olderBusy, onLoadOlder, onCha
         <p className="support-ticket-reference">{ticket.reference}</p>
         <h2>{ticket.subject}</h2>
       </div>
-      <TicketStatusBadge status={ticket.status} requester />
+      {headerActions ? <div className="support-detail-controls"><TicketStatusBadge status={ticket.status} requester />{headerActions}</div> : <TicketStatusBadge status={ticket.status} requester />}
     </div>
     <p className="support-ticket-meta">
       {ticket.category.charAt(0).toUpperCase() + ticket.category.slice(1)} · Updated {new Date(ticket.last_activity_at).toLocaleString('en-PH', { timeZone: 'Asia/Manila' })}
     </p>
     {ticket.status === 'resolved' && <p className="support-ticket-notice">This ticket is resolved. Send a reply to reopen it if you still need help.</p>}
+    {interactionDisabled && <p className="support-ticket-notice">Finish or clear your status change in Details / status before replying.</p>}
     <TicketHistory events={detail.events} hasOlder={Boolean(detail.next_cursor)} loadingOlder={olderBusy} onLoadOlder={onLoadOlder} requester />
     <form className="support-ticket-form" onSubmit={submit}>
       <div className="support-composer-heading">
@@ -70,7 +73,7 @@ export function TicketDetailView({ client, detail, olderBusy, onLoadOlder, onCha
         <span className="support-ticket-hint" id="ticket-reply-count">{body.length.toLocaleString('en-PH')}/2,000</span>
       </div>
       <textarea
-        disabled={uncertain || busy}
+        disabled={uncertain || busy || interactionDisabled}
         id="ticket-reply"
         aria-describedby="ticket-reply-count"
         placeholder="Write your reply…"
@@ -85,7 +88,7 @@ export function TicketDetailView({ client, detail, olderBusy, onLoadOlder, onCha
       {uncertain && <p className="support-ticket-hint">The reply may have been saved. Retry the same submission to check safely.</p>}
       <div className="support-ticket-actions">
         <span className="support-ticket-hint">Only you and Admin support can read this ticket.</span>
-        <Button disabled={busy || body.trim().length === 0} type="submit">
+        <Button disabled={busy || interactionDisabled || body.trim().length === 0} type="submit">
           {busy ? 'Sending…' : uncertain ? 'Retry reply' : 'Send reply'}
         </Button>
         {uncertain &&

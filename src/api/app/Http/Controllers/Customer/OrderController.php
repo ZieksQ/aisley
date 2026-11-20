@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Customer\CancelOrderRequest;
+use App\Http\Requests\Customer\ExtendOrderPreparationRequest;
 use App\Http\Requests\Customer\ListOrdersRequest;
 use App\Http\Requests\Customer\ListOrderTrackingRequest;
 use App\Http\Requests\Customer\ModifyOrderRequest;
@@ -14,6 +15,7 @@ use App\Http\Resources\Customer\OrderSummaryResource;
 use App\Http\Resources\Customer\OrderTrackingResource;
 use App\Services\Customer\CustomerOrderMutationService;
 use App\Services\Customer\CustomerOrderStatusMapper;
+use App\Services\Customer\ExtendOrderPreparation;
 use App\Services\Customer\OrderAddressChange;
 use App\Services\Customer\OrderTrackingService;
 use Illuminate\Http\JsonResponse;
@@ -54,6 +56,12 @@ class OrderController extends Controller
         return OrderTrackingResource::collection(
             $this->orders->tracking($request->user(), $order, $request->pageSize()),
         )->response()->header('Cache-Control', 'no-store, private');
+    }
+
+    public function extendPreparation(ExtendOrderPreparationRequest $request, string $order, ExtendOrderPreparation $extension): JsonResponse
+    {
+        return (new OrderResource($extension->handle($request->user(), $order, $request->idempotencyKey())))
+            ->response()->header('Cache-Control', 'no-store, private');
     }
 
     public function cancel(CancelOrderRequest $request, string $order): JsonResponse

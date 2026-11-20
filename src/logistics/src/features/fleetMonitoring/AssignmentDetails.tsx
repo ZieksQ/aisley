@@ -28,8 +28,12 @@ export function AssignmentDetails({ work }: { work: FleetAssignment }) {
           <p className="text-sm font-medium">{stageLabels[work.stage]} schedule</p>
           <p className="portal-secondary mt-1 text-sm">{work.scheduled_for ? manilaTime(work.scheduled_for) : 'Schedule unavailable'}{work.schedule_ends_at ? ` – ${manilaTime(work.schedule_ends_at)}` : ''}</p>
           {work.schedule_reference ? <p className="portal-secondary mt-1 break-words text-sm">{work.schedule_reference}</p> : null}
-          {work.truck ? <Link className="portal-link mt-2 inline-block text-sm" to={`/fleet-monitoring/${encodeURIComponent(work.truck.id)}?${params}`}>Truck {work.truck.plate_number}</Link> : null}
-          {work.truck ? <Link className="portal-button mt-2" to={`/fleet-monitoring/${encodeURIComponent(work.truck.id)}/history?${params}`}>Past transfers</Link> : null}
+          {work.truck ? (
+            <div className="portal-inline-actions mt-3">
+              <Link className="portal-link inline-flex min-h-11 items-center text-sm" to={`/fleet-monitoring/${encodeURIComponent(work.truck.id)}?${params}`}>Truck {work.truck.plate_number}</Link>
+              <Link className="portal-button whitespace-nowrap" to={`/fleet-monitoring/${encodeURIComponent(work.truck.id)}/history?${params}`}>Past transfers</Link>
+            </div>
+          ) : null}
         </div>
         <ol className="space-y-3" aria-label="Assignment stops">
           {work.stops.map((stop, index) => (

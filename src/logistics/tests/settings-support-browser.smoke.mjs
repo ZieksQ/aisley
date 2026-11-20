@@ -88,6 +88,7 @@ function installUiFixtures() {
     const parsed = new URL(url, location.origin)
     const path = parsed.pathname
     const fixture = window.uiFixture
+    if (path.endsWith('/chat-notifications')) return json({ data: [], meta: { unread_count: 0 } })
     if (path.endsWith('/policy-consent/status')) return json({ data: { all_required_accepted: fixture.mode !== 'consent', policies: [policy('terms_of_service'), policy('privacy_policy')] } })
     if (path.includes('/platform/policies/')) {
       while (fixture.mode === 'loading') await new Promise((resolve) => setTimeout(resolve, 50))
@@ -100,6 +101,16 @@ function installUiFixtures() {
       if (path.endsWith('/read')) return json({ data: tickets.find((ticket) => ticket.id === path.split('/').at(-2)) })
       fixture.writes.push({ path, body: options.body, key: new Headers(options.headers).get('Idempotency-Key') })
       if (fixture.failNext) { fixture.failNext = false; return json({ message: 'Outcome unconfirmed. Retry the same request.' }, 503) }
+      if (path.endsWith('/status')) {
+        const body = JSON.parse(options.body)
+        if (fixture.denyStatus) return json({ message: 'Support access changed.' }, 403)
+        if (fixture.statusConflict) { fixture.statusConflict = false; return json({ message: 'Ticket changed. Review the latest status.' }, 409) }
+        const current = tickets.find(ticket => ticket.id === path.split('/').at(-2))
+        current.status = body.status
+        current.revision += 1
+        fixture.statusEvent = { id: `status-${current.revision}`, sequence: current.revision, type: 'status', actor_role: 'logistics', is_mine: true, body: body.reason, from_status: body.status === 'resolved' ? 'open' : 'resolved', to_status: body.status, created_at: at }
+        return json({ data: current, event: fixture.statusEvent })
+      }
       if (path.endsWith('/support-tickets')) {
         const body = JSON.parse(options.body)
         const created = ticket('3', body.subject, 'open')
@@ -119,7 +130,7 @@ function installUiFixtures() {
     if (fixture.mode === 'detail-error') return json({ message: 'Conversation unavailable. Try again.' }, 503)
     if (id === '1' && fixture.detailDelay) await new Promise((resolve) => setTimeout(resolve, fixture.detailDelay))
     const data = fixture.tickets.find((ticket) => ticket.id === id) ?? ticket(id, 'Older ticket', 'open')
-    return json({ data: { ...data }, events: [{ id: `event-${id}-${parsed.searchParams.has('cursor') ? 1 : 2}`, sequence: parsed.searchParams.has('cursor') ? 1 : 2, type: 'reply', actor_role: 'admin', is_mine: false, body: parsed.searchParams.has('cursor') ? 'Older history entry' : 'Please describe the delivery issue. <script>untrusted text</script>', created_at: at }], next_cursor: parsed.searchParams.has('cursor') ? null : 'older' })
+    return json({ data: { ...data }, events: [...(fixture.statusEvent ? [fixture.statusEvent] : []), { id: `event-${id}-${parsed.searchParams.has('cursor') ? 1 : 2}`, sequence: parsed.searchParams.has('cursor') ? 1 : 2, type: 'reply', actor_role: 'admin', is_mine: false, body: parsed.searchParams.has('cursor') ? 'Older history entry' : 'Please describe the delivery issue. <script>untrusted text</script>', created_at: at }], next_cursor: parsed.searchParams.has('cursor') ? null : 'older' })
   }
 }
 
@@ -133,6 +144,77 @@ const shots = 'src/logistics/node_modules/.cache/ui-shots'
 await mkdir(shots, { recursive: true })
 
 try {
+  if (process.env.SUPPORT_TICKETS_ONLY) {
+    for (const [width, height] of [[320, 720], [390, 568], [768, 900], [1440, 900]]) for (const theme of ['light', 'dark']) {
+      await cdp('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: false })
+      await js(`localStorage.setItem('logistics-theme', ${JSON.stringify(theme)})`)
+      await navigate('/support-tickets')
+      await until('document.querySelector(".support-ticket-list-item")')
+      await js('document.querySelector(".support-ticket-list-item").click()')
+      await until('document.querySelector("#ticket-reply")')
+      assert.equal(await js('document.documentElement.scrollWidth <= innerWidth + 1'), true)
+      await js('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))')
+      assert.equal(await js('document.querySelector(".support-ticket-actions button[type=submit]").getBoundingClientRect().bottom <= innerHeight + 1'), true, 'Reply action visible at rest')
+      assert.equal(await js('getComputedStyle(document.querySelector(".support-details-panel")).display !== "none"'), width >= 1400)
+      assert.equal(await js('document.documentElement.classList.contains("dark")'), theme === 'dark')
+      await writeFile(`${shots}/ticket-chat-${width}-${theme}.png`, Buffer.from((await cdp('Page.captureScreenshot', { format: 'png' })).data, 'base64'))
+      if (width < 1400) await click('Details / status')
+      await until('getComputedStyle(document.querySelector(".support-details-panel")).display !== "none"')
+      await fill('#ticket-status-reason', 'Handover confirmed. Issue resolved.')
+      assert.equal(await js('document.documentElement.classList.contains("dark")'), theme === 'dark')
+      await writeFile(`${shots}/ticket-details-${width}-${theme}.png`, Buffer.from((await cdp('Page.captureScreenshot', { format: 'png' })).data, 'base64'))
+      await js('window.uiFixture.failNext = true')
+      await click('Mark as resolved')
+      await until('document.body.innerText.includes("Retry status change")')
+      assert.equal(await js('document.querySelector("#ticket-status-reason").disabled'), true)
+      const first = await js('window.uiFixture.writes.at(-1)')
+      await js('window.uiFixture.tickets[0].revision = 9')
+      await js(`document.querySelector('[aria-label="Refresh support tickets"]').click()`)
+      await click('Retry status change')
+      await until('document.body.innerText.includes("Status saved.") && document.querySelector("#ticket-status-reason").value === ""')
+      const second = await js('window.uiFixture.writes.at(-1)')
+      assert.deepEqual(second, first, 'Exact status retry preserves body, original revision and UUID key')
+      assert.equal(await js('window.uiFixture.tickets[0].status'), 'resolved')
+      await fill('#ticket-status-reason', 'The handover issue returned.')
+      await click('Reopen ticket')
+      await until('window.uiFixture.tickets[0].status === "open" && document.querySelector("#ticket-status-reason").value === ""')
+      await fill('#ticket-status-reason', 'Keep this unsent status reason')
+      if (width < 1400) await click('Conversation')
+      assert.equal(await js('document.querySelector("#ticket-reply").disabled'), true)
+      if (width < 1400) {
+        assert.equal(await js('document.body.innerText.includes("Finish or clear your status change")'), true)
+        await click('Details / status')
+      }
+      await js('window.uiFixture.acceptConfirm = false; document.querySelectorAll(".support-ticket-list-item")[1].click()')
+      assert.equal(await js('document.querySelector("#ticket-status-reason").value'), 'Keep this unsent status reason')
+      await fill('#ticket-status-reason', '')
+      if (width === 390 && theme === 'light') {
+        await cdp('Emulation.setDeviceMetricsOverride', { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false })
+        assert.equal(await js('getComputedStyle(document.querySelector(".support-ticket-detail .support-ticket-form")).display'), 'grid', 'Resize retains composer layout')
+      }
+    }
+    await navigate('/support-tickets')
+    await until('document.querySelector(".support-ticket-list-item")')
+    await js('document.querySelector(".support-ticket-list-item").click()')
+    await until('document.querySelector("#ticket-status-reason")')
+    await fill('#ticket-status-reason', 'Keep my reason after a conflict.')
+    await js('window.uiFixture.statusConflict = true')
+    await click('Mark as resolved')
+    await until('document.body.innerText.includes("Ticket changed. Review the latest status.")')
+    assert.equal(await js('document.querySelector("#ticket-status-reason").value'), 'Keep my reason after a conflict.')
+    assert.equal(await js('document.querySelector("#ticket-status-reason").disabled'), false)
+    const conflictedKey = await js('window.uiFixture.writes.at(-1).key')
+    await click('Mark as resolved')
+    await until('document.querySelector("#ticket-status-reason").value === ""')
+    assert.notEqual(await js('window.uiFixture.writes.at(-1).key'), conflictedKey)
+    await fill('#ticket-status-reason', 'Private reason clears after access loss')
+    await js('window.uiFixture.denyStatus = true')
+    await click('Reopen ticket')
+    await until('location.pathname === "/login"')
+    assert.equal(await js('document.querySelector("#ticket-status-reason")'), null)
+    assert.deepEqual(errors, [])
+    console.log('PASS: 16 ticket chat/details responsive/theme states; resolve, reopen, exact uncertain retry, draft guard and resize checks')
+  } else {
   for (const width of [390, 768, 1440]) for (const theme of ['light', 'dark']) {
     await cdp('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: false })
     await js(`localStorage.setItem('logistics-theme', ${JSON.stringify(theme)})`)
@@ -338,6 +420,7 @@ try {
   assert.equal(await js('JSON.parse(window.sortFixture.writes[0].body).scheduled_for'), '2026-12-02T15:28:00+08:00')
   assert.deepEqual(errors, [], 'No runtime exceptions')
   console.log('PASS: 30 responsive/theme states, settings navigation, theme persistence, draft safety, retries, pagination, errors and Flatpickr contracts')
+  }
 } finally {
   socket.close()
   await fetch(`${browser}/json/close/${target.id}`)

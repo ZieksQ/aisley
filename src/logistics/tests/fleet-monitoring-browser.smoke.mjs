@@ -112,6 +112,27 @@ try {
         await check('document.documentElement.scrollWidth <= innerWidth + 1', `${route} overflow at ${width}/${dark}`)
         await check("getComputedStyle(document.querySelector('.portal-page')).fontFamily.includes('Geist')", 'Existing typeface')
         if (width < 1440 && route === '/fleet-monitoring') await check("document.querySelector('.portal-table-region').scrollWidth > document.querySelector('.portal-table-region').clientWidth", 'Wide tables scroll within their region')
+        if (route === '/fleet-monitoring') {
+          await check(`(() => {
+            const action = document.querySelector('tbody tr .fleet-monitoring-actions a')
+            return action && action.getBoundingClientRect().height >= 44
+              && action.getBoundingClientRect().height <= 45
+              && action.closest('td').cellIndex === 5
+          })()`, 'Past transfers has a single-line accessible trailing action')
+          await check(`(() => {
+            const table = document.querySelector('.portal-table-region').getBoundingClientRect()
+            const section = document.querySelector('#monitoring-trucks-title').getBoundingClientRect()
+            return Math.abs(table.left - section.left) < 1
+              && Math.abs(table.right - section.right) < 1
+          })()`, 'Truck table shares the section margins')
+          if (width === 1440) {
+            await check(`(() => {
+              const controls = ['input[name=search]', 'select[name=availability]', '.fleet-monitoring-filters button[type=submit]']
+                .map(selector => document.querySelector(selector).getBoundingClientRect())
+              return controls.every(rect => Math.abs(rect.bottom - controls[0].bottom) < 1)
+            })()`, 'Company search, availability and Apply controls align')
+          }
+        }
         if (route.endsWith('truck-2')) await check("document.body.innerText.includes('In transit: San Pedro hub → Davao hub') && document.body.innerText.includes('Driver reported arrival') && document.body.innerText.includes('Not recorded')", 'Reported arrival is distinct')
         if (width === 320 || width === 1440) {
           const shot = await cdp('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false })

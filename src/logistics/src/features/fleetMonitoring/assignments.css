@@ -13,6 +13,48 @@
 .assignment-color-first_mile {
   color: var(--assignment-first-mile);
 }
+.assignment-toolbar {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 1rem;
+}
+
+.assignment-search {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.assignment-search .portal-field {
+  flex: 1 1 11rem;
+}
+
+.assignment-search .portal-button {
+  white-space: nowrap;
+}
+
+.assignment-panel.portal-panel {
+  padding: 0;
+}
+
+@media (min-width: 1280px) {
+  .assignment-toolbar {
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: space-between;
+  }
+
+  .assignment-search {
+    width: 24rem;
+  }
+
+  .assignment-search:has(button:nth-of-type(2)) {
+    width: 32rem;
+  }
+}
 .assignment-color-linehaul {
   color: var(--assignment-linehaul);
 }

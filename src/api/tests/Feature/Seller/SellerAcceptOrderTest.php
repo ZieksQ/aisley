@@ -24,6 +24,7 @@ use App\Models\Product;
 use App\Models\Shop;
 use App\Models\ShopCategory;
 use App\Models\User;
+use App\Support\ProductImageUrl;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -50,6 +51,29 @@ class SellerAcceptOrderTest extends TestCase
         $this->withHeader('Idempotency-Key', (string) Str::uuid())
             ->postJson("/api/v1/seller/orders/{$foreignOrder->id}/approve")
             ->assertNotFound();
+    }
+
+    public function test_order_images_use_existing_product_media_and_keep_purchased_snapshots(): void
+    {
+        [$seller, $shop] = $this->sellerShop();
+        $order = $this->order($shop);
+        $item = $order->items()->firstOrFail();
+        $item->product->update([
+            'name' => 'Renamed catalog product',
+            'thumbnail_disk' => 'public', 'thumbnail_path' => 'products/order-preview.jpg',
+        ]);
+        $expectedUrl = ProductImageUrl::from($item->product->fresh());
+        $this->assertNotNull($expectedUrl);
+        foreach (['/api/v1/seller/orders', '/api/v1/seller/orders/'.$order->id] as $url) {
+            $prefix = $url === '/api/v1/seller/orders' ? 'data.0' : 'data';
+            $this->actingAs($seller)->getJson($url)->assertOk()
+                ->assertJsonPath($prefix.'.items.0.image_url', $expectedUrl)
+                ->assertJsonPath($prefix.'.items.0.product_name', 'Snapshot product');
+        }
+        $item->product->delete();
+        $this->getJson('/api/v1/seller/orders')->assertOk()
+            ->assertJsonPath('data.0.items.0.image_url', null)
+            ->assertJsonPath('data.0.items.0.product_name', 'Snapshot product');
     }
 
     public function test_order_search_matches_owned_references_and_purchased_snapshots_before_pagination(): void

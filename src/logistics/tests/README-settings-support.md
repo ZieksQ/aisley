@@ -24,3 +24,5 @@ The runner injects controlled API fixtures before rendering. It checks 390/768/1
 It also checks the Finance collection time-only picker and published sort-version scheduling payload. Sorting fixtures are reused from `sorting-browser.smoke.mjs`; existing unrelated Sorting actions are not rerun. Screenshots are written under ignored `src/logistics/node_modules/.cache/ui-shots/` for visual inspection.
 
 These checks establish frontend behavior against mocked APIs and the production build. They do not certify live Laravel/PostgreSQL, real financial operations, physical devices, or external Flutter implementations.
+
+For the focused Aqours/Stitch ticket chat and status suite, run the same runner with `SUPPORT_TICKETS_ONLY=1`. It captures conversation/details at 320/390/768/1440px in both themes (including a 568px-high view), resolves/reopens, verifies exact uncertain status retries across refresh, protects status drafts, and checks narrow-to-desktop composer layout. These use synthetic API responses; API tests separately verify real authorization and state transitions.

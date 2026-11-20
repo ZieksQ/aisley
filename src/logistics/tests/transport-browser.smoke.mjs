@@ -71,6 +71,7 @@ async function click(label) {
 async function key(value, code = value, keyCode = 0) {
   await cdp('Input.dispatchKeyEvent', {
     type: 'keyDown',
+    text: value === 'Enter' ? '\r' : undefined,
     key: value,
     code,
     windowsVirtualKeyCode: keyCode
@@ -107,7 +108,7 @@ await cdp('Page.addScriptToEvaluateOnNewDocument', {
 const directory = 'src/logistics/node_modules/.cache/transport-browser'
 await mkdir(directory, { recursive: true })
 try {
-  for (const width of [390, 768, 1440]) {
+  for (const width of process.env.LOGISTICS_UI_INTERACTIONS_ONLY ? [] : [390, 768, 1440]) {
     await cdp('Emulation.setDeviceMetricsOverride', {
       width,
       height: 1000,
@@ -132,6 +133,19 @@ try {
           true,
           `No page overflow: ${path} ${width}/${dark}`
         )
+        if (path === '/linehaul-dispatch') {
+          await js('document.querySelector("#linehaul-driver").click()')
+          await until('document.querySelector("dialog[open]")')
+          assert.equal(await js('[...document.querySelectorAll("dialog button")].find(b=>b.textContent.includes("Ana Cruz")).disabled'), true)
+          assert.equal(await js('getComputedStyle([...document.querySelectorAll("dialog button")].find(b=>b.textContent.includes("Ana Cruz"))).opacity'), '1', 'Busy schedule details remain readable')
+          assert.equal(await js('document.querySelector("dialog").innerText.includes("In transit: San Pedro hub")'), true)
+          assert.equal(await js('document.querySelector("dialog").innerText.includes("PHT")'), true)
+          assert.equal(await js('document.querySelector("dialog").scrollWidth <= document.querySelector("dialog").clientWidth + 1'), true)
+          const shot = await cdp('Page.captureScreenshot', { format: 'png' })
+          await writeFile(`${directory}/driver-picker-${width}-${dark ? 'dark' : 'light'}.png`, Buffer.from(shot.data, 'base64'))
+          await key('Escape', 'Escape', 27)
+          assert.equal(await js('document.activeElement.id'), 'linehaul-driver')
+        }
         if (path === '/delivery-confirmations')
           assert.equal(
             await js('window.transportFixture.photos.length'),
@@ -225,7 +239,29 @@ try {
 
   await js('document.querySelector("#linehaul-driver").click()')
   await until('document.querySelector("dialog[open]")')
+  await fill('dialog input[type="search"]', 'BUS 2048')
+  await until('document.querySelector("dialog").textContent.includes("Ana Cruz") && !document.querySelector("dialog").textContent.includes("Rafael Mendoza")')
+  await js('[...document.querySelectorAll("dialog button")].find(b=>b.textContent.includes("Ana Cruz")).click()')
+  assert.equal(await js('Boolean(document.querySelector("dialog[open]"))'), true, 'Busy driver cannot be selected')
+  await fill('dialog input[type="search"]', 'Rafael')
+  await until('document.querySelector("dialog").textContent.includes("Rafael Mendoza")')
   await js('[...document.querySelectorAll("dialog button")].find(b=>b.textContent.includes("Rafael Mendoza")).click()')
+  assert.equal(await js('document.querySelector("#linehaul-driver").textContent.includes("Location unavailable")'), true)
+  await js('window.transportFixture.trips.drivers[0].available = false')
+  await click('Refresh')
+  await until('!document.querySelector("#linehaul-driver").textContent.includes("Rafael Mendoza")')
+  assert.equal(await js('[...document.querySelectorAll("button")].find(b=>b.textContent.includes("Send request for 1 parcel")).disabled'), true)
+  await js('window.transportFixture.trips.drivers[0].available = true')
+  await click('Refresh')
+  await until('!document.querySelector("#linehaul-driver").disabled')
+  await js('document.querySelector("#linehaul-driver").click()')
+  await until('document.querySelector("dialog[open]")')
+  await js('document.querySelector("dialog input[type=search]").focus()')
+  await key('Tab', 'Tab', 9)
+  assert.equal(await js('document.activeElement.tagName === "BUTTON" && document.activeElement.textContent.includes("Rafael Mendoza")'), true)
+  await key('Enter', 'Enter', 13)
+  await until('!document.querySelector("dialog[open]")')
+  assert.equal(await js('document.querySelector("#linehaul-driver").textContent.includes("Rafael Mendoza")'), true, 'Available driver can be selected with keyboard')
   await click('Send request for 1 parcel')
   await until('window.transportFixture.writes.length > 0')
   assert.equal(await js('window.transportFixture.writes.at(-1).body.next_hub_id'), 'alpha')
@@ -235,9 +271,9 @@ try {
   await click('Select up to 15')
   await js('document.querySelector("#dispatch-courier").click()')
   await until('document.querySelector("dialog[open]")')
-  await fill('dialog input[type="search"]', 'MC 4827')
-  await until('document.querySelector("dialog").textContent.includes("Motorcycle · MC 4827")')
-  await js('[...document.querySelectorAll("dialog button")].find(b=>b.textContent.includes("Rafael Mendoza")).click()')
+  await fill('dialog[open] input[type="search"]', 'MC 4827')
+  await until('document.querySelector("dialog[open]").textContent.includes("Motorcycle · MC 4827")')
+  await js('[...document.querySelectorAll("dialog[open] button")].find(b=>b.textContent.includes("Rafael Mendoza")).click()')
   assert.equal(await js('document.querySelector("#dispatch-courier").textContent.includes("Motorcycle · MC 4827")'), true)
   await click('Dispatch 2 parcels')
   await until('window.transportFixture.writes.length > 0')
@@ -316,7 +352,7 @@ try {
   }
   assert.deepEqual(errors, [], 'No browser exceptions')
   console.log(
-    'PASS: 48 responsive/theme route checks; network requests, modal focus, capacity, inbound rejection, confirmation routing, COD and idempotent retry, missing-proof safety, error and empty states.'
+    `${process.env.LOGISTICS_UI_INTERACTIONS_ONLY ? 'PASS: interaction checks;' : 'PASS: 48 responsive/theme route checks;'} network requests, modal focus, driver availability/search/keyboard/refresh, capacity, inbound rejection, confirmation routing, COD and idempotent retry, missing-proof safety, error and empty states.`
   )
 } finally {
   socket.close()

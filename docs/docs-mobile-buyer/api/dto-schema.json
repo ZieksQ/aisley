@@ -535,6 +535,7 @@
       "trackingUrl": "URL",
       "delivery": "Delivery?",
       "map": "UnavailableMap",
+      "preparation": "OrderPreparation~",
       "actions": "OrderActions",
       "shippingProvider": "ShippingProvider?"
     },
@@ -558,8 +559,19 @@
       "route": "null",
       "capturedAt": "null"
     },
+    "OrderPreparation": {
+      "acceptedAt": "timestamp?",
+      "initialDeadlineAt": "timestamp?",
+      "deadlineAt": "timestamp?",
+      "extendedAt": "timestamp?",
+      "extensionUsed": "bool",
+      "active": "bool",
+      "overdue": "bool",
+      "serverTime": "timestamp"
+    },
     "OrderActions": {
       "canCancel": "bool",
+      "canExtendPreparation": "bool~",
       "canModify": "bool",
       "canReview": "bool",
       "modifiableFields": "string[]"
@@ -577,6 +589,7 @@
       "groupLabel": "string",
       "latestTrackingAt": "timestamp",
       "totals": "Totals",
+      "preparation": "OrderPreparation~",
       "actions": "OrderActions",
       "detailUrl": "URL",
       "shippingProvider": "ShippingProvider?"

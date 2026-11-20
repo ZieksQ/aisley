@@ -862,6 +862,7 @@ class FulfillmentTransitionService
             ->where('current_logistics_organization_id', $org->id)
             ->where('current_hub_id', $org->hub->id)
             ->whereNotIn('status', [ShipmentStatus::Delivered->value])
+            ->when($filters['final_mile'] ?? false, fn ($builder) => $builder->readyForFinalMile())
             ->when($filters['status'] ?? null, fn ($builder, $status) => $builder->where('status', $status instanceof ShipmentStatus ? $status->value : $status))
             ->when($filters['evidence_status'] ?? null, fn ($builder, $status) => $builder->whereHas('tasks.evidence', fn ($evidence) => $evidence->where('status', $status instanceof ShipmentEvidenceStatus ? $status->value : $status)))
             ->when($filters['search'] ?? null, function ($builder, $search): void {

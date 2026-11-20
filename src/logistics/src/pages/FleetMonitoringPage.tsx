@@ -49,11 +49,11 @@ export function FleetMonitoringPage() {
           <p className="portal-secondary mt-3 text-sm">All company-owned trucks, across all filters.</p>
         </section>
       ) : null}
-      <section className="space-y-4" aria-labelledby="monitoring-trucks-title">
+      <section className="fleet-monitoring-company" aria-labelledby="monitoring-trucks-title">
         <h3 id="monitoring-trucks-title" className="text-lg font-semibold">Company trucks</h3>
         <form
           key={query}
-          className="portal-filter-bar sm:!grid-cols-2 xl:!grid-cols-[minmax(14rem,1fr)_minmax(10rem,0.5fr)_auto_auto]"
+          className="portal-filter-bar fleet-monitoring-filters"
           onSubmit={(event) => {
             event.preventDefault()
             const values = new FormData(event.currentTarget)
@@ -79,7 +79,7 @@ export function FleetMonitoringPage() {
               ))}
             </select>
           </label>
-          <label className="!inline-flex min-h-11 items-center gap-2 text-sm !mb-0">
+          <label className="fleet-monitoring-overdue">
             <input
               className="size-5 accent-[var(--brand-primary)]"
               name="overdue" type="checkbox" defaultChecked={overdue}

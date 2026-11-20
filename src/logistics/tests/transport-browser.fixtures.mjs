@@ -94,7 +94,15 @@ export function installTransportFixtures() {
           max_parcels: 1
         }
       ],
-      drivers: [{ id: 'driver-1', name: 'Rafael Mendoza' }],
+      drivers: [
+        { id: 'driver-1', name: 'Rafael Mendoza', available: true, work: [], operational_location: null },
+        { id: 'driver-2', name: 'Ana Cruz', available: false,
+          work: [{ type: 'linehaul', reference: 'BUS 2048', status: 'in_transfer', scheduled_for: at, route: 'San Pedro hub → Calamba hub' }],
+          operational_location: 'In transit: San Pedro hub → Calamba hub; exact location unavailable' },
+        { id: 'driver-3', name: 'Lia Santos', available: false,
+          work: [{ type: 'pickup', reference: 'PS-104', status: 'awaiting_hub_receipt', scheduled_for: at, route: 'Poblacion, Manila' }],
+          operational_location: 'Collected parcels awaiting hub receipt; exact location unavailable' },
+      ],
       ready_groups: [
         {
           next_hub_id: 'alpha',
